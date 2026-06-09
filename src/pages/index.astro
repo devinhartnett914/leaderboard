@@ -5,9 +5,14 @@ import { SPORT_LABELS } from '../lib/types';
 import { currentAge } from '../lib/format';
 
 const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
+
+// Show the family oldest → youngest (earliest birth date first).
+const birthKey = (p: (typeof family)[number]) =>
+	p.birth_date ?? (p.birth_year ? `${p.birth_year}-00-00` : '9999-99-99');
+const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKey(b)));
 ---
 
-<Layout title="trime">
+<Layout title="Tri•Me">
 	<section class="hero">
 		<div class="eyebrow">Family Race Tracker</div>
 		<h1>Every race.<br />Every year.<br /><span>One place.</span></h1>
@@ -24,7 +29,7 @@ const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
 				<div class="empty">No family members yet.</div>
 			) : (
 				<div class="grid cols-3">
-					{family.map((p) => {
+					{familyByAge.map((p) => {
 						const age = currentAge(p.birth_date, p.birth_year);
 						return (
 							<a class="card person-card" href={`/people/${p.slug}`}>

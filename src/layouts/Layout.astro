@@ -5,8 +5,8 @@ interface Props {
 	title?: string;
 	subtitle?: string;
 }
-const { title = 'trime', subtitle } = Astro.props;
-const fullTitle = title === 'trime' ? 'trime — family race results' : `${title} · trime`;
+const { title = 'Tri•Me', subtitle } = Astro.props;
+const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `${title} · Tri•Me`;
 ---
 
 <!doctype html>
@@ -27,7 +27,7 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 	<body>
 		<header class="site-header">
 			<nav class="container">
-				<a href="/" class="brand">🏁 trime</a>
+				<a href="/" class="brand">🏁 Tri•Me</a>
 				<div class="nav-links">
 					<a href="/">Home</a>
 					<a href="/races">Races</a>
@@ -49,7 +49,7 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 		}
 
 		<main class="container">
-			{(title !== 'trime' || subtitle) && (
+			{(title !== 'Tri•Me' || subtitle) && (
 				<div class="page-head">
 					<h1>{title}</h1>
 					{subtitle && <p class="subtitle">{subtitle}</p>}
@@ -59,7 +59,7 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 		</main>
 
 		<footer class="site-footer">
-			<div class="container">trime — tracking the family's race results over the years.</div>
+			<div class="container">Tri•Me — tracking the family's race results over the years.</div>
 		</footer>
 
 		<style is:global>
