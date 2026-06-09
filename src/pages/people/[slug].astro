@@ -10,17 +10,41 @@ if (!data) return new Response('Person not found', { status: 404 });
 const { person, results } = data;
 
 const MEDAL = ['🥇', '🥈', '🥉'];
+const MEDAL_LABEL = ['1st', '2nd', '3rd'];
+const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SPORT_COLOR: Record<string, string> = {
 	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', gravel: 'var(--bike)',
 	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
 };
-function dateParts(iso: string | null | undefined, fallbackYear: number | null | undefined) {
+// filter categories split triathlon into Sprint / Olympic
+const CAT_COLOR: Record<string, string> = {
+	sprint: '#00d4ff', olympic: '#8b9cff', triathlon: '#00d4ff',
+	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', gravel: '#ffb86b', other: '#8fa5c4',
+};
+const CAT_ICON: Record<string, string> = {
+	sprint: '⚡', olympic: '🏅', triathlon: '🚴', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', gravel: '🚵', other: '🏁',
+};
+function categoryOf(r: ResultWithEdition): { key: string; label: string } {
+	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
+	if (sport === 'triathlon') {
+		const f = (r.race_edition?.distance_or_format ?? '').toLowerCase();
+		if (f.includes('sprint')) return { key: 'sprint', label: 'Sprint' };
+		if (f.includes('olympic')) return { key: 'olympic', label: 'Olympic' };
+		return { key: 'triathlon', label: 'Triathlon' };
+	}
+	return { key: sport, label: SPORT_LABELS[sport] ?? sport };
+}
+function podiumPlace(r: ResultWithEdition): number | null {
+	if (r.division_place != null && r.division_place <= 3) return r.division_place;
+	if (r.overall_place != null && r.overall_place <= 3) return r.overall_place;
+	return null;
+}
+function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
 	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
 	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
-	return { mon: '', day: '', year: fallbackYear ? String(fallbackYear) : '' };
+	return { mon: '', day: '', year: fy ? String(fy) : '' };
 }
-const podiumOf = (r: ResultWithEdition) => isPodium(r.division_place) || isPodium(r.overall_place);
 
 const sortKey = (r: ResultWithEdition) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 const sorted = [...results].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
@@ -36,16 +60,21 @@ const isPR = (r: ResultWithEdition) =>
 	r.race_edition?.race?.id != null && r.status === 'finished' && r.finish_time_seconds != null &&
 	prByRace.get(r.race_edition.race.id) === r.finish_time_seconds;
 
-// sport breakdown (for filter chips), ordered by count
-const sportCounts = new Map<string, number>();
+// counts for filter chips
+const catCounts = new Map<string, { label: string; count: number }>();
 for (const r of results) {
-	const s = r.race_edition?.race?.sport ?? 'other';
-	sportCounts.set(s, (sportCounts.get(s) ?? 0) + 1);
+	const c = categoryOf(r);
+	const e = catCounts.get(c.key) ?? { label: c.label, count: 0 };
+	e.count++;
+	catCounts.set(c.key, e);
 }
-const sportChips = [...sportCounts.entries()].sort((a, b) => b[1] - a[1]);
-const podiumCount = results.filter(podiumOf).length;
+const catChips = [...catCounts.entries()].sort((a, b) => b[1].count - a[1].count);
+const medalCounts = [0, 0, 0];
+for (const r of results) {
+	const p = podiumPlace(r);
+	if (p) medalCounts[p - 1]++;
+}
 
-// flatten to a list with year-divider markers
 type Item = { type: 'year'; year: number | null } | { type: 'card'; r: ResultWithEdition };
 const items: Item[] = [];
 let lastYear: number | null | undefined = undefined;
@@ -61,16 +90,26 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 <Layout title={person.full_name} subtitle={subtitle}>
 	<div class="filters">
-		<div class="chips" id="sportChips">
-			<button class="chip active" data-sport="all">All <em>{results.length}</em></button>
-			{sportChips.map(([s, n]) => (
-				<button class="chip" data-sport={s} style={`--edge:${SPORT_COLOR[s] ?? 'var(--muted)'}`}>
-					<span class="dot"></span>{SPORT_LABELS[s as Sport] ?? s} <em>{n}</em>
+		<div class="frow">
+			<button class="fchip active" data-f="all" style="--c: var(--accent)">
+				<span class="fc-ic">🏁</span><span class="fc-txt"><span class="fc-label">All</span><span class="fc-count">{results.length}</span></span>
+			</button>
+			{catChips.map(([key, { label, count }]) => (
+				<button class="fchip" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
+					<span class="fc-ic">{CAT_ICON[key] ?? '🏁'}</span>
+					<span class="fc-txt"><span class="fc-label">{label}</span><span class="fc-count">{count}</span></span>
 				</button>
 			))}
 		</div>
-		{podiumCount > 0 && (
-			<button class="chip podium" id="podiumChip" data-podium>🏅 Podiums <em>{podiumCount}</em></button>
+		{medalCounts.some((c) => c > 0) && (
+			<div class="frow podiums">
+				{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
+					<button class="fchip" data-f="place" data-v={String(p)} style={`--c:${MEDAL_COLOR[p - 1]}`}>
+						<span class="fc-ic">{MEDAL[p - 1]}</span>
+						<span class="fc-txt"><span class="fc-label">{MEDAL_LABEL[p - 1]} place</span><span class="fc-count">{medalCounts[p - 1]}</span></span>
+					</button>
+				))}
+			</div>
 		)}
 	</div>
 
@@ -91,11 +130,9 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 							const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
 							const place = r.division_place;
 							return (
-								<article class="rcard" data-sport={sport} data-year={String(ed?.year ?? '')} data-podium={String(podiumOf(r))} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<article class="rcard" data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
 									<div class="rc-date">
-										<span class="d-mon">{dp.mon}</span>
-										<span class="d-day">{dp.day || dp.year}</span>
-										<span class="d-yr">{dp.day ? dp.year : ''}</span>
+										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 									</div>
 									<div class="rc-race">
 										{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
@@ -137,20 +174,23 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 </Layout>
 
 <style>
-	.filters { display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center; margin-bottom: 1.75rem; }
-	.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-	.chip {
-		font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; cursor: pointer;
-		display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.8rem; border-radius: 999px;
-		background: var(--surface); color: var(--muted); border: 1px solid var(--border); transition: all 0.12s;
+	.filters { display: flex; flex-direction: column; gap: 0.7rem; margin-bottom: 1.9rem; }
+	.frow { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+	.frow.podiums { padding-top: 0.7rem; border-top: 1px solid var(--border); }
+	.fchip {
+		display: flex; align-items: center; gap: 0.7rem; cursor: pointer; text-align: left;
+		padding: 0.55rem 1rem; border-radius: 13px; color: var(--text);
+		background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--c, var(--border));
+		box-shadow: var(--shadow); transition: transform 0.12s, border-color 0.12s, background 0.12s;
 	}
-	.chip:hover { color: var(--text); border-color: var(--edge, var(--accent)); }
-	.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--edge, var(--muted)); }
-	.chip em { font-style: normal; color: var(--faint); font-weight: 700; }
-	.chip.active { background: var(--edge, var(--accent)); color: #05121c; border-color: transparent; }
-	.chip.active em { color: #05121c; opacity: 0.7; }
-	.chip.active .dot { background: #05121c; }
-	.chip.podium.active { background: var(--gold); color: #3a2a00; }
+	.fchip:hover { border-color: var(--c, var(--accent)); transform: translateY(-1px); }
+	.fc-ic { font-size: 1.6rem; line-height: 1; }
+	.fc-txt { display: flex; flex-direction: column; line-height: 1; }
+	.fc-label { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--faint); }
+	.fc-count { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; letter-spacing: 0.02em; margin-top: 0.2rem; }
+	.fchip.active { background: color-mix(in srgb, var(--c) 18%, var(--surface)); border-color: var(--c); }
+	.fchip.active .fc-count { color: var(--c); }
+	.fchip.active .fc-label { color: var(--text); }
 
 	/* one grid for all rows so finish times line up across every card */
 	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
@@ -164,10 +204,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.rc-date {
-		display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem;
-		background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border);
-	}
+	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
 	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--faint); }
@@ -202,32 +239,26 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 <script>
 	const cards = [...document.querySelectorAll<HTMLElement>('.rcard')];
 	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
-	const sportChips = [...document.querySelectorAll<HTMLElement>('#sportChips .chip')];
-	const podiumChip = document.querySelector<HTMLElement>('#podiumChip');
-	let sport = 'all';
-	let podiumOnly = false;
+	const chips = [...document.querySelectorAll<HTMLElement>('.fchip')];
+	let f = 'all';
+	let v = '';
 
 	function apply() {
 		for (const c of cards) {
-			const ok = (sport === 'all' || c.dataset.sport === sport) && (!podiumOnly || c.dataset.podium === 'true');
+			const ok = f === 'all' || (f === 'cat' && c.dataset.cat === v) || (f === 'place' && c.dataset.place === v);
 			c.style.display = ok ? '' : 'none';
 		}
 		for (const h of headers) {
 			const y = h.dataset.year;
-			const any = cards.some((c) => c.dataset.year === y && c.style.display !== 'none');
-			h.style.display = any ? '' : 'none';
+			h.style.display = cards.some((c) => c.dataset.year === y && c.style.display !== 'none') ? '' : 'none';
 		}
 	}
-	sportChips.forEach((ch) =>
+	chips.forEach((ch) =>
 		ch.addEventListener('click', () => {
-			sport = ch.dataset.sport || 'all';
-			sportChips.forEach((x) => x.classList.toggle('active', x === ch));
+			f = ch.dataset.f || 'all';
+			v = ch.dataset.v || '';
+			chips.forEach((x) => x.classList.toggle('active', x === ch));
 			apply();
 		}),
 	);
-	podiumChip?.addEventListener('click', () => {
-		podiumOnly = !podiumOnly;
-		podiumChip.classList.toggle('active', podiumOnly);
-		apply();
-	});
 </script>
