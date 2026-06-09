@@ -7,8 +7,15 @@ export const prerender = false;
 const json = (body: unknown, status = 200) =>
 	new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-// NOTE: not yet auth-gated — local use only. Auth gate is added before deploy.
+// Admin-only write endpoint. Requires the x-admin-token header to match ADMIN_TOKEN.
+// Safe by default: if ADMIN_TOKEN is unset, every request is rejected.
+const adminToken = (import.meta.env.ADMIN_TOKEN ??
+	(typeof process !== 'undefined' ? process.env.ADMIN_TOKEN : undefined)) as string | undefined;
+
 export const POST: APIRoute = async ({ request }) => {
+	if (!adminToken || request.headers.get('x-admin-token') !== adminToken) {
+		return json({ error: 'unauthorized' }, 401);
+	}
 	try {
 		const body = await request.json().catch(() => ({}));
 		const { url, firstName, lastName, athlete, raceNameOverride, dryRun } = body as {
