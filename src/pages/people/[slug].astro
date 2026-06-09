@@ -14,16 +14,16 @@ const MEDAL_LABEL = ['1st', '2nd', '3rd'];
 const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SPORT_COLOR: Record<string, string> = {
-	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', gravel: 'var(--bike)',
+	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', open_water: 'var(--swim)', gravel: 'var(--bike)',
 	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
 };
 // filter categories split triathlon into Sprint / Olympic
 const CAT_COLOR: Record<string, string> = {
 	sprint: '#00d4ff', olympic: '#8b9cff', triathlon: '#00d4ff',
-	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', gravel: '#ffb86b', other: '#8fa5c4',
+	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b', other: '#8fa5c4',
 };
 const CAT_ICON: Record<string, string> = {
-	sprint: '⚡', olympic: '🏅', triathlon: '🚴', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', gravel: '🚵', other: '🏁',
+	sprint: '⚡', olympic: '🔥', triathlon: '🚴', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
 };
 function categoryOf(r: ResultWithEdition): { key: string; label: string } {
 	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
@@ -40,6 +40,12 @@ function podiumPlace(r: ResultWithEdition): number | null {
 	if (r.overall_place != null && r.overall_place <= 3) return r.overall_place;
 	return null;
 }
+// Podium medallion (same idea as the race page): division podium wins, else overall.
+function award(r: ResultWithEdition): { tier: number; sub: string } | null {
+	if (r.division_place != null && r.division_place <= 3) return { tier: r.division_place, sub: r.division ?? 'Division' };
+	if (r.overall_place != null && r.overall_place <= 3) return { tier: r.overall_place, sub: 'Overall' };
+	return null;
+}
 function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
 	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
 	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
@@ -49,16 +55,69 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 const sortKey = (r: ResultWithEdition) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 const sorted = [...results].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
 
+// Per-series PR (best at this specific recurring race) + how many times raced here.
 const prByRace = new Map<string, number>();
+const countByRace = new Map<string, number>();
 for (const r of results) {
 	const raceId = r.race_edition?.race?.id;
 	if (!raceId || r.status !== 'finished' || r.finish_time_seconds == null) continue;
+	countByRace.set(raceId, (countByRace.get(raceId) ?? 0) + 1);
 	const best = prByRace.get(raceId);
 	if (best == null || r.finish_time_seconds < best) prByRace.set(raceId, r.finish_time_seconds);
 }
-const isPR = (r: ResultWithEdition) =>
-	r.race_edition?.race?.id != null && r.status === 'finished' && r.finish_time_seconds != null &&
-	prByRace.get(r.race_edition.race.id) === r.finish_time_seconds;
+
+// True distance PR for running: your fastest 5K / 10K / Half across *every* series,
+// not just within one race. Distance comes from the race name / format, since the
+// split distances aren't reliable for runs. Keyed by sport so a trail 5K and a road
+// 5K each keep their own PR.
+function runDistance(r: ResultWithEdition): string | null {
+	const sport = r.race_edition?.race?.sport;
+	if (sport !== 'road_run' && sport !== 'trail_run') return null;
+	const s = `${r.race_edition?.distance_or_format ?? ''} ${r.race_edition?.race?.name ?? ''}`.toLowerCase();
+	if (/\bhalf\b|13\.1/.test(s)) return 'Half';
+	if (/\bmarathon\b|26\.2/.test(s)) return 'Marathon';
+	if (/\b5k\b/.test(s)) return '5K';
+	if (/\b10k\b/.test(s)) return '10K';
+	if (/\b15k\b/.test(s)) return '15K';
+	if (/\b8k\b/.test(s)) return '8K';
+	if (/five mile|\b5 ?mile/.test(s)) return '5 Mile';
+	if (/ten mile|\b10 ?mile/.test(s)) return '10 Mile';
+	if (/one mile|\b1 ?mile/.test(s)) return '1 Mile';
+	return null;
+}
+const distKey = (r: ResultWithEdition) => {
+	const d = runDistance(r);
+	return d ? `${r.race_edition?.race?.sport}|${d}` : null;
+};
+const prByDist = new Map<string, number>();
+for (const r of results) {
+	const k = distKey(r);
+	if (!k || r.status !== 'finished' || r.finish_time_seconds == null) continue;
+	const best = prByDist.get(k);
+	if (best == null || r.finish_time_seconds < best) prByDist.set(k, r.finish_time_seconds);
+}
+
+// Which PR badge (if any) a result earns. Gold = the headline PR (sets the time gold);
+// a recurring series' own best still shows as a quieter "Series PR" when a different
+// race holds the distance PR.
+function prBadge(r: ResultWithEdition): { gold: boolean; label: string } | null {
+	if (r.status !== 'finished' || r.finish_time_seconds == null) return null;
+	const raceId = r.race_edition?.race?.id;
+	const sport = r.race_edition?.race?.sport;
+	const t = r.finish_time_seconds;
+	const k = distKey(r);
+	const dist = runDistance(r);
+	if (k && prByDist.get(k) === t) return { gold: true, label: `${dist} PR` };
+	const recurring = raceId != null && (countByRace.get(raceId) ?? 0) >= 2;
+	if (recurring && raceId != null && prByRace.get(raceId) === t) {
+		return k ? { gold: false, label: 'Series PR' } : { gold: true, label: 'PR' };
+	}
+	// non-running one-offs keep the simple per-race PR star
+	if (sport !== 'road_run' && sport !== 'trail_run' && raceId != null && prByRace.get(raceId) === t) {
+		return { gold: true, label: 'PR' };
+	}
+	return null;
+}
 
 // counts for filter chips
 const catCounts = new Map<string, { label: string; count: number }>();
@@ -74,6 +133,7 @@ for (const r of results) {
 	const p = podiumPlace(r);
 	if (p) medalCounts[p - 1]++;
 }
+const prCount = results.filter((r) => prBadge(r) != null).length;
 
 type Item = { type: 'year'; year: number | null } | { type: 'card'; r: ResultWithEdition };
 const items: Item[] = [];
@@ -90,32 +150,36 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 <Layout title={person.full_name} subtitle={subtitle}>
 	<div class="filters">
-		<button class="fsection sec-all active" data-f="all">
-			<span class="callout"><span class="num">{results.length}</span><span class="lab">Races</span></span>
-		</button>
-
-		<div class="fsection">
-			<span class="callout"><span class="num">{catChips.length}</span><span class="lab">Disciplines</span></span>
-			<div class="callout-chips">
-				{catChips.map(([key, { label, count }]) => (
-					<button class="chip" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
-						<span class="ic">{CAT_ICON[key] ?? '🏁'}</span><span class="label">{label}</span><span class="count">{count}</span>
-					</button>
-				))}
-			</div>
+		<div class="fgroup" style="--g: var(--accent)">
+			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Types</span></span>
+			{catChips.map(([key, { label, count }]) => (
+				<button class="seg" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
+					<span class="ic">{CAT_ICON[key] ?? '🏁'}</span>
+					<span class="slabel">{label.split(' ').map((w) => <span class="lw">{w}</span>)}</span>
+					<span class="count">{count}</span>
+				</button>
+			))}
 		</div>
 
 		{medalCounts.some((c) => c > 0) && (
-			<div class="fsection">
-				<span class="callout" style="--co: var(--gold)"><span class="num">{medalCounts.reduce((a, b) => a + b, 0)}</span><span class="lab">Podiums</span></span>
-				<div class="callout-chips">
-					{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
-						<button class="chip" data-f="place" data-v={String(p)} style={`--c:${MEDAL_COLOR[p - 1]}`}>
-							<span class="ic">{MEDAL[p - 1]}</span><span class="label">{MEDAL_LABEL[p - 1]}</span><span class="count">{medalCounts[p - 1]}</span>
-						</button>
-					))}
-				</div>
+			<div class="fgroup" style="--g: var(--gold)">
+				<span class="anchor"><span class="num">{medalCounts.reduce((a, b) => a + b, 0)}</span><span class="lab">Podiums</span></span>
+				{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
+					<button class="seg seg-pod" data-f="place" data-v={String(p)} style={`--c:${MEDAL_COLOR[p - 1]}`}>
+						<span class="pod-stack"><span class="ic">{MEDAL[p - 1]}</span><span class="pod-lab">{MEDAL_LABEL[p - 1]}</span></span>
+						<span class="count">{medalCounts[p - 1]}</span>
+					</button>
+				))}
 			</div>
+		)}
+
+		{prCount > 0 && (
+			<label class="fgroup fpr">
+				<input type="checkbox" id="pr-only" />
+				<span class="pr-box">✓</span>
+				<span class="pr-stack"><span class="pr-mark">⭐</span><span class="pr-lab">PRs</span></span>
+				<span class="count">{prCount}</span>
+			</label>
 		)}
 	</div>
 
@@ -132,16 +196,21 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 							const r = it.r;
 							const ed = r.race_edition;
 							const sport = (ed?.race?.sport ?? 'other') as Sport;
+							const cat = categoryOf(r);
 							const dp = dateParts(ed?.date, ed?.year);
 							const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
-							const place = r.division_place;
+							const pr = prBadge(r);
+							const aw = award(r);
 							return (
-								<article class="rcard" data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<article class={`rcard${aw ? ' has-medal' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
 									<div class="rc-date">
 										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 									</div>
 									<div class="rc-race">
-										{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
+										<div class="rc-title">
+											<span class="rc-cat-ic" style={`color:${CAT_COLOR[cat.key] ?? 'var(--muted)'}`}>{CAT_ICON[cat.key] ?? '🏁'}</span>
+											{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
+										</div>
 										<div class="rc-meta">
 											<span class="rc-sport">{SPORT_LABELS[sport]}</span>
 											{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
@@ -149,11 +218,16 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 										</div>
 									</div>
 									<div class="rc-finish">
+										{aw && (
+											<div class={`medallion medal-${aw.tier}`}>
+												<span class="m-glyph">{MEDAL[aw.tier - 1]}</span>
+												<span class="m-sub">{aw.sub}</span>
+											</div>
+										)}
 										<span class="rc-k">Finish</span>
-										<span class={`rc-time${isPR(r) ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
+										<span class={`rc-time${pr?.gold ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
 										<div class="rc-tags">
-											{isPR(r) && <span class="tag tag-pr">⭐ PR</span>}
-											{place != null && place <= 3 && <span class={`tag medal-${place}`}>{MEDAL[place - 1]} {r.division}</span>}
+											{pr && <span class={`tag ${pr.gold ? 'tag-pr' : 'tag-series'}`}>{pr.gold ? '⭐ ' : ''}{pr.label}</span>}
 										</div>
 									</div>
 									<div class="rc-legs">
@@ -180,21 +254,42 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 </Layout>
 
 <style>
-	.filters { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.9rem; margin-bottom: 1.9rem; }
-	.fsection { display: flex; align-items: center; gap: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.6rem 1.1rem; box-shadow: var(--shadow); }
-	.sec-all { cursor: pointer; }
-	.sec-all.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-	.callout { display: flex; flex-direction: column; line-height: 0.82; }
-	.callout .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--co, var(--accent)); }
-	.callout .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--faint); margin-top: 0.3rem; }
-	.callout-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+	.filters { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.7rem; margin-bottom: 1.9rem; }
 
-	.chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.68rem; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; cursor: pointer; color: var(--muted); white-space: nowrap; transition: border-color 0.12s, background 0.12s, color 0.12s; }
-	.chip .ic { font-size: 0.98rem; line-height: 1; }
-	.chip .count { font-weight: 700; color: var(--c, var(--accent)); }
-	.chip:hover { border-color: var(--c, var(--accent)); color: var(--text); }
-	.chip.active { background: var(--c, var(--accent)); border-color: var(--c, var(--accent)); color: #05121c; }
-	.chip.active .count { color: #05121c; opacity: 0.75; }
+	/* one rounded box per group: tinted anchor + divided segments */
+	.fgroup { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+
+	.anchor { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 0.82; padding: 0.55rem 1rem; background: color-mix(in srgb, var(--g, var(--accent)) 15%, var(--surface)); border-right: 1px solid var(--border); }
+	.anchor .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--g, var(--accent)); }
+	.anchor .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--faint); margin-top: 0.32rem; }
+
+	/* each breakdown segment, divided from its neighbor, highlights when active */
+	.seg { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.75rem; background: transparent; border: none; border-right: 1px solid var(--border); font: inherit; cursor: pointer; color: var(--muted); transition: background 0.12s, color 0.12s; white-space: nowrap; }
+	.seg:last-child { border-right: none; }
+	.seg .ic { font-size: 1.25rem; line-height: 1; }
+	.seg .slabel { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.02; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
+	.seg .lw { display: block; }
+	.seg .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--c, var(--accent)); }
+	.seg:hover { background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent); color: var(--text); }
+	.seg.active { background: color-mix(in srgb, var(--c, var(--accent)) 24%, transparent); color: var(--text); }
+	.seg.active .slabel { color: var(--text); }
+
+	/* podium segments stack the medal icon over its rank */
+	.seg-pod .pod-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; }
+	.seg-pod .ic { font-size: 1.2rem; }
+	.seg-pod .pod-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+	/* "PRs only" checkbox chiclet at the end of the filter row */
+	.fpr { cursor: pointer; align-items: center; gap: 0.55rem; padding: 0.4rem 0.95rem; user-select: none; }
+	.fpr input { position: absolute; opacity: 0; pointer-events: none; }
+	.pr-box { display: inline-flex; align-items: center; justify-content: center; width: 1.15rem; height: 1.15rem; border: 1.5px solid var(--border); border-radius: 6px; color: transparent; font-size: 0.8rem; font-weight: 700; transition: background 0.12s, border-color 0.12s, color 0.12s; }
+	.fpr:hover .pr-box { border-color: var(--gold); }
+	.fpr input:checked ~ .pr-box { background: var(--gold); border-color: var(--gold); color: #3a2a00; }
+	.fpr .pr-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; line-height: 1; }
+	.fpr .pr-mark { font-size: 1.2rem; }
+	.fpr .pr-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+	.fpr .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--gold); }
+	.fpr:has(input:checked) { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
 
 	/* one grid for all rows so finish times line up across every card */
 	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
@@ -209,11 +304,28 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
 	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
+
+	/* circular podium medallion (race-page style), sitting just left of the finish
+	   time; the finish cell is the anchor so every medal lines up with the times. */
+	.rc-finish { position: relative; }
+	.medallion {
+		position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3;
+		width: 46px; height: 46px; border-radius: 50%;
+		display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.18);
+	}
+	.medallion .m-glyph { font-size: 1.35rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+	.medallion .m-sub { font-family: var(--font-mono); font-size: 0.44rem; font-weight: 700; letter-spacing: 0.02em; margin-top: 1px; text-transform: uppercase; }
+	/* on podium rows the race title gives way so the medal never shifts the finish time */
+	.rcard.has-medal .rc-race { padding-right: 56px; }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
 	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--faint); }
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
+	.rc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+	.rc-cat-ic { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
 	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.rc-name:hover { color: var(--accent); text-decoration: none; }
 	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.4rem; }
@@ -226,6 +338,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem; }
 	.tag { font-family: var(--font-mono); font-size: 0.57rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
 	.tag-pr { background: linear-gradient(135deg, #fff3c4, #ffc83a); color: #3a2a00; }
+	.tag-series { background: color-mix(in srgb, var(--faster) 20%, transparent); color: var(--faster); border: 1px solid color-mix(in srgb, var(--faster) 45%, transparent); }
 	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 80%); color: #3a2a00; }
 	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 80%); color: #283038; }
 	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 80%); color: #3a2110; }
@@ -244,12 +357,15 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	const cards = [...document.querySelectorAll<HTMLElement>('.rcard')];
 	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
 	const chips = [...document.querySelectorAll<HTMLElement>('[data-f]')];
+	const prOnlyEl = document.querySelector<HTMLInputElement>('#pr-only');
 	let f = 'all';
 	let v = '';
 
 	function apply() {
+		const prOnly = !!prOnlyEl?.checked;
 		for (const c of cards) {
-			const ok = f === 'all' || (f === 'cat' && c.dataset.cat === v) || (f === 'place' && c.dataset.place === v);
+			const matchF = f === 'all' || (f === 'cat' && c.dataset.cat === v) || (f === 'place' && c.dataset.place === v);
+			const ok = matchF && (!prOnly || c.dataset.pr === '1');
 			c.style.display = ok ? '' : 'none';
 		}
 		for (const h of headers) {
@@ -257,11 +373,19 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 			h.style.display = cards.some((c) => c.dataset.year === y && c.style.display !== 'none') ? '' : 'none';
 		}
 	}
+	prOnlyEl?.addEventListener('change', apply);
 	chips.forEach((ch) =>
 		ch.addEventListener('click', () => {
-			f = ch.dataset.f || 'all';
-			v = ch.dataset.v || '';
-			chips.forEach((x) => x.classList.toggle('active', x === ch));
+			if (ch.classList.contains('active')) {
+				// clicking the active filter clears it back to all
+				f = 'all';
+				v = '';
+				ch.classList.remove('active');
+			} else {
+				f = ch.dataset.f || 'all';
+				v = ch.dataset.v || '';
+				chips.forEach((x) => x.classList.toggle('active', x === ch));
+			}
 			apply();
 		}),
 	);
