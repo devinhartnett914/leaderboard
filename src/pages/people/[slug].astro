@@ -12,18 +12,15 @@ const { person, results } = data;
 const MEDAL = ['🥇', '🥈', '🥉'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SPORT_COLOR: Record<string, string> = {
-	triathlon: 'var(--accent)',
-	swim_meet: 'var(--swim)',
-	gravel: 'var(--bike)',
-	trail_run: 'var(--run)',
-	road_run: 'var(--run)',
-	other: 'var(--muted)',
+	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', gravel: 'var(--bike)',
+	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
 };
 function dateParts(iso: string | null | undefined, fallbackYear: number | null | undefined) {
 	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
 	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
 	return { mon: '', day: '', year: fallbackYear ? String(fallbackYear) : '' };
 }
+const podiumOf = (r: ResultWithEdition) => isPodium(r.division_place) || isPodium(r.overall_place);
 
 const sortKey = (r: ResultWithEdition) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 const sorted = [...results].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
@@ -36,151 +33,201 @@ for (const r of results) {
 	if (best == null || r.finish_time_seconds < best) prByRace.set(raceId, r.finish_time_seconds);
 }
 const isPR = (r: ResultWithEdition) =>
-	r.race_edition?.race?.id != null &&
-	r.status === 'finished' &&
-	r.finish_time_seconds != null &&
+	r.race_edition?.race?.id != null && r.status === 'finished' && r.finish_time_seconds != null &&
 	prByRace.get(r.race_edition.race.id) === r.finish_time_seconds;
 
+// sport breakdown (for filter chips), ordered by count
+const sportCounts = new Map<string, number>();
+for (const r of results) {
+	const s = r.race_edition?.race?.sport ?? 'other';
+	sportCounts.set(s, (sportCounts.get(s) ?? 0) + 1);
+}
+const sportChips = [...sportCounts.entries()].sort((a, b) => b[1] - a[1]);
+const podiumCount = results.filter(podiumOf).length;
+
+// flatten to a list with year-divider markers
+type Item = { type: 'year'; year: number | null } | { type: 'card'; r: ResultWithEdition };
+const items: Item[] = [];
+let lastYear: number | null | undefined = undefined;
+for (const r of sorted) {
+	const y = r.race_edition?.year ?? null;
+	if (y !== lastYear) { items.push({ type: 'year', year: y }); lastYear = y; }
+	items.push({ type: 'card', r });
+}
+
 const age = currentAge(person.birth_date, person.birth_year);
-const podiums = results.filter((r) => isPodium(r.division_place) || isPodium(r.overall_place)).length;
-const sportsCount = new Set(results.map((r) => r.race_edition?.race?.sport).filter(Boolean)).size;
-const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boolean).join(' · ');
+const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.length} results`].filter(Boolean).join(' · ');
 ---
 
 <Layout title={person.full_name} subtitle={subtitle}>
-	<div class="stats">
-		<div class="stat"><span class="num">{results.length}</span><span class="label">Results</span></div>
-		<div class="stat"><span class="num">{sportsCount}</span><span class="label">Sports</span></div>
-		<div class="stat"><span class="num">{podiums}</span><span class="label">Podiums</span></div>
+	<div class="filters">
+		<div class="chips" id="sportChips">
+			<button class="chip active" data-sport="all">All <em>{results.length}</em></button>
+			{sportChips.map(([s, n]) => (
+				<button class="chip" data-sport={s} style={`--edge:${SPORT_COLOR[s] ?? 'var(--muted)'}`}>
+					<span class="dot"></span>{SPORT_LABELS[s as Sport] ?? s} <em>{n}</em>
+				</button>
+			))}
+		</div>
+		{podiumCount > 0 && (
+			<button class="chip podium" id="podiumChip" data-podium>🏅 Podiums <em>{podiumCount}</em></button>
+		)}
 	</div>
 
 	{
 		sorted.length === 0 ? (
 			<div class="empty">No results recorded yet for {person.full_name}.</div>
 		) : (
-			<div class="results">
-				{sorted.map((r) => {
-					const ed = r.race_edition;
-					const sport = (ed?.race?.sport ?? 'other') as Sport;
-					const dp = dateParts(ed?.date, ed?.year);
-					const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
-					const place = r.division_place;
-					return (
-						<article class="rcard" style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
-							<div class="rc-date">
-								<span class="d-mon">{dp.mon}</span>
-								<span class="d-day">{dp.day || dp.year}</span>
-								<span class="d-yr">{dp.day ? dp.year : ''}</span>
-							</div>
-
-							<div class="rc-race">
-								{ed?.race ? (
-									<a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a>
-								) : (
-									<span class="rc-name">Unknown race</span>
-								)}
-								<div class="rc-meta">
-									<span class="rc-sport">{SPORT_LABELS[sport]}</span>
-									{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
-									{r.event && <span>· {r.event}</span>}
-								</div>
-							</div>
-
-							<div class="rc-finish">
-								<span class="rc-k">Finish</span>
-								<span class={`rc-time${isPR(r) ? ' is-pr' : ''}`}>
-									{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}
-								</span>
-								<div class="rc-tags">
-									{isPR(r) && <span class="tag tag-pr">⭐ PR</span>}
-									{place != null && place <= 3 && <span class={`tag medal-${place}`}>{MEDAL[place - 1]} {r.division}</span>}
-								</div>
-							</div>
-
-							{legs.length > 0 && (
-								<div class="rc-legs">
-									{legs.map((s) => (
-										<div class="rc-leg">
-											<span class="leg-ic" style={`color:${legColor(s.label)}`}>{legIcon(s.label)}</span>
-											<span class="leg-t">{formatTime(s.segment_time_seconds)}</span>
-											<span class="leg-p">{legPace(s.distance_m, s.segment_time_seconds, s.distance_unit) ?? ''}</span>
+			<div class="results" id="results">
+				{items.map((it) =>
+					it.type === 'year' ? (
+						<div class="year-header" data-year={String(it.year ?? '')}><span>{it.year ?? '—'}</span></div>
+					) : (
+						(() => {
+							const r = it.r;
+							const ed = r.race_edition;
+							const sport = (ed?.race?.sport ?? 'other') as Sport;
+							const dp = dateParts(ed?.date, ed?.year);
+							const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
+							const place = r.division_place;
+							return (
+								<article class="rcard" data-sport={sport} data-year={String(ed?.year ?? '')} data-podium={String(podiumOf(r))} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+									<div class="rc-date">
+										<span class="d-mon">{dp.mon}</span>
+										<span class="d-day">{dp.day || dp.year}</span>
+										<span class="d-yr">{dp.day ? dp.year : ''}</span>
+									</div>
+									<div class="rc-race">
+										{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
+										<div class="rc-meta">
+											<span class="rc-sport">{SPORT_LABELS[sport]}</span>
+											{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
+											{r.event && <span>· {r.event}</span>}
 										</div>
-									))}
-								</div>
-							)}
-
-							<div class="rc-places">
-								<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-								<div>
-									<span class="rc-k">Division</span>
-									<span class="rc-v">
-										{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}
-										{isPodium(r.division_place) && ` ${MEDAL[(r.division_place ?? 1) - 1]}`}
-									</span>
-								</div>
-							</div>
-						</article>
-					);
-				})}
+									</div>
+									<div class="rc-finish">
+										<span class="rc-k">Finish</span>
+										<span class={`rc-time${isPR(r) ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
+										<div class="rc-tags">
+											{isPR(r) && <span class="tag tag-pr">⭐ PR</span>}
+											{place != null && place <= 3 && <span class={`tag medal-${place}`}>{MEDAL[place - 1]} {r.division}</span>}
+										</div>
+									</div>
+									<div class="rc-legs">
+										{legs.map((s) => (
+											<div class="rc-leg">
+												<span class="leg-ic" style={`color:${legColor(s.label)}`}>{legIcon(s.label)}</span>
+												<span class="leg-t">{formatTime(s.segment_time_seconds)}</span>
+												<span class="leg-p">{legPace(s.distance_m, s.segment_time_seconds, s.distance_unit) ?? ''}</span>
+											</div>
+										))}
+									</div>
+									<div class="rc-places">
+										<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
+										<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}{isPodium(r.division_place) && ` ${MEDAL[(r.division_place ?? 1) - 1]}`}</span></div>
+									</div>
+								</article>
+							);
+						})()
+					),
+				)}
 			</div>
 		)
 	}
 </Layout>
 
 <style>
-	.stats { display: flex; gap: 0.85rem; margin-bottom: 2rem; flex-wrap: wrap; }
-	.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1.5rem; display: flex; flex-direction: column; min-width: 96px; box-shadow: var(--shadow); }
-	.stat .num { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; color: var(--accent); }
-	.stat .label { font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--faint); margin-top: 0.45rem; }
+	.filters { display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: center; margin-bottom: 1.75rem; }
+	.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+	.chip {
+		font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; cursor: pointer;
+		display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.8rem; border-radius: 999px;
+		background: var(--surface); color: var(--muted); border: 1px solid var(--border); transition: all 0.12s;
+	}
+	.chip:hover { color: var(--text); border-color: var(--edge, var(--accent)); }
+	.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--edge, var(--muted)); }
+	.chip em { font-style: normal; color: var(--faint); font-weight: 700; }
+	.chip.active { background: var(--edge, var(--accent)); color: #05121c; border-color: transparent; }
+	.chip.active em { color: #05121c; opacity: 0.7; }
+	.chip.active .dot { background: #05121c; }
+	.chip.podium.active { background: var(--gold); color: #3a2a00; }
 
-	.results { display: flex; flex-direction: column; gap: 0.85rem; }
+	/* one grid for all rows so finish times line up across every card */
+	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
+	.year-header { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0 0.2rem; }
+	.year-header:first-child { margin-top: 0; }
+	.year-header span { font-family: var(--font-display); font-weight: 400; font-size: 2rem; letter-spacing: 0.04em; color: var(--accent); }
+	.year-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
 	.rcard {
-		display: flex; align-items: stretch; gap: 1.25rem;
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
-		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
-		overflow-x: auto;
+		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-
-	/* prominent date tile (left), accent-colored by sport */
 	.rc-date {
-		flex-shrink: 0; width: 86px;
-		display: flex; flex-direction: column; align-items: center; justify-content: center;
-		padding: 0.7rem 0.4rem; border-right: 1px solid var(--border);
-		background: color-mix(in srgb, var(--edge) 12%, transparent);
-		border-radius: 14px 0 0 14px;
+		display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem;
+		background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border);
 	}
-	.d-mon { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
-	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.5rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--faint); }
+	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
+	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
+	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--faint); }
 
-	.rc-race { flex: 1 1 180px; min-width: 150px; display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 0; }
-	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; }
+	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
+	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.rc-name:hover { color: var(--accent); text-decoration: none; }
-	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.4rem; }
+	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.4rem; }
 	.rc-sport { color: var(--edge); font-weight: 600; }
 
-	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-	.rc-finish { flex-shrink: 0; width: 130px; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 0; }
-	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; }
+	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
+	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
 	.rc-time.is-pr { color: var(--gold); }
 	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem; }
-	.tag { font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+	.tag { font-family: var(--font-mono); font-size: 0.57rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
 	.tag-pr { background: linear-gradient(135deg, #fff3c4, #ffc83a); color: #3a2a00; }
 	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 80%); color: #3a2a00; }
 	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 80%); color: #283038; }
 	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 80%); color: #3a2110; }
 
-	.rc-legs { flex-shrink: 0; display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 0; }
-	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
-	.leg-ic { font-size: 1.2rem; line-height: 1.3; }
-	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.88rem; }
-	.leg-p { font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); }
+	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }
+	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }
+	.leg-ic { font-size: 1.15rem; line-height: 1.3; }
+	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
+	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
-	.rc-places { flex-shrink: 0; width: 168px; display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.1rem 0.85rem 0; }
-	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.1rem; display: block; }
-
-	@media (max-width: 760px) {
-		.rcard { gap: 0.85rem; }
-		.rc-finish, .rc-places { width: auto; }
-	}
+	.rc-places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
+	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; display: block; white-space: nowrap; }
 </style>
+
+<script>
+	const cards = [...document.querySelectorAll<HTMLElement>('.rcard')];
+	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
+	const sportChips = [...document.querySelectorAll<HTMLElement>('#sportChips .chip')];
+	const podiumChip = document.querySelector<HTMLElement>('#podiumChip');
+	let sport = 'all';
+	let podiumOnly = false;
+
+	function apply() {
+		for (const c of cards) {
+			const ok = (sport === 'all' || c.dataset.sport === sport) && (!podiumOnly || c.dataset.podium === 'true');
+			c.style.display = ok ? '' : 'none';
+		}
+		for (const h of headers) {
+			const y = h.dataset.year;
+			const any = cards.some((c) => c.dataset.year === y && c.style.display !== 'none');
+			h.style.display = any ? '' : 'none';
+		}
+	}
+	sportChips.forEach((ch) =>
+		ch.addEventListener('click', () => {
+			sport = ch.dataset.sport || 'all';
+			sportChips.forEach((x) => x.classList.toggle('active', x === ch));
+			apply();
+		}),
+	);
+	podiumChip?.addEventListener('click', () => {
+		podiumOnly = !podiumOnly;
+		podiumChip.classList.toggle('active', podiumOnly);
+		apply();
+	});
+</script>
