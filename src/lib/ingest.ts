@@ -83,7 +83,7 @@ async function ensureEdition(db: SupabaseClient, raceId: string, r: ExtractedRes
 		year: r.year,
 		date: r.date,
 		source_url: r.source_url,
-		host_platform: 'trisignup',
+		host_platform: 'runsignup',
 	};
 	// only set the format when we actually derived one, so we never clobber a
 	// value already set (e.g. the Olympic tag on Reston Triathlon)

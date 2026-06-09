@@ -199,6 +199,12 @@ function extractSplits(row: Row, headers: Headers): ExtractedSplit[] {
 	return splits;
 }
 
+/** "F4044" -> "F40-44" (some races omit the dash); leaves "F40-44"/"F80+" as-is. */
+function normalizeDivision(label: string): string {
+	const m = label.match(/^([MF])(\d{2})(\d{2})$/);
+	return m ? `${m[1]}${m[2]}-${m[3]}` : label;
+}
+
 /** Find the athlete's age-group division (e.g. "F40-44") and placement from the row. */
 function extractDivision(
 	row: Row,
@@ -212,7 +218,7 @@ function extractDivision(
 		const place = row[key];
 		if (place != null) {
 			const size = allRows.filter((r) => r[key] != null).length;
-			return { division: headers[key], place: Number(place), size };
+			return { division: normalizeDivision(headers[key]), place: Number(place), size };
 		}
 	}
 	return { division: null, place: null, size: null };
@@ -234,7 +240,7 @@ function extractResult(
 		event_name: event.name,
 		event_id: event.event_id,
 		result_set_id: setId,
-		source_url: `https://www.trisignup.com/Race/Results/${raceId}/?resultSetId=${setId}`,
+		source_url: `https://runsignup.com/Race/Results/${raceId}/?resultSetId=${setId}`,
 		distance_or_format: guessFormat(event.name),
 		finish_time_seconds: finish,
 		overall_place: row.place != null ? Number(row.place) : null,
@@ -291,7 +297,7 @@ export async function findAthleteResults(
 		name: cleanRaceName(race.name),
 		sport: guessSport(race.name + ' ' + (results[0]?.event_name ?? '')),
 		location: [race.city, race.state].filter(Boolean).join(', ') || null,
-		url: `https://www.trisignup.com/Race/Results/${raceId}`,
+		url: `https://runsignup.com/Race/Results/${raceId}`,
 		results,
 	};
 }
