@@ -66,7 +66,7 @@ export interface ExtractedResult {
 }
 
 export interface ExtractedRace {
-	platform: 'trisignup';
+	platform: 'runsignup';
 	race_id: number;
 	name: string;
 	sport: Sport;
@@ -292,7 +292,7 @@ export async function findAthleteResults(
 
 	const results = [...byYear.values()].sort((a, b) => a.year - b.year);
 	return {
-		platform: 'trisignup',
+		platform: 'runsignup',
 		race_id: raceId,
 		name: cleanRaceName(race.name),
 		sport: guessSport(race.name + ' ' + (results[0]?.event_name ?? '')),

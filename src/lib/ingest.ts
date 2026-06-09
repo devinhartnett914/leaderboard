@@ -62,19 +62,46 @@ async function ensurePerson(db: SupabaseClient, athlete: AthleteInput): Promise<
 
 async function ensureRace(
 	db: SupabaseClient,
-	race: { name: string; sport: Sport; location: string | null },
+	race: { name: string; sport: Sport; location: string | null; platform?: string; externalId?: string | number },
 ): Promise<{ id: string; slug: string }> {
+	// 1. Prefer the durable source mapping (survives renames + merges).
+	if (race.platform && race.externalId != null) {
+		const { data: src } = await db
+			.from('race_source')
+			.select('race:race_id(id, slug)')
+			.eq('platform', race.platform)
+			.eq('external_id', String(race.externalId))
+			.maybeSingle();
+		const mapped = src?.race as { id: string; slug: string } | null | undefined;
+		if (mapped) return { id: mapped.id, slug: mapped.slug };
+	}
+
+	// 2. Fall back to slug (first import of this race, or a manual race).
 	const slug = slugify(race.name);
 	const { data: existing } = await db.from('race').select('id, slug').eq('slug', slug).maybeSingle();
-	if (existing) return { id: existing.id as string, slug: existing.slug as string };
+	let result: { id: string; slug: string };
+	if (existing) {
+		result = { id: existing.id as string, slug: existing.slug as string };
+	} else {
+		const { data, error } = await db
+			.from('race')
+			.insert({ name: race.name, slug, sport: race.sport, location: race.location })
+			.select('id, slug')
+			.single();
+		if (error) throw error;
+		result = { id: data.id as string, slug: data.slug as string };
+	}
 
-	const { data, error } = await db
-		.from('race')
-		.insert({ name: race.name, slug, sport: race.sport, location: race.location })
-		.select('id, slug')
-		.single();
-	if (error) throw error;
-	return { id: data.id as string, slug: data.slug as string };
+	// 3. Record the source mapping for next time.
+	if (race.platform && race.externalId != null) {
+		await db
+			.from('race_source')
+			.upsert(
+				{ race_id: result.id, platform: race.platform, external_id: String(race.externalId) },
+				{ onConflict: 'platform,external_id' },
+			);
+	}
+	return result;
 }
 
 async function ensureEdition(db: SupabaseClient, raceId: string, r: ExtractedResult): Promise<string> {
@@ -182,6 +209,8 @@ export async function ingestExtractedRace(
 		name: raceName,
 		sport: extracted.sport,
 		location: extracted.location,
+		platform: extracted.platform,
+		externalId: extracted.race_id,
 	});
 
 	let splits = 0;
