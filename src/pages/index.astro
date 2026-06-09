@@ -2,43 +2,40 @@
 import Layout from '../layouts/Layout.astro';
 import { getFamilyMembers, getRaces } from '../lib/queries';
 import { SPORT_LABELS } from '../lib/types';
+import { currentAge } from '../lib/format';
 
 const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
 ---
 
 <Layout title="trime">
-	<section class="hero card">
-		<h1>The family's race results, in one place.</h1>
+	<section class="hero">
+		<div class="eyebrow">Family Race Tracker</div>
+		<h1>Every race.<br />Every year.<br /><span>One place.</span></h1>
 		<p class="muted">
-			Every triathlon, swim meet, gravel ride, and running race — with year-over-year times,
-			split-by-split comparisons, and the rivals you keep seeing on the podium.
+			Triathlons, swim meets, gravel rides, and running races — with year-over-year times,
+			split-by-split pace, and the rivals you keep seeing on the podium.
 		</p>
 	</section>
 
 	<section class="block">
-		<div class="section-head">
-			<h2>Family</h2>
-		</div>
+		<div class="section-head"><h2>Family</h2></div>
 		{
 			family.length === 0 ? (
-				<div class="empty">
-					No family members yet. Add them in the database (see <code>supabase/seed.sql</code>) or
-					from the Add results screen.
-				</div>
+				<div class="empty">No family members yet.</div>
 			) : (
 				<div class="grid cols-3">
-					{family.map((p) => (
-						<a class="card person-card" href={`/people/${p.slug}`}>
-							<div class="avatar">{p.full_name.charAt(0)}</div>
-							<div>
-								<div class="name">{p.full_name}</div>
-								<div class="muted small">
-									{[p.gender, p.birth_year && `b. ${p.birth_year}`].filter(Boolean).join(' · ') ||
-										'View results'}
+					{family.map((p) => {
+						const age = currentAge(p.birth_date, p.birth_year);
+						return (
+							<a class="card person-card" href={`/people/${p.slug}`}>
+								<div class="avatar">{p.full_name.charAt(0)}</div>
+								<div>
+									<div class="name">{p.full_name}</div>
+									<div class="sub">{[p.gender, age != null && `Age ${age}`].filter(Boolean).join(' · ') || 'View results'}</div>
 								</div>
-							</div>
-						</a>
-					))}
+							</a>
+						);
+					})}
 				</div>
 			)
 		}
@@ -47,18 +44,18 @@ const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
 	<section class="block">
 		<div class="section-head">
 			<h2>Races</h2>
-			<a href="/races" class="small">All races →</a>
+			<a href="/races" class="all-link">All races →</a>
 		</div>
 		{
 			races.length === 0 ? (
-				<div class="empty">No races yet. Add results to create one.</div>
+				<div class="empty">No races yet.</div>
 			) : (
 				<div class="grid cols-2">
 					{races.slice(0, 6).map((r) => (
 						<a class="card race-card" href={`/races/${r.slug}`}>
 							<div>
 								<div class="name">{r.name}</div>
-								<div class="muted small">{r.location ?? 'Recurring race'}</div>
+								<div class="sub">{r.location ?? 'Recurring race'}</div>
 							</div>
 							<span class="pill">{SPORT_LABELS[r.sport]}</span>
 						</a>
@@ -70,45 +67,25 @@ const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
 </Layout>
 
 <style>
-	.hero { margin-bottom: 2.5rem; }
-	.hero h1 { margin: 0 0 0.5rem; font-size: 1.75rem; max-width: 26ch; }
-	.hero p { margin: 0; max-width: 60ch; }
+	.hero { margin: 1rem 0 3rem; }
+	.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
+	.hero h1 { margin: 0 0 1rem; font-family: var(--font-display); font-weight: 400; font-size: clamp(3rem, 9vw, 5.5rem); line-height: 0.9; letter-spacing: 0.02em; }
+	.hero h1 span { color: var(--accent); }
+	.hero p { margin: 0; max-width: 54ch; font-size: 1.05rem; }
 
-	.block { margin-bottom: 2.5rem; }
-	.section-head {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		margin-bottom: 1rem;
-	}
-	.section-head h2 { margin: 0; font-size: 1.25rem; }
-	.small { font-size: 0.9rem; }
+	.block { margin-bottom: 2.75rem; }
+	.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
+	.all-link { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
 
-	.person-card, .race-card {
-		display: flex;
-		align-items: center;
-		gap: 0.9rem;
-		color: var(--text);
-		transition: border-color 0.15s, transform 0.15s;
-	}
-	.person-card:hover, .race-card:hover {
-		text-decoration: none;
-		border-color: var(--accent);
-		transform: translateY(-2px);
-	}
+	.person-card, .race-card { display: flex; align-items: center; gap: 0.9rem; color: var(--text); transition: border-color 0.15s, transform 0.15s; }
+	.person-card:hover, .race-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
 	.race-card { justify-content: space-between; }
 	.avatar {
-		width: 44px;
-		height: 44px;
-		border-radius: 50%;
-		background: var(--accent);
-		color: #1a1208;
-		display: grid;
-		place-items: center;
-		font-weight: 700;
-		font-size: 1.1rem;
-		flex-shrink: 0;
+		width: 48px; height: 48px; border-radius: 50%;
+		background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #042530;
+		display: grid; place-items: center; font-family: var(--font-display); font-size: 1.5rem; flex-shrink: 0;
 	}
-	.name { font-weight: 600; }
-	.muted.small { font-size: 0.85rem; }
+	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
+	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 </style>

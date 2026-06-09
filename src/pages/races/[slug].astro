@@ -1,8 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getRaceBySlug } from '../../lib/queries';
-import { familyTracks, recurringRivals, splitLabels, type FamilyTrack } from '../../lib/compare';
-import { SPORT_LABELS } from '../../lib/types';
+import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
+import { SPORT_LABELS, type Result, type Split } from '../../lib/types';
 import {
 	formatTime,
 	formatDelta,
@@ -13,156 +13,168 @@ import {
 	formatDistance,
 	legPace,
 	pacePer100m,
+	legIcon,
+	legColor,
+	formatFullDate,
 } from '../../lib/format';
 
 const { slug } = Astro.params;
 const data = slug ? await getRaceBySlug(slug) : null;
-
-if (!data) {
-	return new Response('Race not found', { status: 404 });
-}
+if (!data) return new Response('Race not found', { status: 404 });
 const { race, editions } = data;
+
 const tracks = familyTracks(editions);
 const rivalries = recurringRivals(editions);
-const years = [...editions].sort((a, b) => a.year - b.year).map((e) => e.year);
 
-interface Cell {
-	time: number | null;
-	distance_m: number | null;
-	unit: string | null;
-}
-interface MetricRow {
-	label: string;
-	kind: 'finish' | 'leg';
-	cells: Cell[];
-	rowDistance: string | null; // shown in the label when constant across years
+const MEDAL = ['🥇', '🥈', '🥉'];
+
+function awardInfo(result: Result | null): { tier: number; sub: string } | null {
+	if (!result) return null;
+	if (result.division_place != null && result.division_place <= 3)
+		return { tier: result.division_place, sub: result.division ?? 'Division' };
+	if (result.overall_place != null && result.overall_place <= 3)
+		return { tier: result.overall_place, sub: 'Overall' };
+	return null;
 }
 
-function metricRows(track: FamilyTrack): MetricRow[] {
-	const rows: MetricRow[] = [
-		{
-			label: 'Finish',
-			kind: 'finish',
-			rowDistance: null,
-			cells: track.cells.map((c) => ({
-				time: c.result?.status === 'finished' ? c.result.finish_time_seconds : null,
-				distance_m: null,
-				unit: null,
-			})),
-		},
-	];
-	for (const label of splitLabels(track)) {
-		const cells: Cell[] = track.cells.map((c) => {
-			const s = c.splits.find((x) => x.label === label);
-			return { time: s?.segment_time_seconds ?? null, distance_m: s?.distance_m ?? null, unit: s?.distance_unit ?? null };
-		});
-		// if every leg with a distance shows the same value, hoist it into the label
-		const distances = [...new Set(cells.map((c) => formatDistance(c.distance_m, c.unit)).filter(Boolean))];
-		rows.push({ label, kind: 'leg', cells, rowDistance: distances.length === 1 ? distances[0]! : null });
-	}
-	return rows;
+// Race header discipline summary (icon + distance) from the most recent family result.
+const editionsDesc = [...editions].sort((a, b) => b.year - a.year);
+let headerSplits: Split[] = [];
+for (const ed of editionsDesc) {
+	const fam = ed.result.find((r) => r.person?.is_family && r.split && r.split.length > 0);
+	if (fam) { headerSplits = fam.split; break; }
 }
+const disciplines = headerSplits
+	.filter((s) => /swim|bike|cycle|run/i.test(s.label))
+	.map((s) => ({ label: s.label, icon: legIcon(s.label), dist: formatDistance(s.distance_m, s.distance_unit) }));
+const format = editionsDesc[0]?.distance_or_format ?? null;
 
-// comparable: lower = faster. Uses pace/100m when a distance is known, else raw time.
-const comparable = (c: Cell): number | null => pacePer100m(c.distance_m, c.time) ?? c.time;
+const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t) ?? t;
 ---
 
 <Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')}>
-	{race.description && <p class="race-desc muted">{race.description}</p>}
-
-	<section class="editions">
-		{
-			[...editions]
-				.sort((a, b) => b.year - a.year)
-				.map((ed) => (
-					<div class="card edition-card">
-						<div class="year">{ed.year}</div>
-						<div class="muted small">
-							{ed.distance_or_format ?? ''}
-							{ed.date ? ` · ${ed.date}` : ''}
-						</div>
-						{ed.source_url && (
-							<a class="small" href={ed.source_url} target="_blank" rel="noopener">
-								Full results ↗
-							</a>
-						)}
+	<section class="race-meta">
+		{format && <span class="format-badge">{format}</span>}
+		{disciplines.length > 0 && (
+			<div class="disciplines">
+				{disciplines.map((d) => (
+					<div class="disc" style={`--c:${legColor(d.label)}`}>
+						<span class="disc-icon">{d.icon}</span>
+						<span class="disc-text">
+							<span class="disc-name">{d.label}</span>
+							<span class="disc-dist">{d.dist ?? '—'}</span>
+						</span>
 					</div>
-				))
-		}
+				))}
+			</div>
+		)}
 	</section>
+	{race.description && <p class="race-desc muted">{race.description}</p>}
 
 	{
 		tracks.length === 0 ? (
 			<div class="empty">No family results recorded for this race yet.</div>
 		) : (
-			tracks.map((track) => (
-				<section class="track">
-					<div class="track-head">
-						<h2>{track.person.full_name}</h2>
-						{track.prSeconds != null && (
-							<span class="pill gold">PR {formatTime(track.prSeconds)} · {track.prYear}</span>
-						)}
-					</div>
-					<div class="card table-card">
-						<table>
-							<thead>
-								<tr>
-									<th>Leg</th>
-									{years.map((y) => (
-										<th class="num-col">{y}</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{metricRows(track).map((row) => (
-									<tr class={row.kind === 'finish' ? 'finish-row' : 'leg-row'}>
-										<th scope="row">
-											{row.label}
-											{row.rowDistance && <span class="row-dist">{row.rowDistance}</span>}
-										</th>
-										{row.cells.map((cell, i) => {
-											const prev = i > 0 ? row.cells[i - 1] : null;
-											const dir = deltaDirection(comparable(cell), prev ? comparable(prev) : null);
-											const pace = legPace(cell.distance_m, cell.time, cell.unit);
-											const cellDist = row.rowDistance ? null : formatDistance(cell.distance_m, cell.unit);
-											const isPrCell =
-												row.kind === 'finish' && cell.time != null && cell.time === track.prSeconds && years[i] === track.prYear;
+			tracks.map((track) => {
+				const cols = [...track.cells].reverse(); // newest first
+				const labels = splitLabels(track);
+				const rows = 5 + labels.length; // head, finish, splits, overall, division, foot
+				return (
+					<section class="track">
+						<div class="track-head">
+							<h2>{track.person.full_name}</h2>
+							{track.prSeconds != null && (
+								<span class="pill gold">PR {formatTime(track.prSeconds)} · {track.prYear}</span>
+							)}
+						</div>
+
+						<div class="cards" style={`--rows:${rows}`}>
+							{cols.map((c, i) => {
+								const a = awardInfo(c.result);
+								const older = cols[i + 1] ?? null;
+								const fin = c.result?.status === 'finished' ? c.result.finish_time_seconds : null;
+								const finOld = older?.result?.finish_time_seconds ?? null;
+								const pr = fin != null && fin === track.prSeconds && c.year === track.prYear;
+								return (
+									<article class={`ycard${i === 0 ? ' latest' : ''}`}>
+										{(a || pr) && (
+											<div class="badges">
+												{a && (
+													<div class={`badge medal-${Math.min(a.tier, 3)}`}>
+														<span class="b-glyph">{MEDAL[a.tier - 1]}</span>
+														<span class="b-sub">{a.sub}</span>
+													</div>
+												)}
+												{pr && (
+													<div class="badge pr">
+														<span class="b-glyph">⭐</span>
+														<span class="b-sub">PR</span>
+													</div>
+												)}
+											</div>
+										)}
+
+										<div class="row head">
+											<span class="yr">{c.year}</span>
+											<span class="yh-sub">{formatFullDate(c.edition.date)}</span>
+										</div>
+
+										<div class="row finish">
+											<span class="rl">Finish</span>
+											<span class="rv">
+												<b class={`big${pr ? ' is-pr' : ''}`}>{formatTime(fin)}</b>
+												{fin != null && finOld != null && <span class={`delta ${deltaDirection(fin, finOld)}`}>{formatDelta(fin, finOld)}</span>}
+											</span>
+										</div>
+
+										{labels.map((label) => {
+											const s = c.splits.find((x) => x.label === label);
+											const t = s?.segment_time_seconds ?? null;
+											const oS = older?.splits.find((x) => x.label === label);
+											const tOld = oS?.segment_time_seconds ?? null;
+											const pace = legPace(s?.distance_m, t, s?.distance_unit);
 											return (
-												<td class="num-col">
-													<span class={isPrCell ? 'pr-time' : ''}>{formatTime(cell.time)}</span>
-													{row.kind === 'finish'
-														? prev && <span class={`delta ${dir}`}>{formatDelta(cell.time, prev.time)}</span>
-														: cell.time != null && (
-																<span class={`pace ${dir}`}>
-																	{pace ?? ''}
-																	{cellDist ? ` · ${cellDist}` : ''}
-																</span>
-															)}
-												</td>
+												<div class="row">
+													<span class="rl"><span class="ri" style={`color:${legColor(label)}`}>{legIcon(label)}</span>{label}</span>
+													<span class="rv">
+														<b>{formatTime(t)}</b>
+														{pace && <span class="sub">{pace}</span>}
+														{t != null && tOld != null && (
+															<span class={`delta ${deltaDirection(cmp(s?.distance_m, t), cmp(oS?.distance_m, tOld))}`}>{formatDelta(t, tOld)}</span>
+														)}
+													</span>
+												</div>
 											);
 										})}
-									</tr>
-								))}
-								<tr class="meta-row">
-									<th scope="row">Overall</th>
-									{track.cells.map((c) => (
-										<td class="num-col muted">{placement(c.result?.overall_place, c.result?.overall_field_size)}</td>
-									))}
-								</tr>
-								<tr class="meta-row">
-									<th scope="row">Division</th>
-									{track.cells.map((c) => (
-										<td class="num-col muted">
-											{c.result?.division ? `${c.result.division} · ${ordinal(c.result.division_place)}` : '—'}
-											{isPodium(c.result?.division_place) && ' 🏅'}
-										</td>
-									))}
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</section>
-			))
+
+										<div class="row">
+											<span class="rl">Overall</span>
+											<span class="rv"><b>{placement(c.result?.overall_place, c.result?.overall_field_size)}</b></span>
+										</div>
+										<div class="row">
+											<span class="rl">Division</span>
+											<span class="rv">
+												<b>
+													{c.result?.division ? `${c.result.division} · ${ordinal(c.result.division_place)}` : '—'}
+													{isPodium(c.result?.division_place) && ` ${MEDAL[(c.result!.division_place ?? 1) - 1]}`}
+												</b>
+											</span>
+										</div>
+
+										<div class="row foot">
+											{c.edition.source_url ? (
+												<a href={c.edition.source_url} target="_blank" rel="noopener">Full results ↗</a>
+											) : (
+												<span class="muted small">No source link</span>
+											)}
+										</div>
+									</article>
+								);
+							})}
+						</div>
+					</section>
+				);
+			})
 		)
 	}
 
@@ -175,17 +187,9 @@ const comparable = (c: Cell): number | null => pacePer100m(c.distance_m, c.time)
 					{rivalries.map((rv) =>
 						rv.rivals.map((rival) => (
 							<div class="card rival-card">
-								<div class="rival-line">
-									<strong>{rv.family.full_name}</strong>
-									<span class="muted"> &nbsp;vs&nbsp; </span>
-									<strong>{rival.competitor.full_name}</strong>
-								</div>
-								<div class="muted small">
-									{rv.division ?? 'same division'} · together in {rival.years.join(', ')}
-								</div>
-								{rival.bothPodiumYears.length > 0 && (
-									<div class="podium-note">🏅 Both on the podium in {rival.bothPodiumYears.join(', ')}</div>
-								)}
+								<div class="rival-line"><strong>{rv.family.full_name}</strong><span class="muted"> vs </span><strong>{rival.competitor.full_name}</strong></div>
+								<div class="muted small">{rv.division ?? 'same division'} · together in {rival.years.join(', ')}</div>
+								{rival.bothPodiumYears.length > 0 && <div class="podium-note">🏅 Both on the podium in {rival.bothPodiumYears.join(', ')}</div>}
 							</div>
 						)),
 					)}
@@ -196,30 +200,84 @@ const comparable = (c: Cell): number | null => pacePer100m(c.distance_m, c.time)
 </Layout>
 
 <style>
+	/* race header */
+	.race-meta { display: flex; align-items: stretch; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
+	.format-badge { display: inline-flex; align-items: center; font-family: var(--font-display); font-size: 1.45rem; letter-spacing: 0.08em; padding: 0 1.25rem; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #032530; box-shadow: var(--shadow); }
+	.disciplines { display: flex; gap: 0.7rem; flex-wrap: wrap; }
+	.disc { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--c, var(--border)); border-radius: 12px; padding: 0.45rem 1rem; }
+	.disc-icon { font-size: 1.6rem; line-height: 1; color: var(--c, var(--text)); }
+	.disc-text { display: flex; flex-direction: column; line-height: 1.05; }
+	.disc-name { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); }
+	.disc-dist { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.02em; }
 	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
-	.editions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem; }
-	.edition-card { padding: 0.8rem 1rem; min-width: 150px; }
-	.edition-card .year { font-size: 1.25rem; font-weight: 700; }
+
+	.track { margin-bottom: 2.75rem; }
+	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.2rem; }
+	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
+
+	/* standalone year cards, rows aligned via subgrid */
+	.cards {
+		display: grid;
+		grid-auto-flow: column;
+		grid-auto-columns: minmax(186px, 1fr);
+		grid-template-rows: repeat(var(--rows), auto);
+		gap: 0 1.35rem;
+		overflow-x: auto;
+		/* generous top padding so the centered circular badges aren't clipped by the scroll box */
+		padding: 2.7rem 1.1rem 1.4rem;
+	}
+	.ycard {
+		grid-row: 1 / -1;
+		display: grid;
+		grid-template-rows: subgrid;
+		border: 1px solid var(--border);
+		border-radius: 18px;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 130px);
+		position: relative;
+		box-shadow: var(--shadow);
+	}
+	.ycard.latest { border-color: rgba(0, 212, 255, 0.5); box-shadow: var(--shadow), 0 0 0 1px rgba(0, 212, 255, 0.45); }
+
+	.row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; padding: 0.5rem 0.95rem; border-bottom: 1px solid var(--border); }
+	.row:last-child { border-bottom: none; }
+	.row.head { flex-direction: column; align-items: stretch; gap: 0.15rem; padding-top: 2rem; padding-bottom: 0.75rem; }
+	.row.head .yr { font-family: var(--font-display); font-weight: 400; font-size: 2.7rem; letter-spacing: 0.03em; line-height: 0.85; }
+	.yh-sub { font-family: var(--font-mono); font-size: 0.63rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+
+	.rl { font-family: var(--font-mono); color: var(--muted); font-size: 0.67rem; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; padding-top: 0.32rem; }
+	.ri { font-size: 1.1rem; }
+	.rv { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.1rem; }
+	.rv b { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.35rem; }
+	.rv .big { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; letter-spacing: 0.02em; line-height: 1; }
+	.rv .big.is-pr { color: var(--gold); }
+	.row.finish { background: rgba(0, 212, 255, 0.05); }
+	.sub { font-family: var(--font-mono); font-size: 0.66rem; color: var(--faint); }
+	.delta { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; }
+	.delta.faster { color: var(--faster); }
+	.delta.slower { color: var(--slower); }
+	.delta.same { color: var(--faint); }
+	.row.foot { padding: 0.7rem 0.95rem; }
+	.row.foot a { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; }
 	.small { font-size: 0.85rem; }
 
-	.track { margin-bottom: 2.25rem; }
-	.track-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.85rem; }
-	.track-head h2 { margin: 0; font-size: 1.2rem; }
-
-	.table-card { padding: 0; overflow-x: auto; }
-	.num-col { text-align: right; }
-	td.num-col { white-space: nowrap; vertical-align: top; }
-	.row-dist { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
-	.delta, .pace { display: block; font-size: 0.78rem; margin-top: 0.1rem; }
-	.pace { color: var(--muted); }
-	.pace.faster { color: var(--faster); }
-	.pace.slower { color: var(--slower); }
-	.finish-row th, .finish-row td { font-weight: 600; font-size: 1.02rem; }
-	.pr-time { color: var(--gold); }
-	.meta-row td, .meta-row th { font-size: 0.85rem; }
+	/* circular award + PR medallions, popping off the top-right corner */
+	.badges { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: row; gap: 10px; align-items: center; }
+	.badge {
+		width: 64px; height: 64px; border-radius: 50%;
+		display: flex; flex-direction: column; align-items: center; justify-content: center;
+		text-align: center; line-height: 1;
+		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.18);
+		border: 2px solid rgba(255, 255, 255, 0.3);
+	}
+	.badge .b-glyph { font-size: 1.9rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+	.badge .b-sub { font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.04em; margin-top: 2px; text-transform: uppercase; }
+	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 78%); color: #3a2a00; }
+	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 78%); color: #283038; }
+	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 78%); color: #3a2110; }
+	.badge.pr { background: radial-gradient(circle at 38% 30%, #fff3c4, #ffc83a 78%); color: #3a2a00; }
 
 	.rivalry { margin-top: 1rem; }
-	.rivalry h2 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+	.rivalry h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.03em; margin: 0 0 0.25rem; }
 	.rivalry p { margin: 0 0 1rem; }
 	.rival-card { padding: 1rem 1.1rem; }
 	.rival-line { margin-bottom: 0.25rem; }

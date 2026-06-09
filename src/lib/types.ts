@@ -12,6 +12,7 @@ export interface Person {
 	slug: string | null;
 	is_family: boolean;
 	birth_year: number | null;
+	birth_date: string | null;
 	gender: string | null;
 	avatar_url: string | null;
 	notes: string | null;

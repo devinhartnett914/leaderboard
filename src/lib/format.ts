@@ -113,3 +113,46 @@ export function pacePer100m(meters: number | null | undefined, seconds: number |
 	if (!meters || !seconds || meters <= 0) return null;
 	return seconds / (meters / 100);
 }
+
+// ---- Race-leg presentation + age ------------------------------------------
+
+/** Emoji for a triathlon (or other) leg, by label. */
+export function legIcon(label: string): string {
+	const l = label.toLowerCase();
+	if (l.includes('swim')) return '🏊';
+	if (l.includes('bike') || l.includes('cycle')) return '🚴';
+	if (l.includes('run')) return '🏃';
+	if (/^t\d/i.test(label)) return '🔁';
+	return '•';
+}
+
+/** CSS color variable for a leg (swim/bike/run), for icon tinting. */
+export function legColor(label: string): string {
+	const l = label.toLowerCase();
+	if (l.includes('swim')) return 'var(--swim)';
+	if (l.includes('bike') || l.includes('cycle')) return 'var(--bike)';
+	if (l.includes('run')) return 'var(--run)';
+	return 'var(--muted)';
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** "2024-06-02" -> "June 2, 2024". */
+export function formatFullDate(iso: string | null | undefined): string | null {
+	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	return m ? `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}` : null;
+}
+
+/** Current age from a yyyy-mm-dd birth date, falling back to birth year. */
+export function currentAge(birthDate: string | null | undefined, birthYear: number | null | undefined): number | null {
+	const today = new Date();
+	if (birthDate) {
+		const b = new Date(`${birthDate}T00:00:00`);
+		let age = today.getFullYear() - b.getFullYear();
+		const m = today.getMonth() - b.getMonth();
+		if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+		return age;
+	}
+	if (birthYear) return today.getFullYear() - birthYear;
+	return null;
+}

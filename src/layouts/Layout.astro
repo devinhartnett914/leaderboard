@@ -16,6 +16,12 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700&family=Inter+Tight:wght@400;500;600;700;800&display=swap"
+			rel="stylesheet"
+		/>
 		<title>{fullTitle}</title>
 	</head>
 	<body>
@@ -58,18 +64,31 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 
 		<style is:global>
 			:root {
-				--bg: #0f1419;
-				--surface: #171e26;
-				--surface-2: #1f2933;
-				--border: #2a3744;
-				--text: #e6edf3;
-				--muted: #8b9aa8;
-				--accent: #ff7a45;
-				--accent-soft: #2a2018;
-				--faster: #3fb950;
-				--slower: #f85149;
-				--gold: #f0c000;
-				--radius: 12px;
+				/* palette adapted from the "Monday Swim" app: deep navy + electric cyan + mint */
+				--bg: #0a1628;
+				--bg-2: #0f2038;
+				--surface: #14294a;
+				--surface-2: #1a3358;
+				--text: #eaf2ff;
+				--muted: #8fa5c4;
+				--faint: #5c7396;
+				--accent: #00d4ff;
+				--accent-2: #7df9ff;
+				--accent-soft: rgba(0, 212, 255, 0.1);
+				--faster: #29e3a4;
+				--slower: #ff6b9d;
+				--gold: #ffcf5c;
+				/* discipline accents */
+				--swim: #00d4ff;
+				--bike: #ffb86b;
+				--run: #29e3a4;
+				--border: rgba(255, 255, 255, 0.08);
+				--line-strong: rgba(255, 255, 255, 0.18);
+				--radius: 14px;
+				--shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+				--font-display: 'Bebas Neue', sans-serif;
+				--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+				--font-body: 'Inter Tight', system-ui, -apple-system, sans-serif;
 				--maxw: 1040px;
 			}
 
@@ -79,8 +98,11 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 
 			body {
 				margin: 0;
-				font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-				background: var(--bg);
+				font-family: var(--font-body);
+				background-color: var(--bg);
+				background-image: radial-gradient(1200px 600px at 50% -10%, rgba(0, 212, 255, 0.12), transparent 60%),
+					linear-gradient(180deg, var(--bg) 0%, var(--bg-2) 100%);
+				background-attachment: fixed;
 				color: var(--text);
 				line-height: 1.5;
 				-webkit-font-smoothing: antialiased;
@@ -105,10 +127,10 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 				justify-content: space-between;
 				height: 60px;
 			}
-			.brand { font-weight: 700; font-size: 1.2rem; color: var(--text); }
-			.brand:hover { text-decoration: none; }
-			.nav-links { display: flex; gap: 1.25rem; }
-			.nav-links a { color: var(--muted); font-weight: 500; font-size: 0.95rem; }
+			.brand { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.06em; color: var(--text); }
+			.brand:hover { text-decoration: none; color: var(--accent); }
+			.nav-links { display: flex; gap: 1.5rem; }
+			.nav-links a { font-family: var(--font-mono); color: var(--muted); font-weight: 500; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; }
 			.nav-links a:hover { color: var(--text); text-decoration: none; }
 
 			.setup-banner {
@@ -128,16 +150,15 @@ const fullTitle = title === 'trime' ? 'trime — family race results' : `${title
 			main { padding: 2rem 0 3rem; min-height: 60vh; }
 
 			.page-head { margin-bottom: 1.75rem; }
-			.page-head h1 { margin: 0; font-size: 1.9rem; letter-spacing: -0.02em; }
-			.subtitle { margin: 0.3rem 0 0; color: var(--muted); }
-
-			h1, h2, h3 { letter-spacing: -0.01em; }
+			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
+			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 
 			.card {
 				background: var(--surface);
 				border: 1px solid var(--border);
 				border-radius: var(--radius);
 				padding: 1.25rem;
+				box-shadow: var(--shadow);
 			}
 
 			.grid { display: grid; gap: 1rem; }
