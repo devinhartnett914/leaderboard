@@ -90,11 +90,13 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 <Layout title={person.full_name} subtitle={subtitle}>
 	<div class="filters">
-		<button class="all-chip active" data-f="all"><span class="n">{results.length}</span><span class="l">Races</span></button>
+		<button class="fsection sec-all active" data-f="all">
+			<span class="callout"><span class="num">{results.length}</span><span class="lab">Races</span></span>
+		</button>
 
-		<div class="fgroup">
-			<span class="glabel">Disciplines</span>
-			<div class="gchips">
+		<div class="fsection">
+			<span class="callout"><span class="num">{catChips.length}</span><span class="lab">Disciplines</span></span>
+			<div class="callout-chips">
 				{catChips.map(([key, { label, count }]) => (
 					<button class="chip" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
 						<span class="ic">{CAT_ICON[key] ?? '🏁'}</span><span class="label">{label}</span><span class="count">{count}</span>
@@ -104,9 +106,9 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		</div>
 
 		{medalCounts.some((c) => c > 0) && (
-			<div class="fgroup">
-				<span class="glabel">Podiums</span>
-				<div class="gchips">
+			<div class="fsection">
+				<span class="callout" style="--co: var(--gold)"><span class="num">{medalCounts.reduce((a, b) => a + b, 0)}</span><span class="lab">Podiums</span></span>
+				<div class="callout-chips">
 					{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
 						<button class="chip" data-f="place" data-v={String(p)} style={`--c:${MEDAL_COLOR[p - 1]}`}>
 							<span class="ic">{MEDAL[p - 1]}</span><span class="label">{MEDAL_LABEL[p - 1]}</span><span class="count">{medalCounts[p - 1]}</span>
@@ -178,18 +180,17 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 </Layout>
 
 <style>
-	.filters { display: flex; align-items: center; flex-wrap: wrap; gap: 0.55rem 0.85rem; margin-bottom: 1.9rem; }
-	.all-chip { display: inline-flex; align-items: baseline; gap: 0.4rem; padding: 0.4rem 0.9rem; border-radius: 11px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); cursor: pointer; }
-	.all-chip .n { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; color: var(--accent); line-height: 1; }
-	.all-chip .l { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--faint); }
-	.all-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
+	.filters { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.9rem; margin-bottom: 1.9rem; }
+	.fsection { display: flex; align-items: center; gap: 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 0.6rem 1.1rem; box-shadow: var(--shadow); }
+	.sec-all { cursor: pointer; }
+	.sec-all.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+	.callout { display: flex; flex-direction: column; line-height: 0.82; }
+	.callout .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--co, var(--accent)); }
+	.callout .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--faint); margin-top: 0.3rem; }
+	.callout-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 
-	.fgroup { display: flex; align-items: center; gap: 0.55rem; padding-left: 0.9rem; border-left: 1px solid var(--border); }
-	.glabel { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--faint); white-space: nowrap; }
-	.gchips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-
-	.chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.72rem; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.73rem; letter-spacing: 0.02em; cursor: pointer; color: var(--muted); white-space: nowrap; transition: border-color 0.12s, background 0.12s, color 0.12s; }
-	.chip .ic { font-size: 1rem; line-height: 1; }
+	.chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.68rem; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.02em; cursor: pointer; color: var(--muted); white-space: nowrap; transition: border-color 0.12s, background 0.12s, color 0.12s; }
+	.chip .ic { font-size: 0.98rem; line-height: 1; }
 	.chip .count { font-weight: 700; color: var(--c, var(--accent)); }
 	.chip:hover { border-color: var(--c, var(--accent)); color: var(--text); }
 	.chip.active { background: var(--c, var(--accent)); border-color: var(--c, var(--accent)); color: #05121c; }
