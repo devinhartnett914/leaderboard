@@ -1,0 +1,128 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getPersonBySlug, type ResultWithEdition } from '../../lib/queries';
+import { groupResultsBySport } from '../../lib/compare';
+import { SPORT_LABELS, type Sport } from '../../lib/types';
+import { formatTime, placement, ordinal, isPodium } from '../../lib/format';
+
+const { slug } = Astro.params;
+const data = slug ? await getPersonBySlug(slug) : null;
+
+if (!data) {
+	return new Response('Person not found', { status: 404 });
+}
+const { person, results } = data;
+const groups = groupResultsBySport(results);
+
+// Personal records: best (lowest) finish time per race, to badge PR rows.
+const prByRace = new Map<string, number>();
+for (const r of results) {
+	const raceId = r.race_edition?.race?.id;
+	if (!raceId || r.status !== 'finished' || r.finish_time_seconds == null) continue;
+	const best = prByRace.get(raceId);
+	if (best == null || r.finish_time_seconds < best) prByRace.set(raceId, r.finish_time_seconds);
+}
+function isPR(r: ResultWithEdition): boolean {
+	const raceId = r.race_edition?.race?.id;
+	return (
+		raceId != null &&
+		r.status === 'finished' &&
+		r.finish_time_seconds != null &&
+		prByRace.get(raceId) === r.finish_time_seconds
+	);
+}
+
+const totalRaces = results.length;
+const podiums = results.filter((r) => isPodium(r.division_place) || isPodium(r.overall_place)).length;
+const sportsCount = groups.length;
+---
+
+<Layout title={person.full_name} subtitle={[person.gender, person.birth_year && `b. ${person.birth_year}`].filter(Boolean).join(' · ')}>
+	<div class="stats">
+		<div class="stat"><span class="num">{totalRaces}</span><span class="label">results</span></div>
+		<div class="stat"><span class="num">{sportsCount}</span><span class="label">sports</span></div>
+		<div class="stat"><span class="num">{podiums}</span><span class="label">podiums</span></div>
+	</div>
+
+	{
+		groups.length === 0 ? (
+			<div class="empty">No results recorded yet for {person.full_name}.</div>
+		) : (
+			groups.map((group) => (
+				<section class="sport-block">
+					<h2>{SPORT_LABELS[group.sport as Sport] ?? group.sport}</h2>
+					<div class="card table-card">
+						<table>
+							<thead>
+								<tr>
+									<th>Race</th>
+									<th>Year</th>
+									<th>Time</th>
+									<th>Splits</th>
+									<th>Overall</th>
+									<th>Division</th>
+								</tr>
+							</thead>
+							<tbody>
+								{group.results.map((r) => (
+									<tr>
+										<td>
+											{r.race_edition?.race ? (
+												<a href={`/races/${r.race_edition.race.slug}`}>{r.race_edition.race.name}</a>
+											) : (
+												'—'
+											)}
+											{r.event && <span class="muted"> · {r.event}</span>}
+										</td>
+										<td>{r.race_edition?.year ?? '—'}</td>
+										<td>
+											{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}
+											{isPR(r) && <span class="pill gold pr">PR</span>}
+										</td>
+										<td class="splits">
+											{r.split && r.split.length > 0
+												? r.split.map((s) => `${s.label} ${formatTime(s.segment_time_seconds)}`).join('  ·  ')
+												: '—'}
+										</td>
+										<td>{placement(r.overall_place, r.overall_field_size)}</td>
+										<td>
+											{r.division ? (
+												<>
+													{r.division} · {ordinal(r.division_place)}
+													{isPodium(r.division_place) && <span class="pill gold">🏅</span>}
+												</>
+											) : (
+												'—'
+											)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			))
+		)
+	}
+</Layout>
+
+<style>
+	.stats { display: flex; gap: 1rem; margin-bottom: 2rem; }
+	.stat {
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 0.85rem 1.4rem;
+		display: flex;
+		flex-direction: column;
+		min-width: 90px;
+	}
+	.stat .num { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+	.stat .label { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-top: 0.3rem; }
+
+	.sport-block { margin-bottom: 2rem; }
+	.sport-block h2 { font-size: 1.15rem; margin: 0 0 0.85rem; }
+	.table-card { padding: 0; overflow-x: auto; }
+	.splits { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+	.pill.pr { margin-left: 0.4rem; }
+</style>

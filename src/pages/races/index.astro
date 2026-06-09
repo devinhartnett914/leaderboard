@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRaces } from '../../lib/queries';
+import { SPORT_LABELS, type Sport } from '../../lib/types';
+
+const races = await getRaces();
+
+// group by sport
+const bySport = new Map<Sport, typeof races>();
+for (const r of races) {
+	if (!bySport.has(r.sport)) bySport.set(r.sport, []);
+	bySport.get(r.sport)!.push(r);
+}
+---
+
+<Layout title="Races" subtitle="Recurring races the family tracks year over year.">
+	{
+		races.length === 0 ? (
+			<div class="empty">No races yet. Add results from the Add results screen to create one.</div>
+		) : (
+			[...bySport.entries()].map(([sport, list]) => (
+				<section class="block">
+					<h2>{SPORT_LABELS[sport]}</h2>
+					<div class="grid cols-2">
+						{list.map((r) => (
+							<a class="card race-card" href={`/races/${r.slug}`}>
+								<div>
+									<div class="name">{r.name}</div>
+									<div class="muted small">{r.location ?? 'Recurring race'}</div>
+								</div>
+								<span class="pill">{SPORT_LABELS[r.sport]}</span>
+							</a>
+						))}
+					</div>
+				</section>
+			))
+		)
+	}
+</Layout>
+
+<style>
+	.block { margin-bottom: 2rem; }
+	.block h2 { font-size: 1.15rem; margin: 0 0 0.85rem; }
+	.race-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.9rem;
+		color: var(--text);
+		transition: border-color 0.15s, transform 0.15s;
+	}
+	.race-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
+	.name { font-weight: 600; }
+	.small { font-size: 0.85rem; }
+</style>

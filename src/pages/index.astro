@@ -1,0 +1,114 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getFamilyMembers, getRaces } from '../lib/queries';
+import { SPORT_LABELS } from '../lib/types';
+
+const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
+---
+
+<Layout title="trime">
+	<section class="hero card">
+		<h1>The family's race results, in one place.</h1>
+		<p class="muted">
+			Every triathlon, swim meet, gravel ride, and running race — with year-over-year times,
+			split-by-split comparisons, and the rivals you keep seeing on the podium.
+		</p>
+	</section>
+
+	<section class="block">
+		<div class="section-head">
+			<h2>Family</h2>
+		</div>
+		{
+			family.length === 0 ? (
+				<div class="empty">
+					No family members yet. Add them in the database (see <code>supabase/seed.sql</code>) or
+					from the Add results screen.
+				</div>
+			) : (
+				<div class="grid cols-3">
+					{family.map((p) => (
+						<a class="card person-card" href={`/people/${p.slug}`}>
+							<div class="avatar">{p.full_name.charAt(0)}</div>
+							<div>
+								<div class="name">{p.full_name}</div>
+								<div class="muted small">
+									{[p.gender, p.birth_year && `b. ${p.birth_year}`].filter(Boolean).join(' · ') ||
+										'View results'}
+								</div>
+							</div>
+						</a>
+					))}
+				</div>
+			)
+		}
+	</section>
+
+	<section class="block">
+		<div class="section-head">
+			<h2>Races</h2>
+			<a href="/races" class="small">All races →</a>
+		</div>
+		{
+			races.length === 0 ? (
+				<div class="empty">No races yet. Add results to create one.</div>
+			) : (
+				<div class="grid cols-2">
+					{races.slice(0, 6).map((r) => (
+						<a class="card race-card" href={`/races/${r.slug}`}>
+							<div>
+								<div class="name">{r.name}</div>
+								<div class="muted small">{r.location ?? 'Recurring race'}</div>
+							</div>
+							<span class="pill">{SPORT_LABELS[r.sport]}</span>
+						</a>
+					))}
+				</div>
+			)
+		}
+	</section>
+</Layout>
+
+<style>
+	.hero { margin-bottom: 2.5rem; }
+	.hero h1 { margin: 0 0 0.5rem; font-size: 1.75rem; max-width: 26ch; }
+	.hero p { margin: 0; max-width: 60ch; }
+
+	.block { margin-bottom: 2.5rem; }
+	.section-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		margin-bottom: 1rem;
+	}
+	.section-head h2 { margin: 0; font-size: 1.25rem; }
+	.small { font-size: 0.9rem; }
+
+	.person-card, .race-card {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+		color: var(--text);
+		transition: border-color 0.15s, transform 0.15s;
+	}
+	.person-card:hover, .race-card:hover {
+		text-decoration: none;
+		border-color: var(--accent);
+		transform: translateY(-2px);
+	}
+	.race-card { justify-content: space-between; }
+	.avatar {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: #1a1208;
+		display: grid;
+		place-items: center;
+		font-weight: 700;
+		font-size: 1.1rem;
+		flex-shrink: 0;
+	}
+	.name { font-weight: 600; }
+	.muted.small { font-size: 0.85rem; }
+</style>

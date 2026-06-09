@@ -1,0 +1,197 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getRaceBySlug } from '../../lib/queries';
+import { familyTracks, recurringRivals, splitLabels, type FamilyTrack } from '../../lib/compare';
+import { SPORT_LABELS } from '../../lib/types';
+import { formatTime, formatDelta, deltaDirection, placement, ordinal, isPodium } from '../../lib/format';
+
+const { slug } = Astro.params;
+const data = slug ? await getRaceBySlug(slug) : null;
+
+if (!data) {
+	return new Response('Race not found', { status: 404 });
+}
+const { race, editions } = data;
+const tracks = familyTracks(editions);
+const rivalries = recurringRivals(editions);
+const years = [...editions].sort((a, b) => a.year - b.year).map((e) => e.year);
+
+// Build the metric rows (Finish + each split) for one family member's YoY table.
+function metricRows(track: FamilyTrack): { label: string; values: (number | null)[] }[] {
+	const rows: { label: string; values: (number | null)[] }[] = [
+		{
+			label: 'Finish',
+			values: track.cells.map((c) =>
+				c.result?.status === 'finished' ? c.result.finish_time_seconds : null,
+			),
+		},
+	];
+	for (const label of splitLabels(track)) {
+		rows.push({
+			label,
+			values: track.cells.map(
+				(c) => c.splits.find((s) => s.label === label)?.segment_time_seconds ?? null,
+			),
+		});
+	}
+	return rows;
+}
+---
+
+<Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')}>
+	{race.description && <p class="race-desc muted">{race.description}</p>}
+
+	<!-- Editions strip with link back to the full original results -->
+	<section class="editions">
+		{
+			[...editions]
+				.sort((a, b) => b.year - a.year)
+				.map((ed) => (
+					<div class="card edition-card">
+						<div class="year">{ed.year}</div>
+						<div class="muted small">
+							{ed.date ?? ''}
+							{ed.distance_or_format && ` · ${ed.distance_or_format}`}
+						</div>
+						{ed.source_url && (
+							<a class="small" href={ed.source_url} target="_blank" rel="noopener">
+								Full results ↗
+							</a>
+						)}
+					</div>
+				))
+		}
+	</section>
+
+	{
+		tracks.length === 0 ? (
+			<div class="empty">No family results recorded for this race yet.</div>
+		) : (
+			tracks.map((track) => (
+				<section class="track">
+					<div class="track-head">
+						<h2>{track.person.full_name}</h2>
+						{track.prSeconds != null && (
+							<span class="pill gold">PR {formatTime(track.prSeconds)} · {track.prYear}</span>
+						)}
+					</div>
+					<div class="card table-card">
+						<table>
+							<thead>
+								<tr>
+									<th>Split</th>
+									{years.map((y) => (
+										<th class="num-col">{y}</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{metricRows(track).map((row) => (
+									<tr class={row.label === 'Finish' ? 'finish-row' : ''}>
+										<th scope="row">{row.label}</th>
+										{row.values.map((v, i) => {
+											const prev = i > 0 ? row.values[i - 1] : null;
+											const dir = deltaDirection(v, prev);
+											const delta = formatDelta(v, prev);
+											const isPrCell =
+												row.label === 'Finish' &&
+												v != null &&
+												v === track.prSeconds &&
+												years[i] === track.prYear;
+											return (
+												<td class="num-col">
+													<span class={isPrCell ? 'pr-time' : ''}>{formatTime(v)}</span>
+													{delta && <span class={`delta ${dir}`}>{delta}</span>}
+												</td>
+											);
+										})}
+									</tr>
+								))}
+								<tr class="meta-row">
+									<th scope="row">Overall</th>
+									{track.cells.map((c) => (
+										<td class="num-col muted">{placement(c.result?.overall_place, c.result?.overall_field_size)}</td>
+									))}
+								</tr>
+								<tr class="meta-row">
+									<th scope="row">Division</th>
+									{track.cells.map((c) => (
+										<td class="num-col muted">
+											{c.result?.division
+												? `${c.result.division} · ${ordinal(c.result.division_place)}`
+												: '—'}
+											{isPodium(c.result?.division_place) && ' 🏅'}
+										</td>
+									))}
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+			))
+		)
+	}
+
+	{
+		rivalries.length > 0 && (
+			<section class="rivalry">
+				<h2>Familiar faces</h2>
+				<p class="muted small">Competitors you keep lining up against in the same division.</p>
+				<div class="grid cols-2">
+					{rivalries.map((rv) =>
+						rv.rivals.map((rival) => (
+							<div class="card rival-card">
+								<div class="rival-line">
+									<strong>{rv.family.full_name}</strong>
+									<span class="muted"> &nbsp;vs&nbsp; </span>
+									<strong>{rival.competitor.full_name}</strong>
+								</div>
+								<div class="muted small">
+									{rv.division ?? 'same division'} · together in {rival.years.join(', ')}
+								</div>
+								{rival.bothPodiumYears.length > 0 && (
+									<div class="podium-note">
+										🏅 Both on the podium in {rival.bothPodiumYears.join(', ')}
+									</div>
+								)}
+							</div>
+						)),
+					)}
+				</div>
+			</section>
+		)
+	}
+</Layout>
+
+<style>
+	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
+
+	.editions {
+		display: flex;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		margin-bottom: 2rem;
+	}
+	.edition-card { padding: 0.8rem 1rem; min-width: 150px; }
+	.edition-card .year { font-size: 1.25rem; font-weight: 700; }
+	.small { font-size: 0.85rem; }
+
+	.track { margin-bottom: 2.25rem; }
+	.track-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.85rem; }
+	.track-head h2 { margin: 0; font-size: 1.2rem; }
+
+	.table-card { padding: 0; overflow-x: auto; }
+	.num-col { text-align: right; }
+	td.num-col { white-space: nowrap; }
+	.delta { display: block; font-size: 0.78rem; margin-top: 0.1rem; }
+	.finish-row th, .finish-row td { font-weight: 600; font-size: 1.02rem; }
+	.pr-time { color: var(--gold); }
+	.meta-row td, .meta-row th { font-size: 0.85rem; }
+
+	.rivalry { margin-top: 1rem; }
+	.rivalry h2 { font-size: 1.2rem; margin: 0 0 0.25rem; }
+	.rivalry p { margin: 0 0 1rem; }
+	.rival-card { padding: 1rem 1.1rem; }
+	.rival-line { margin-bottom: 0.25rem; }
+	.podium-note { margin-top: 0.5rem; color: var(--gold); font-size: 0.88rem; }
+</style>

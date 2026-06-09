@@ -1,0 +1,29 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Add results" subtitle="Paste a results URL and we'll pull in the data.">
+	<div class="card coming-soon">
+		<h2>Coming next</h2>
+		<p class="muted">
+			This is where you'll paste a race-results link. The app will fetch the page, use Claude to
+			extract names, times, and splits, then show you a preview to confirm or fix before saving —
+			capturing your family's results plus the podium and nearby finishers for context.
+		</p>
+		<p class="muted">
+			This screen (and the login that gates it) gets wired up once the Supabase project is
+			connected. Until then, the sample data comes from <code>supabase/seed.sql</code>.
+		</p>
+	</div>
+</Layout>
+
+<style>
+	.coming-soon { max-width: 60ch; }
+	.coming-soon h2 { margin-top: 0; font-size: 1.2rem; }
+	.coming-soon code {
+		background: #00000040;
+		padding: 0.1rem 0.35rem;
+		border-radius: 5px;
+		font-size: 0.85em;
+	}
+</style>
