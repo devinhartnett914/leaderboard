@@ -1,8 +1,12 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = import.meta.env.PUBLIC_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string | undefined;
-const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY as string | undefined;
+// Read from import.meta.env (Astro) with a process.env fallback so server-only
+// secrets resolve in dev and on Netlify regardless of how the var is injected.
+const env = import.meta.env as Record<string, string | undefined>;
+const proc: Record<string, string | undefined> = typeof process !== 'undefined' ? process.env : {};
+const url = env.PUBLIC_SUPABASE_URL ?? proc.PUBLIC_SUPABASE_URL;
+const anonKey = env.PUBLIC_SUPABASE_ANON_KEY ?? proc.PUBLIC_SUPABASE_ANON_KEY;
+const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY ?? proc.SUPABASE_SERVICE_ROLE_KEY;
 
 /** True once the Supabase project URL + anon key are set in the environment. */
 export const isSupabaseConfigured = Boolean(url && anonKey);

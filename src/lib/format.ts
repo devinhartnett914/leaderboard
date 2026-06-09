@@ -1,5 +1,16 @@
 // Time + display formatting helpers. Times are stored as integer seconds.
 
+/** Parse "1:34:24" -> 5664, "8:26" -> 506, "45" -> 45. Returns null for blank/garbage. */
+export function parseDuration(text: string | number | null | undefined): number | null {
+	if (text == null) return null;
+	if (typeof text === 'number') return Number.isFinite(text) ? Math.round(text) : null;
+	const t = text.trim();
+	if (!t) return null;
+	const parts = t.split(':').map((p) => Number(p));
+	if (parts.length === 0 || parts.some((n) => Number.isNaN(n))) return null;
+	return Math.round(parts.reduce((acc, n) => acc * 60 + n, 0));
+}
+
 /** 8070 -> "2:14:30"; 545 -> "9:05". Returns "—" for null/undefined. */
 export function formatTime(seconds: number | null | undefined): string {
 	if (seconds == null) return '—';
