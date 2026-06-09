@@ -121,7 +121,7 @@ export function legIcon(label: string): string {
 	const l = label.toLowerCase();
 	if (l.includes('swim')) return '🏊';
 	if (l.includes('bike') || l.includes('cycle')) return '🚴';
-	if (l.includes('run')) return '🏃';
+	if (l.includes('run') || /\bmile|\d+k\b|\bkm\b/.test(l)) return '🏃';
 	if (/^t\d/i.test(label)) return '🔁';
 	return '•';
 }
@@ -131,7 +131,7 @@ export function legColor(label: string): string {
 	const l = label.toLowerCase();
 	if (l.includes('swim')) return 'var(--swim)';
 	if (l.includes('bike') || l.includes('cycle')) return 'var(--bike)';
-	if (l.includes('run')) return 'var(--run)';
+	if (l.includes('run') || /\bmile|\d+k\b|\bkm\b/.test(l)) return 'var(--run)';
 	return 'var(--muted)';
 }
 
