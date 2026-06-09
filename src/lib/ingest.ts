@@ -152,7 +152,9 @@ async function replaceSplits(db: SupabaseClient, resultId: string, splits: Extra
 	await db.from('split').delete().eq('result_id', resultId);
 	if (splits.length === 0) return;
 	const rows = splits.map((s) => {
-		const keep = s.distance_m == null ? prior.get(s.label) : undefined;
+		// A distance already on record (canonical course distance set by hand) wins
+		// over the auto-derived one, so re-imports never clobber it.
+		const keep = prior.get(s.label);
 		return {
 			result_id: resultId,
 			sequence: s.sequence,
@@ -160,8 +162,8 @@ async function replaceSplits(db: SupabaseClient, resultId: string, splits: Extra
 			segment_type: s.segment_type,
 			segment_time_seconds: s.segment_time_seconds,
 			cumulative_time_seconds: s.cumulative_time_seconds,
-			distance_m: s.distance_m ?? keep?.distance_m ?? null,
-			distance_unit: s.distance_unit ?? keep?.distance_unit ?? null,
+			distance_m: keep?.distance_m ?? s.distance_m ?? null,
+			distance_unit: keep?.distance_unit ?? s.distance_unit ?? null,
 		};
 	});
 	const { error } = await db.from('split').insert(rows);
