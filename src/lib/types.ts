@@ -63,6 +63,7 @@ export interface Split {
 	label: string;
 	segment_type: SegmentType;
 	distance_m: number | null;
+	distance_unit: string | null; // 'm' | 'yd' | 'mi' | 'km' — how to display this leg
 	segment_time_seconds: number | null;
 	cumulative_time_seconds: number | null;
 }

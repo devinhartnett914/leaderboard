@@ -3,7 +3,17 @@ import Layout from '../../layouts/Layout.astro';
 import { getRaceBySlug } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels, type FamilyTrack } from '../../lib/compare';
 import { SPORT_LABELS } from '../../lib/types';
-import { formatTime, formatDelta, deltaDirection, placement, ordinal, isPodium } from '../../lib/format';
+import {
+	formatTime,
+	formatDelta,
+	deltaDirection,
+	placement,
+	ordinal,
+	isPodium,
+	formatDistance,
+	legPace,
+	pacePer100m,
+} from '../../lib/format';
 
 const { slug } = Astro.params;
 const data = slug ? await getRaceBySlug(slug) : null;
@@ -16,32 +26,50 @@ const tracks = familyTracks(editions);
 const rivalries = recurringRivals(editions);
 const years = [...editions].sort((a, b) => a.year - b.year).map((e) => e.year);
 
-// Build the metric rows (Finish + each split) for one family member's YoY table.
-function metricRows(track: FamilyTrack): { label: string; values: (number | null)[] }[] {
-	const rows: { label: string; values: (number | null)[] }[] = [
+interface Cell {
+	time: number | null;
+	distance_m: number | null;
+	unit: string | null;
+}
+interface MetricRow {
+	label: string;
+	kind: 'finish' | 'leg';
+	cells: Cell[];
+	rowDistance: string | null; // shown in the label when constant across years
+}
+
+function metricRows(track: FamilyTrack): MetricRow[] {
+	const rows: MetricRow[] = [
 		{
 			label: 'Finish',
-			values: track.cells.map((c) =>
-				c.result?.status === 'finished' ? c.result.finish_time_seconds : null,
-			),
+			kind: 'finish',
+			rowDistance: null,
+			cells: track.cells.map((c) => ({
+				time: c.result?.status === 'finished' ? c.result.finish_time_seconds : null,
+				distance_m: null,
+				unit: null,
+			})),
 		},
 	];
 	for (const label of splitLabels(track)) {
-		rows.push({
-			label,
-			values: track.cells.map(
-				(c) => c.splits.find((s) => s.label === label)?.segment_time_seconds ?? null,
-			),
+		const cells: Cell[] = track.cells.map((c) => {
+			const s = c.splits.find((x) => x.label === label);
+			return { time: s?.segment_time_seconds ?? null, distance_m: s?.distance_m ?? null, unit: s?.distance_unit ?? null };
 		});
+		// if every leg with a distance shows the same value, hoist it into the label
+		const distances = [...new Set(cells.map((c) => formatDistance(c.distance_m, c.unit)).filter(Boolean))];
+		rows.push({ label, kind: 'leg', cells, rowDistance: distances.length === 1 ? distances[0]! : null });
 	}
 	return rows;
 }
+
+// comparable: lower = faster. Uses pace/100m when a distance is known, else raw time.
+const comparable = (c: Cell): number | null => pacePer100m(c.distance_m, c.time) ?? c.time;
 ---
 
 <Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')}>
 	{race.description && <p class="race-desc muted">{race.description}</p>}
 
-	<!-- Editions strip with link back to the full original results -->
 	<section class="editions">
 		{
 			[...editions]
@@ -50,8 +78,8 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 					<div class="card edition-card">
 						<div class="year">{ed.year}</div>
 						<div class="muted small">
-							{ed.date ?? ''}
-							{ed.distance_or_format && ` · ${ed.distance_or_format}`}
+							{ed.distance_or_format ?? ''}
+							{ed.date ? ` · ${ed.date}` : ''}
 						</div>
 						{ed.source_url && (
 							<a class="small" href={ed.source_url} target="_blank" rel="noopener">
@@ -79,7 +107,7 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 						<table>
 							<thead>
 								<tr>
-									<th>Split</th>
+									<th>Leg</th>
 									{years.map((y) => (
 										<th class="num-col">{y}</th>
 									))}
@@ -87,21 +115,29 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 							</thead>
 							<tbody>
 								{metricRows(track).map((row) => (
-									<tr class={row.label === 'Finish' ? 'finish-row' : ''}>
-										<th scope="row">{row.label}</th>
-										{row.values.map((v, i) => {
-											const prev = i > 0 ? row.values[i - 1] : null;
-											const dir = deltaDirection(v, prev);
-											const delta = formatDelta(v, prev);
+									<tr class={row.kind === 'finish' ? 'finish-row' : 'leg-row'}>
+										<th scope="row">
+											{row.label}
+											{row.rowDistance && <span class="row-dist">{row.rowDistance}</span>}
+										</th>
+										{row.cells.map((cell, i) => {
+											const prev = i > 0 ? row.cells[i - 1] : null;
+											const dir = deltaDirection(comparable(cell), prev ? comparable(prev) : null);
+											const pace = legPace(cell.distance_m, cell.time, cell.unit);
+											const cellDist = row.rowDistance ? null : formatDistance(cell.distance_m, cell.unit);
 											const isPrCell =
-												row.label === 'Finish' &&
-												v != null &&
-												v === track.prSeconds &&
-												years[i] === track.prYear;
+												row.kind === 'finish' && cell.time != null && cell.time === track.prSeconds && years[i] === track.prYear;
 											return (
 												<td class="num-col">
-													<span class={isPrCell ? 'pr-time' : ''}>{formatTime(v)}</span>
-													{delta && <span class={`delta ${dir}`}>{delta}</span>}
+													<span class={isPrCell ? 'pr-time' : ''}>{formatTime(cell.time)}</span>
+													{row.kind === 'finish'
+														? prev && <span class={`delta ${dir}`}>{formatDelta(cell.time, prev.time)}</span>
+														: cell.time != null && (
+																<span class={`pace ${dir}`}>
+																	{pace ?? ''}
+																	{cellDist ? ` · ${cellDist}` : ''}
+																</span>
+															)}
 												</td>
 											);
 										})}
@@ -117,9 +153,7 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 									<th scope="row">Division</th>
 									{track.cells.map((c) => (
 										<td class="num-col muted">
-											{c.result?.division
-												? `${c.result.division} · ${ordinal(c.result.division_place)}`
-												: '—'}
+											{c.result?.division ? `${c.result.division} · ${ordinal(c.result.division_place)}` : '—'}
 											{isPodium(c.result?.division_place) && ' 🏅'}
 										</td>
 									))}
@@ -150,9 +184,7 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 									{rv.division ?? 'same division'} · together in {rival.years.join(', ')}
 								</div>
 								{rival.bothPodiumYears.length > 0 && (
-									<div class="podium-note">
-										🏅 Both on the podium in {rival.bothPodiumYears.join(', ')}
-									</div>
+									<div class="podium-note">🏅 Both on the podium in {rival.bothPodiumYears.join(', ')}</div>
 								)}
 							</div>
 						)),
@@ -165,13 +197,7 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 
 <style>
 	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
-
-	.editions {
-		display: flex;
-		gap: 0.75rem;
-		flex-wrap: wrap;
-		margin-bottom: 2rem;
-	}
+	.editions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 2rem; }
 	.edition-card { padding: 0.8rem 1rem; min-width: 150px; }
 	.edition-card .year { font-size: 1.25rem; font-weight: 700; }
 	.small { font-size: 0.85rem; }
@@ -182,8 +208,12 @@ function metricRows(track: FamilyTrack): { label: string; values: (number | null
 
 	.table-card { padding: 0; overflow-x: auto; }
 	.num-col { text-align: right; }
-	td.num-col { white-space: nowrap; }
-	.delta { display: block; font-size: 0.78rem; margin-top: 0.1rem; }
+	td.num-col { white-space: nowrap; vertical-align: top; }
+	.row-dist { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+	.delta, .pace { display: block; font-size: 0.78rem; margin-top: 0.1rem; }
+	.pace { color: var(--muted); }
+	.pace.faster { color: var(--faster); }
+	.pace.slower { color: var(--slower); }
 	.finish-row th, .finish-row td { font-weight: 600; font-size: 1.02rem; }
 	.pr-time { color: var(--gold); }
 	.meta-row td, .meta-row th { font-size: 0.85rem; }

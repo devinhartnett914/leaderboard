@@ -15,6 +15,33 @@ export interface ExtractedSplit {
 	segment_type: 'leg' | 'lap' | 'distance' | 'checkpoint';
 	segment_time_seconds: number | null;
 	cumulative_time_seconds: number | null;
+	distance_m: number | null;
+	distance_unit: string | null; // 'mi' (bike) | 'km' (run) | set later for swim
+}
+
+const MILE_M = 1609.344;
+
+/**
+ * Back-calculate a leg's distance from RunSignup's pace column.
+ * Bike pace is "17.3 mph"; run pace is "11:50" (min/mile). Swim has no pace.
+ */
+function deriveLegDistance(
+	label: string,
+	seconds: number,
+	pace: string | undefined,
+): { distance_m: number | null; distance_unit: string | null } {
+	if (!pace) return { distance_m: null, distance_unit: null };
+	if (/bike|cycle/i.test(label) || /mph/i.test(pace)) {
+		const mph = parseFloat(pace);
+		if (!Number.isFinite(mph) || mph <= 0) return { distance_m: null, distance_unit: null };
+		return { distance_m: mph * (seconds / 3600) * MILE_M, distance_unit: 'mi' };
+	}
+	if (/run/i.test(label)) {
+		const secPerMile = parseDuration(pace);
+		if (!secPerMile || secPerMile <= 0) return { distance_m: null, distance_unit: null };
+		return { distance_m: (seconds / secPerMile) * MILE_M, distance_unit: 'km' }; // store meters, show km
+	}
+	return { distance_m: null, distance_unit: null };
 }
 
 export interface ExtractedResult {
@@ -157,12 +184,16 @@ function extractSplits(row: Row, headers: Headers): ExtractedSplit[] {
 		const seconds = parseDuration(row[key] as string);
 		if (seconds == null) continue;
 		cumulative += seconds;
+		const label = headers[key] || `Split ${seq}`;
+		const { distance_m, distance_unit } = deriveLegDistance(label, seconds, row[`${key}-pace`] as string | undefined);
 		splits.push({
 			sequence: seq++,
-			label: headers[key] || `Split ${seq}`,
+			label,
 			segment_type: 'leg',
 			segment_time_seconds: seconds,
 			cumulative_time_seconds: cumulative,
+			distance_m,
+			distance_unit,
 		});
 	}
 	return splits;

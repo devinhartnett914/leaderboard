@@ -3,7 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import { getPersonBySlug, type ResultWithEdition } from '../../lib/queries';
 import { groupResultsBySport } from '../../lib/compare';
 import { SPORT_LABELS, type Sport } from '../../lib/types';
-import { formatTime, placement, ordinal, isPodium } from '../../lib/format';
+import { formatTime, placement, ordinal, isPodium, legPace } from '../../lib/format';
 
 const { slug } = Astro.params;
 const data = slug ? await getPersonBySlug(slug) : null;
@@ -81,7 +81,12 @@ const sportsCount = groups.length;
 										</td>
 										<td class="splits">
 											{r.split && r.split.length > 0
-												? r.split.map((s) => `${s.label} ${formatTime(s.segment_time_seconds)}`).join('  ·  ')
+												? r.split
+														.map((s) => {
+															const pace = legPace(s.distance_m, s.segment_time_seconds, s.distance_unit);
+															return `${s.label} ${formatTime(s.segment_time_seconds)}${pace ? ` (${pace})` : ''}`;
+														})
+														.join('  ·  ')
 												: '—'}
 										</td>
 										<td>{placement(r.overall_place, r.overall_field_size)}</td>

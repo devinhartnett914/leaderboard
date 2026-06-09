@@ -78,14 +78,16 @@ async function ensureRace(
 }
 
 async function ensureEdition(db: SupabaseClient, raceId: string, r: ExtractedResult): Promise<string> {
-	const patch = {
+	const patch: Record<string, unknown> = {
 		race_id: raceId,
 		year: r.year,
 		date: r.date,
 		source_url: r.source_url,
 		host_platform: 'trisignup',
-		distance_or_format: r.distance_or_format,
 	};
+	// only set the format when we actually derived one, so we never clobber a
+	// value already set (e.g. the Olympic tag on Reston Triathlon)
+	if (r.distance_or_format) patch.distance_or_format = r.distance_or_format;
 	const { data: existing } = await db
 		.from('race_edition')
 		.select('id')
@@ -139,16 +141,29 @@ async function upsertResult(
 }
 
 async function replaceSplits(db: SupabaseClient, resultId: string, splits: ExtractedSplit[]): Promise<void> {
+	// Carry over distances we already have (e.g. a user-entered swim distance the
+	// adapter can't derive) so a re-import never wipes them.
+	const { data: existing } = await db
+		.from('split')
+		.select('label, distance_m, distance_unit')
+		.eq('result_id', resultId);
+	const prior = new Map((existing ?? []).map((s) => [s.label as string, s]));
+
 	await db.from('split').delete().eq('result_id', resultId);
 	if (splits.length === 0) return;
-	const rows = splits.map((s) => ({
-		result_id: resultId,
-		sequence: s.sequence,
-		label: s.label,
-		segment_type: s.segment_type,
-		segment_time_seconds: s.segment_time_seconds,
-		cumulative_time_seconds: s.cumulative_time_seconds,
-	}));
+	const rows = splits.map((s) => {
+		const keep = s.distance_m == null ? prior.get(s.label) : undefined;
+		return {
+			result_id: resultId,
+			sequence: s.sequence,
+			label: s.label,
+			segment_type: s.segment_type,
+			segment_time_seconds: s.segment_time_seconds,
+			cumulative_time_seconds: s.cumulative_time_seconds,
+			distance_m: s.distance_m ?? keep?.distance_m ?? null,
+			distance_unit: s.distance_unit ?? keep?.distance_unit ?? null,
+		};
+	});
 	const { error } = await db.from('split').insert(rows);
 	if (error) throw error;
 }

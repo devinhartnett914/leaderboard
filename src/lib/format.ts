@@ -70,3 +70,46 @@ export function placement(place: number | null | undefined, of: number | null | 
 export function isPodium(place: number | null | undefined): boolean {
 	return place != null && place <= 3;
 }
+
+// ---- Distance + pace -------------------------------------------------------
+// distance_m is always meters (canonical). distance_unit is how to display it.
+
+const YARD_M = 0.9144;
+const MILE_M = 1609.344;
+
+/** Format a leg distance in its display unit: "750 m", "400 yd", "12.0 mi", "5.0 km". */
+export function formatDistance(meters: number | null | undefined, unit: string | null | undefined): string | null {
+	if (meters == null || !unit) return null;
+	switch (unit) {
+		case 'yd': return `${Math.round(meters / YARD_M)} yd`;
+		case 'm': return `${Math.round(meters)} m`;
+		case 'mi': return `${(meters / MILE_M).toFixed(1)} mi`;
+		case 'km': return `${(meters / 1000).toFixed(1)} km`;
+		default: return null;
+	}
+}
+
+/** Human pace for a leg, by unit: swim "1:06 /100m", bike "17.3 mph", run "7:21 /km". */
+export function legPace(
+	meters: number | null | undefined,
+	seconds: number | null | undefined,
+	unit: string | null | undefined,
+): string | null {
+	if (!meters || !seconds || !unit) return null;
+	switch (unit) {
+		case 'm': return `${formatTime(seconds / (meters / 100))} /100m`;
+		case 'yd': return `${formatTime(seconds / (meters / YARD_M / 100))} /100yd`;
+		case 'mi': return `${(meters / MILE_M / (seconds / 3600)).toFixed(1)} mph`;
+		case 'km': return `${formatTime(seconds / (meters / 1000))} /km`;
+		default: return null;
+	}
+}
+
+/**
+ * Normalized pace in seconds per 100m — a single "lower is faster" number for
+ * comparing a leg across years even when the distance changed. Null if no distance.
+ */
+export function pacePer100m(meters: number | null | undefined, seconds: number | null | undefined): number | null {
+	if (!meters || !seconds || meters <= 0) return null;
+	return seconds / (meters / 100);
+}
