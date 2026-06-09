@@ -162,11 +162,15 @@ function guessFormat(eventName: string): string | null {
 	if (/olympic|intermediate/i.test(eventName)) return 'Olympic';
 	if (/half|70\.?3/i.test(eventName)) return 'Half (70.3)';
 	if (/full|140\.?6|ironman/i.test(eventName)) return 'Full (140.6)';
+	// open-water / distance swims and similar: "1 Mile Swim" -> "1 Mile"
+	const mile = eventName.match(/(\d+(?:\.\d+)?)\s*mile/i);
+	if (mile) return `${mile[1]} Mile`;
 	return null;
 }
 
 function guessSport(name: string): Sport {
 	if (/triathlon|aquabike|duathlon/i.test(name)) return 'triathlon';
+	if (/open water|\bows\b|lake swim|bay swim|river swim|reservoir swim/i.test(name)) return 'open_water';
 	if (/swim|aquatic|meet/i.test(name)) return 'swim_meet';
 	if (/gravel/i.test(name)) return 'gravel';
 	if (/trail/i.test(name)) return 'trail_run';

@@ -1,6 +1,6 @@
 // Database row types — mirror supabase/migrations/0001_init.sql
 
-export type Sport = 'triathlon' | 'swim_meet' | 'gravel' | 'trail_run' | 'road_run' | 'other';
+export type Sport = 'triathlon' | 'swim_meet' | 'open_water' | 'gravel' | 'trail_run' | 'road_run' | 'other';
 export type ResultStatus = 'finished' | 'dnf' | 'dns' | 'dq';
 export type ResultContext = 'family' | 'podium' | 'neighbor';
 export type SegmentType = 'leg' | 'lap' | 'distance' | 'checkpoint';
@@ -73,6 +73,7 @@ export interface Split {
 export const SPORT_LABELS: Record<Sport, string> = {
 	triathlon: 'Triathlon',
 	swim_meet: 'Swim Meet',
+	open_water: 'Open Water',
 	gravel: 'Gravel',
 	trail_run: 'Trail Run',
 	road_run: 'Road Run',
