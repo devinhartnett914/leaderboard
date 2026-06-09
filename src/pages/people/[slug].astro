@@ -2,17 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import { getPersonBySlug, type ResultWithEdition } from '../../lib/queries';
 import { SPORT_LABELS, type Sport } from '../../lib/types';
-import {
-	formatTime,
-	placement,
-	ordinal,
-	isPodium,
-	legPace,
-	legIcon,
-	legColor,
-	currentAge,
-	formatFullDate,
-} from '../../lib/format';
+import { formatTime, placement, ordinal, isPodium, legPace, legIcon, legColor, currentAge } from '../../lib/format';
 
 const { slug } = Astro.params;
 const data = slug ? await getPersonBySlug(slug) : null;
@@ -20,6 +10,7 @@ if (!data) return new Response('Person not found', { status: 404 });
 const { person, results } = data;
 
 const MEDAL = ['🥇', '🥈', '🥉'];
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const SPORT_COLOR: Record<string, string> = {
 	triathlon: 'var(--accent)',
 	swim_meet: 'var(--swim)',
@@ -28,12 +19,15 @@ const SPORT_COLOR: Record<string, string> = {
 	road_run: 'var(--run)',
 	other: 'var(--muted)',
 };
+function dateParts(iso: string | null | undefined, fallbackYear: number | null | undefined) {
+	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
+	return { mon: '', day: '', year: fallbackYear ? String(fallbackYear) : '' };
+}
 
-// newest first, by date (falling back to year)
 const sortKey = (r: ResultWithEdition) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 const sorted = [...results].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
 
-// personal record = best finish per race
 const prByRace = new Map<string, number>();
 for (const r of results) {
 	const raceId = r.race_edition?.race?.id;
@@ -48,15 +42,14 @@ const isPR = (r: ResultWithEdition) =>
 	prByRace.get(r.race_edition.race.id) === r.finish_time_seconds;
 
 const age = currentAge(person.birth_date, person.birth_year);
-const totalRaces = results.length;
-const sportsCount = new Set(results.map((r) => r.race_edition?.race?.sport).filter(Boolean)).size;
 const podiums = results.filter((r) => isPodium(r.division_place) || isPodium(r.overall_place)).length;
+const sportsCount = new Set(results.map((r) => r.race_edition?.race?.sport).filter(Boolean)).size;
 const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boolean).join(' · ');
 ---
 
 <Layout title={person.full_name} subtitle={subtitle}>
 	<div class="stats">
-		<div class="stat"><span class="num">{totalRaces}</span><span class="label">Results</span></div>
+		<div class="stat"><span class="num">{results.length}</span><span class="label">Results</span></div>
 		<div class="stat"><span class="num">{sportsCount}</span><span class="label">Sports</span></div>
 		<div class="stat"><span class="num">{podiums}</span><span class="label">Podiums</span></div>
 	</div>
@@ -69,11 +62,18 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boole
 				{sorted.map((r) => {
 					const ed = r.race_edition;
 					const sport = (ed?.race?.sport ?? 'other') as Sport;
+					const dp = dateParts(ed?.date, ed?.year);
 					const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
-					const dp = r.division_place;
+					const place = r.division_place;
 					return (
-						<article class="rcard" style={`--accent-edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
-							<div class="rc-main">
+						<article class="rcard" style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+							<div class="rc-date">
+								<span class="d-mon">{dp.mon}</span>
+								<span class="d-day">{dp.day || dp.year}</span>
+								<span class="d-yr">{dp.day ? dp.year : ''}</span>
+							</div>
+
+							<div class="rc-race">
 								{ed?.race ? (
 									<a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a>
 								) : (
@@ -82,7 +82,6 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boole
 								<div class="rc-meta">
 									<span class="rc-sport">{SPORT_LABELS[sport]}</span>
 									{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
-									<span>· {formatFullDate(ed?.date) ?? ed?.year ?? ''}</span>
 									{r.event && <span>· {r.event}</span>}
 								</div>
 							</div>
@@ -94,30 +93,28 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boole
 								</span>
 								<div class="rc-tags">
 									{isPR(r) && <span class="tag tag-pr">⭐ PR</span>}
-									{dp != null && dp <= 3 && (
-										<span class={`tag medal-${dp}`}>{MEDAL[dp - 1]} {r.division}</span>
-									)}
+									{place != null && place <= 3 && <span class={`tag medal-${place}`}>{MEDAL[place - 1]} {r.division}</span>}
 								</div>
 							</div>
 
 							{legs.length > 0 && (
-								<div class="rc-splits">
+								<div class="rc-legs">
 									{legs.map((s) => (
 										<div class="rc-leg">
-											<span class="rc-leg-ic" style={`color:${legColor(s.label)}`}>{legIcon(s.label)}</span>
-											<span class="rc-leg-time">{formatTime(s.segment_time_seconds)}</span>
-											<span class="rc-leg-pace">{legPace(s.distance_m, s.segment_time_seconds, s.distance_unit) ?? s.label}</span>
+											<span class="leg-ic" style={`color:${legColor(s.label)}`}>{legIcon(s.label)}</span>
+											<span class="leg-t">{formatTime(s.segment_time_seconds)}</span>
+											<span class="leg-p">{legPace(s.distance_m, s.segment_time_seconds, s.distance_unit) ?? ''}</span>
 										</div>
 									))}
 								</div>
 							)}
 
-							<div class="rc-place">
+							<div class="rc-places">
 								<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
 								<div>
 									<span class="rc-k">Division</span>
 									<span class="rc-v">
-										{r.division ? `${r.division} · ${ordinal(r.division_place)}` : '—'}
+										{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}
 										{isPodium(r.division_place) && ` ${MEDAL[(r.division_place ?? 1) - 1]}`}
 									</span>
 								</div>
@@ -138,41 +135,52 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null].filter(Boole
 
 	.results { display: flex; flex-direction: column; gap: 0.85rem; }
 	.rcard {
-		display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 2rem;
-		padding: 1.05rem 1.3rem 1.05rem 1.5rem;
-		background: linear-gradient(180deg, var(--surface-2), var(--surface) 80px);
-		border: 1px solid var(--border); border-left: 4px solid var(--accent-edge, var(--border));
-		border-radius: 14px; box-shadow: var(--shadow); position: relative;
+		display: flex; align-items: stretch; gap: 1.25rem;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow);
+		overflow-x: auto;
 	}
 
-	.rc-main { flex: 1 1 220px; min-width: 200px; }
-	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; letter-spacing: 0.03em; color: var(--text); }
-	.rc-name:hover { color: var(--accent); text-decoration: none; }
-	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); margin-top: 0.3rem; }
-	.rc-sport { color: var(--accent-edge, var(--muted)); font-weight: 600; }
+	/* prominent date tile (left), accent-colored by sport */
+	.rc-date {
+		flex-shrink: 0; width: 86px;
+		display: flex; flex-direction: column; align-items: center; justify-content: center;
+		padding: 0.7rem 0.4rem; border-right: 1px solid var(--border);
+		background: color-mix(in srgb, var(--edge) 12%, transparent);
+		border-radius: 14px 0 0 14px;
+	}
+	.d-mon { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
+	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.5rem; line-height: 0.85; }
+	.d-yr { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--faint); }
 
-	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-	.rc-finish { display: flex; flex-direction: column; gap: 0.25rem; min-width: 120px; }
-	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2.05rem; line-height: 0.9; letter-spacing: 0.02em; }
+	.rc-race { flex: 1 1 180px; min-width: 150px; display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 0; }
+	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; }
+	.rc-name:hover { color: var(--accent); text-decoration: none; }
+	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.4rem; }
+	.rc-sport { color: var(--edge); font-weight: 600; }
+
+	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.rc-finish { flex-shrink: 0; width: 130px; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 0; }
+	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; }
 	.rc-time.is-pr { color: var(--gold); }
-	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.15rem; }
-	.tag { font-family: var(--font-mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem; }
+	.tag { font-family: var(--font-mono); font-size: 0.58rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
 	.tag-pr { background: linear-gradient(135deg, #fff3c4, #ffc83a); color: #3a2a00; }
 	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 80%); color: #3a2a00; }
 	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 80%); color: #283038; }
 	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 80%); color: #3a2110; }
 
-	.rc-splits { display: flex; gap: 1.1rem; flex-wrap: wrap; }
-	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 58px; }
-	.rc-leg-ic { font-size: 1.2rem; line-height: 1.2; }
-	.rc-leg-time { font-family: var(--font-mono); font-weight: 600; font-size: 0.92rem; }
-	.rc-leg-pace { font-family: var(--font-mono); font-size: 0.62rem; color: var(--faint); }
+	.rc-legs { flex-shrink: 0; display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 0; }
+	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 56px; }
+	.leg-ic { font-size: 1.2rem; line-height: 1.3; }
+	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.88rem; }
+	.leg-p { font-family: var(--font-mono); font-size: 0.6rem; color: var(--faint); }
 
-	.rc-place { display: flex; gap: 1.5rem; }
-	.rc-place .rc-v { font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.1rem; display: block; }
+	.rc-places { flex-shrink: 0; width: 168px; display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.1rem 0.85rem 0; }
+	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.1rem; display: block; }
 
-	@media (max-width: 640px) {
-		.rc-place { gap: 1rem; }
-		.rcard { gap: 0.85rem 1.25rem; }
+	@media (max-width: 760px) {
+		.rcard { gap: 0.85rem; }
+		.rc-finish, .rc-places { width: auto; }
 	}
 </style>
