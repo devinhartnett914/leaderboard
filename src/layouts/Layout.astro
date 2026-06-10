@@ -4,8 +4,9 @@ import { isSupabaseConfigured } from '../lib/supabase';
 interface Props {
 	title?: string;
 	subtitle?: string;
+	avatarUrl?: string | null;
 }
-const { title = 'Tri•Me', subtitle } = Astro.props;
+const { title = 'Tri•Me', subtitle, avatarUrl } = Astro.props;
 const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `${title} · Tri•Me`;
 ---
 
@@ -51,8 +52,11 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 		<main class="container">
 			{(title !== 'Tri•Me' || subtitle) && (
 				<div class="page-head">
-					<h1>{title}</h1>
-					{subtitle && <p class="subtitle">{subtitle}</p>}
+					{avatarUrl && <img class="page-avatar" src={avatarUrl} alt={title} />}
+					<div class="page-head-text">
+						<h1>{title}</h1>
+						{subtitle && <p class="subtitle">{subtitle}</p>}
+					</div>
 				</div>
 			)}
 			<slot />
@@ -149,7 +153,8 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 
 			main { padding: 2rem 0 3rem; min-height: 60vh; }
 
-			.page-head { margin-bottom: 1.75rem; }
+			.page-head { display: flex; align-items: center; gap: 1.4rem; margin-bottom: 1.75rem; }
+			.page-avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 3px solid var(--surface-2); box-shadow: var(--shadow), 0 0 0 1px var(--border); }
 			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
 			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 
