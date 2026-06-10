@@ -261,7 +261,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 	.anchor { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 0.82; padding: 0.55rem 1rem; background: color-mix(in srgb, var(--g, var(--accent)) 15%, var(--surface)); border-right: 1px solid var(--border); }
 	.anchor .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--g, var(--accent)); }
-	.anchor .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--faint); margin-top: 0.32rem; }
+	.anchor .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 0.32rem; }
 
 	/* each breakdown segment, divided from its neighbor, highlights when active */
 	.seg { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.75rem; background: transparent; border: none; border-right: 1px solid var(--border); font: inherit; cursor: pointer; color: var(--muted); transition: background 0.12s, color 0.12s; white-space: nowrap; }
@@ -287,7 +287,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	.fpr input:checked ~ .pr-box { background: var(--gold); border-color: var(--gold); color: #3a2a00; }
 	.fpr .pr-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; line-height: 1; }
 	.fpr .pr-mark { font-size: 1.2rem; }
-	.fpr .pr-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+	.fpr .pr-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 	.fpr .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--gold); }
 	.fpr:has(input:checked) { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
 
@@ -321,7 +321,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	.rcard.has-medal .rc-race { padding-right: 56px; }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
 	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--faint); }
+	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
 	.rc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
