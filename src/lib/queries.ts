@@ -47,6 +47,51 @@ export async function getRaces(): Promise<Race[]> {
 	return data ?? [];
 }
 
+/** A result with its edition/race AND the family member who ran it — for feeds. */
+export interface FeedResult extends ResultWithEdition {
+	person: Person | null;
+}
+
+/** Every family result, newest first — drives the all-races feed + "recent". */
+export async function getAllFamilyResults(): Promise<FeedResult[]> {
+	if (!supabase) return [];
+	const { data, error } = await supabase
+		.from('result')
+		.select('*, person(*), race_edition(*, race(*)), split(*)')
+		.eq('context', 'family');
+	if (error) throw error;
+	const rows = (data ?? []) as FeedResult[];
+	for (const r of rows) r.split?.sort((a, b) => a.sequence - b.sequence);
+	const dateKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
+	return rows.sort((a, b) => dateKey(b).localeCompare(dateKey(a)));
+}
+
+/** The most recent family results across everyone. */
+export async function getRecentResults(limit = 3): Promise<FeedResult[]> {
+	return (await getAllFamilyResults()).slice(0, limit);
+}
+
+export interface UpcomingRace extends RaceEdition {
+	race: Race | null;
+}
+
+/**
+ * Race editions dated today or later. Empty until future editions exist — the
+ * UI shows a placeholder, and this is where the "what's next" logic will grow.
+ */
+export async function getUpcomingRaces(limit = 8): Promise<UpcomingRace[]> {
+	if (!supabase) return [];
+	const today = new Date().toISOString().slice(0, 10);
+	const { data, error } = await supabase
+		.from('race_edition')
+		.select('*, race(*)')
+		.gte('date', today)
+		.order('date', { ascending: true })
+		.limit(limit);
+	if (error) throw error;
+	return (data ?? []) as UpcomingRace[];
+}
+
 /** A family member + every result they have, newest edition first. */
 export async function getPersonBySlug(slug: string): Promise<PersonPageData | null> {
 	if (!supabase) return null;

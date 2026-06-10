@@ -1,15 +1,34 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getFamilyMembers, getRaces } from '../lib/queries';
-import { SPORT_LABELS } from '../lib/types';
-import { currentAge } from '../lib/format';
+import { getFamilyMembers, getRecentResults, getUpcomingRaces } from '../lib/queries';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import { currentAge, formatFullDate, formatTime } from '../lib/format';
 
-const [family, races] = await Promise.all([getFamilyMembers(), getRaces()]);
+const [family, recent, upcoming] = await Promise.all([
+	getFamilyMembers(),
+	getRecentResults(3),
+	getUpcomingRaces(),
+]);
 
 // Show the family oldest → youngest (earliest birth date first).
 const birthKey = (p: (typeof family)[number]) =>
 	p.birth_date ?? (p.birth_year ? `${p.birth_year}-00-00` : '9999-99-99');
 const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKey(b)));
+
+// Race-type metadata, matching the person + race pages.
+const SPORT_ICON: Record<string, string> = {
+	triathlon: '🚴', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', trail_run: '⛰️', road_run: '🏃', other: '🏁',
+};
+const SPORT_COLOR: Record<string, string> = {
+	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', open_water: 'var(--swim)', gravel: 'var(--bike)',
+	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
+};
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
+	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
+	return { mon: '', day: fy ? String(fy) : '', year: fy ? String(fy) : '' };
+}
 ---
 
 <Layout title="Tri•Me">
@@ -47,24 +66,58 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	</section>
 
 	<section class="block">
+		<div class="section-head"><h2>Upcoming</h2></div>
+		{
+			upcoming.length === 0 ? (
+				<div class="empty">No upcoming races on the calendar yet — they'll appear here once one's added.</div>
+			) : (
+				<div class="grid cols-2">
+					{upcoming.map((e) => (
+						<a class="card race-card" href={e.race ? `/races/${e.race.slug}` : '#'}>
+							<div>
+								<div class="name">{e.race?.name ?? 'Race'}</div>
+								<div class="sub">{[formatFullDate(e.date), e.race?.location].filter(Boolean).join(' · ') || 'Upcoming'}</div>
+							</div>
+							{e.race && <span class="pill">{SPORT_LABELS[e.race.sport]}</span>}
+						</a>
+					))}
+				</div>
+			)
+		}
+	</section>
+
+	<section class="block">
 		<div class="section-head">
-			<h2>Races</h2>
+			<h2>Recent races</h2>
 			<a href="/races" class="all-link">All races →</a>
 		</div>
 		{
-			races.length === 0 ? (
-				<div class="empty">No races yet.</div>
+			recent.length === 0 ? (
+				<div class="empty">No races recorded yet.</div>
 			) : (
-				<div class="grid cols-2">
-					{races.slice(0, 6).map((r) => (
-						<a class="card race-card" href={`/races/${r.slug}`}>
-							<div>
-								<div class="name">{r.name}</div>
-								<div class="sub">{r.location ?? 'Recurring race'}</div>
-							</div>
-							<span class="pill">{SPORT_LABELS[r.sport]}</span>
-						</a>
-					))}
+				<div class="grid cols-3">
+					{recent.map((r) => {
+						const ed = r.race_edition;
+						const sport = (ed?.race?.sport ?? 'other') as Sport;
+						const dp = dateParts(ed?.date, ed?.year);
+						return (
+							<a class="card recent-card" href={ed?.race ? `/races/${ed.race.slug}` : '#'} style={`--c:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<div class="rec-date">
+									<span class="rd-mon">{dp.mon}</span>
+									<span class="rd-day">{dp.day}</span>
+									<span class="rd-yr">{dp.year}</span>
+								</div>
+								<div class="rec-body">
+									<div class="rec-top">
+										<span class="rec-ic">{SPORT_ICON[sport] ?? '🏁'}</span>
+										<span class="rec-who">{r.person?.full_name ?? ''}</span>
+									</div>
+									<div class="rec-name">{ed?.race?.name ?? 'Race'}</div>
+									<div class="rec-fin">{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</div>
+								</div>
+							</a>
+						);
+					})}
 				</div>
 			)
 		}
@@ -93,4 +146,18 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	}
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
+
+	/* recent-race cards: date anchor + who + race + finish */
+	.recent-card { display: flex; align-items: stretch; gap: 0; padding: 0; overflow: hidden; color: var(--text); border-left: 3px solid var(--c, var(--accent)); transition: transform 0.15s; }
+	.recent-card:hover { text-decoration: none; transform: translateY(-2px); }
+	.rec-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 76px; padding: 0.9rem 0.5rem; background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent); }
+	.rd-mon { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--c, var(--accent)); }
+	.rd-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
+	.rd-yr { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); }
+	.rec-body { display: flex; flex-direction: column; justify-content: center; padding: 0.8rem 1rem; min-width: 0; }
+	.rec-top { display: flex; align-items: center; gap: 0.45rem; }
+	.rec-ic { font-size: 1.1rem; line-height: 1; }
+	.rec-who { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rec-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.02em; margin-top: 0.2rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--accent); margin-top: 0.35rem; }
 </style>
