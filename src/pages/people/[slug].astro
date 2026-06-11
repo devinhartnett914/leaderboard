@@ -290,12 +290,14 @@ const meetPlaces = (e: MeetEntry) => [...new Set(e.events.map(podiumPlace).filte
 													<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
 												</a>
 												<div class="mc-evtime" style={`grid-row:${row}`}>
-													<ResultMarks medalTier={place} medalSub={abbrevDivision(ageGroupOf(e.division))} pr={pr && !dq} compact />
-													{dq ? (
-														<span class="ev-dq">{e.status.toUpperCase()}</span>
-													) : (
-														<span class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</span>
-													)}
+													<span class="ev-timewrap">
+														<ResultMarks medalTier={place} medalSub={abbrevDivision(ageGroupOf(e.division))} pr={pr && !dq} compact />
+														{dq ? (
+															<span class="ev-dq">{e.status.toUpperCase()}</span>
+														) : (
+															<span class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</span>
+														)}
+													</span>
 												</div>
 												<div class="mc-evplace" style={`grid-row:${row}`}>
 													<span class="ev-ord">{e.division_place != null ? ordinal(e.division_place) : '—'}</span>
@@ -467,12 +469,16 @@ const meetPlaces = (e: MeetEntry) => [...new Set(e.events.map(podiumPlace).filte
 	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--swim); text-decoration: none; }
 	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
-	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.03em; white-space: nowrap; border-bottom: 1px dotted color-mix(in srgb, var(--swim) 55%, transparent); }
-	.mc-evtime { grid-column: 3; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.03em; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
+	.mc-evname:hover .ev-lbl { text-decoration-color: var(--swim); }
+	.mc-evtime { grid-column: 3 / 5; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	/* wrap the time so the medal/PR marks anchor to the time edge (like the tri rows),
+	   not the padded cell edge — keeps stars aligned across swim + tri rows */
+	.ev-timewrap { position: relative; width: max-content; }
 	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
 	.ev-t.is-pr { color: var(--gold); }
-	.ev-dq { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; color: var(--slower); }
-	.mc-evplace { grid-column: 4 / -1; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
+	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evplace .ev-ord { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; }
 	.mc-evplace .ev-heat { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.1rem; }
 	/* the first event row sits under the header, which already has a bottom border */

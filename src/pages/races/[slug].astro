@@ -425,13 +425,13 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.sw-ev:first-child > * { border-top: none; }
 	.ev-ic { font-size: 1.15rem; line-height: 1; }
 	.ev-name { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.03em; color: var(--text); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-	a.ev-name { border-bottom: 1px dotted color-mix(in srgb, var(--swim) 55%, transparent); }
-	a.ev-name:hover { color: var(--swim); text-decoration: none; }
+	a.ev-name { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
+	a.ev-name:hover { color: var(--swim); text-decoration-color: var(--swim); }
 	/* time cell is the anchor; the medal/PR marks sit just left of it */
 	.ev-time { position: relative; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
 	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; }
 	.ev-t.is-pr { color: var(--gold); }
-	.ev-dq { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; color: var(--slower); }
+	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
 	.ev-place { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
 	.ev-ord { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; color: var(--text); }
 	.ev-heat { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }

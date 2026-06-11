@@ -22,8 +22,10 @@ const { medalTier = null, medalSub = null, pr = false, compact = false } = Astro
 )}
 
 <style>
-	.marks { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.3rem; padding-right: 0.3rem; --mw: 2.5rem; }
-	.marks.compact { --mw: 2rem; }
-	.mk-medal { width: var(--mw); display: flex; justify-content: center; }
-	.mk-pr { width: 1.4rem; display: flex; justify-content: center; }
+	/* even spacing: medal — star — time. The medal hugs the right of its slot so
+	   it sits as close to the star as the star sits to the time. */
+	.marks { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.55rem; padding-right: 0.6rem; --mw: 2.1rem; }
+	.marks.compact { --mw: 1.7rem; }
+	.mk-medal { width: var(--mw); display: flex; justify-content: flex-end; }
+	.mk-pr { width: 1.35rem; display: flex; justify-content: center; }
 </style>
