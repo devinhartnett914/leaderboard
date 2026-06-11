@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import { getPersonBySlug, type ResultWithEdition } from '../../lib/queries';
 import { SPORT_LABELS, type Sport } from '../../lib/types';
+import { categoryOf, CAT_COLOR, CAT_ICON } from '../../lib/categories';
 import { formatTime, placement, ordinal, legPace, legIcon, legColor, currentAge, formatSwimTime, parseSwimEvent, swimEventKey, swimEventSlug, abbrevDivision } from '../../lib/format';
 
 const { slug } = Astro.params;
@@ -14,16 +15,6 @@ const MEDAL = ['🥇', '🥈', '🥉'];
 const MEDAL_LABEL = ['1st', '2nd', '3rd'];
 const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-// Filter categories split triathlon into Sprint / Olympic. One color per category —
-// the row edge + icon AND the filter chip read from this, so they always match.
-// Triathlons = purple, swims = light blue.
-const CAT_COLOR: Record<string, string> = {
-	sprint: '#a78bfa', olympic: '#a78bfa', triathlon: '#a78bfa', kids_tri: '#a78bfa',
-	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b', other: '#8fa5c4',
-};
-const CAT_ICON: Record<string, string> = {
-	sprint: '⚡', olympic: '🔥', triathlon: '🚴', kids_tri: '🧒', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
-};
 
 const isSwim = (r: ResultWithEdition) => (r.race_edition?.race?.sport ?? 'other') === 'swim_meet';
 const courseOf = (r: ResultWithEdition) => ((r.race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null);
@@ -32,19 +23,6 @@ const swimCs = (r: ResultWithEdition) => r.finish_time_cs ?? (r.finish_time_seco
 /** strip the trailing heat token off a division → the age group: "9-10 C" → "9-10" */
 const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
 
-function categoryOf(r: ResultWithEdition): { key: string; label: string } {
-	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
-	if (sport === 'triathlon') {
-		// "Youth"/"Kids" tris are their own category (auto-detected from the race name).
-		const name = (r.race_edition?.race?.name ?? '').toLowerCase();
-		if (/\b(youth|kids?|junior)\b/.test(name)) return { key: 'kids_tri', label: 'Kids Tri' };
-		const f = (r.race_edition?.distance_or_format ?? '').toLowerCase();
-		if (f.includes('sprint')) return { key: 'sprint', label: 'Sprint Tri' };
-		if (f.includes('olympic')) return { key: 'olympic', label: 'Olympic Tri' };
-		return { key: 'triathlon', label: 'Triathlon' };
-	}
-	return { key: sport, label: SPORT_LABELS[sport] ?? sport };
-}
 function podiumPlace(r: ResultWithEdition): number | null {
 	if (r.division_place != null && r.division_place <= 3) return r.division_place;
 	if (r.overall_place != null && r.overall_place <= 3) return r.overall_place;

@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { SPORT_LABELS, type Sport, type Person } from '../../lib/types';
+import { categoryOf, CAT_COLOR, CAT_ICON } from '../../lib/categories';
 import { formatTime, formatSwimTime, placement, ordinal, legPace, legIcon, legColor, abbrevDivision } from '../../lib/format';
 
 const results = await getAllFamilyResults();
@@ -12,28 +13,6 @@ const MEDAL_LABEL = ['1st', '2nd', '3rd'];
 const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PERSON_PALETTE = ['#00d4ff', '#29e3a4', '#ff6b9d', '#ffcf5c', '#ffb86b', '#8b9cff'];
-// One color per category — the row edge + icon AND the filter chip both read from
-// this, so they always match. Triathlons = purple, swims = light blue.
-const CAT_COLOR: Record<string, string> = {
-	sprint: '#a78bfa', olympic: '#a78bfa', triathlon: '#a78bfa', kids_tri: '#a78bfa',
-	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b', other: '#8fa5c4',
-};
-const CAT_ICON: Record<string, string> = {
-	sprint: '⚡', olympic: '🔥', triathlon: '🚴', kids_tri: '🧒', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
-};
-function categoryOf(r: FeedResult): { key: string; label: string } {
-	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
-	if (sport === 'triathlon') {
-		// "Youth"/"Kids" tris are their own category (auto-detected from the race name).
-		const name = (r.race_edition?.race?.name ?? '').toLowerCase();
-		if (/\b(youth|kids?|junior)\b/.test(name)) return { key: 'kids_tri', label: 'Kids Tri' };
-		const f = (r.race_edition?.distance_or_format ?? '').toLowerCase();
-		if (f.includes('sprint')) return { key: 'sprint', label: 'Sprint Tri' };
-		if (f.includes('olympic')) return { key: 'olympic', label: 'Olympic Tri' };
-		return { key: 'triathlon', label: 'Triathlon' };
-	}
-	return { key: sport, label: SPORT_LABELS[sport] ?? sport };
-}
 function podiumPlace(r: FeedResult): number | null {
 	if (r.division_place != null && r.division_place <= 3) return r.division_place;
 	if (r.overall_place != null && r.overall_place <= 3) return r.overall_place;
