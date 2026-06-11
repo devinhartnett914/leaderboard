@@ -19,9 +19,10 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 const SPORT_ICON: Record<string, string> = {
 	triathlon: '🚴', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', trail_run: '⛰️', road_run: '🏃', other: '🏁',
 };
+// Match the category colors used on the races feed: triathlon purple, swim light blue.
 const SPORT_COLOR: Record<string, string> = {
-	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', open_water: 'var(--swim)', gravel: 'var(--bike)',
-	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
+	triathlon: '#a78bfa', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b',
+	trail_run: '#29e3a4', road_run: '#ffb86b', other: '#8fa5c4',
 };
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function dateParts(iso: string | null | undefined, fy: number | null | undefined) {

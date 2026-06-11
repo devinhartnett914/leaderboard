@@ -12,20 +12,21 @@ const MEDAL_LABEL = ['1st', '2nd', '3rd'];
 const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const PERSON_PALETTE = ['#00d4ff', '#29e3a4', '#ff6b9d', '#ffcf5c', '#ffb86b', '#8b9cff'];
-const SPORT_COLOR: Record<string, string> = {
-	triathlon: 'var(--accent)', swim_meet: 'var(--swim)', open_water: 'var(--swim)', gravel: 'var(--bike)',
-	trail_run: 'var(--run)', road_run: 'var(--run)', other: 'var(--muted)',
-};
+// One color per category — the row edge + icon AND the filter chip both read from
+// this, so they always match. Triathlons = purple, swims = light blue.
 const CAT_COLOR: Record<string, string> = {
-	sprint: '#00d4ff', olympic: '#8b9cff', triathlon: '#00d4ff',
+	sprint: '#a78bfa', olympic: '#a78bfa', triathlon: '#a78bfa', kids_tri: '#a78bfa',
 	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b', other: '#8fa5c4',
 };
 const CAT_ICON: Record<string, string> = {
-	sprint: '⚡', olympic: '🔥', triathlon: '🚴', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
+	sprint: '⚡', olympic: '🔥', triathlon: '🚴', kids_tri: '🧒', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
 };
 function categoryOf(r: FeedResult): { key: string; label: string } {
 	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
 	if (sport === 'triathlon') {
+		// "Youth"/"Kids" tris are their own category (auto-detected from the race name).
+		const name = (r.race_edition?.race?.name ?? '').toLowerCase();
+		if (/\b(youth|kids?|junior)\b/.test(name)) return { key: 'kids_tri', label: 'Kids Tri' };
 		const f = (r.race_edition?.distance_or_format ?? '').toLowerCase();
 		if (f.includes('sprint')) return { key: 'sprint', label: 'Sprint Tri' };
 		if (f.includes('olympic')) return { key: 'olympic', label: 'Olympic Tri' };
@@ -215,7 +216,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 							const aw = award(r);
 							const pc = personColor.get(r.person?.id ?? '') ?? 'var(--text)';
 							return (
-								<article class={`rcard${aw || pr ? ' has-marks' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<article class={`rcard${aw || pr ? ' has-marks' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${CAT_COLOR[cat.key] ?? 'var(--muted)'}`}>
 									<div class="rc-date">
 										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 									</div>
@@ -226,8 +227,8 @@ const subtitle = `${results.length} results across the family — filter by who,
 											{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
 										</div>
 										<div class="rc-meta">
-											<span class="rc-sport">{SPORT_LABELS[sport]}</span>
-											{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
+											<span class="rc-sport">{sport === 'triathlon' ? cat.label : SPORT_LABELS[sport]}</span>
+											{ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') && <span class="rc-dist">· {ed.distance_or_format}</span>}
 											{r.event && <span>· {r.event}</span>}
 										</div>
 									</div>
@@ -315,7 +316,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
+	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
 
 	/* the shared podium medallion sits just left of the finish time */
 	.rc-finish { position: relative; }
@@ -333,6 +334,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 	.rc-name:hover { color: var(--accent); text-decoration: none; }
 	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.4rem; }
 	.rc-sport { color: var(--edge); font-weight: 600; }
+	.rc-dist { color: var(--edge); font-weight: 600; }
 
 	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
