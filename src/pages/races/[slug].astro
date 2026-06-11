@@ -1,6 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
+import Avatar from '../../components/Avatar.astro';
+import PrBadge from '../../components/PrBadge.astro';
+import PodiumMedal from '../../components/PodiumMedal.astro';
 import { getRaceBySlug, getAllFamilyResults } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
 import { SPORT_LABELS, type Result, type Split } from '../../lib/types';
@@ -145,6 +148,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 						{m.swimmers.map((s) => (
 							<div class="swimmer">
 								<div class="sw-head">
+									<Avatar src={s.person.avatar_url} name={s.person.full_name} size={28} />
 									{s.person.slug ? (
 										<a class="sw-name" href={`/people/${s.person.slug}`}>{s.person.full_name}</a>
 									) : (
@@ -201,9 +205,10 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 				return (
 					<section class="track">
 						<div class="track-head">
-							<h2>{track.person.full_name}</h2>
+							<Avatar src={track.person.avatar_url} name={track.person.full_name} size={34} />
+							<h2><a href={`/people/${track.person.slug}`}>{track.person.full_name}</a></h2>
 							{track.prSeconds != null && (
-								<span class="pill gold">PR {formatTime(track.prSeconds)} · {track.prYear}</span>
+								<span class="track-pr"><PrBadge /><b>{formatTime(track.prSeconds)}</b><span class="track-pr-yr">· {track.prYear}</span></span>
 							)}
 						</div>
 
@@ -218,18 +223,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 									<article class={`ycard${i === 0 ? ' latest' : ''}`}>
 										{(a || pr) && (
 											<div class="badges">
-												{a && (
-													<div class={`badge medal-${Math.min(a.tier, 3)}`}>
-														<span class="b-glyph">{MEDAL[a.tier - 1]}</span>
-														<span class="b-sub">{a.sub}</span>
-													</div>
-												)}
-												{pr && (
-													<div class="badge pr">
-														<span class="b-glyph">⭐</span>
-														<span class="b-sub">PR</span>
-													</div>
-												)}
+												{a && <PodiumMedal tier={a.tier} sub={a.sub} />}
+												{pr && <PrBadge />}
 											</div>
 										)}
 
@@ -331,8 +326,14 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
 
 	.track { margin-bottom: 2.75rem; }
-	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.2rem; }
+	/* a clear per-person section header: avatar + name + a divider line */
+	.track-head { display: flex; align-items: center; gap: 0.7rem; margin-bottom: 1.2rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border); }
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
+	.track-head h2 a { color: var(--text); }
+	.track-head h2 a:hover { color: var(--accent); text-decoration: none; }
+	.track-pr { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-left: 0.15rem; }
+	.track-pr b { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; letter-spacing: 0.02em; color: var(--gold); }
+	.track-pr-yr { color: var(--faint); }
 
 	/* standalone year cards, rows aligned via subgrid */
 	.cards {
@@ -342,8 +343,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 		grid-template-rows: repeat(var(--rows), auto);
 		gap: 0 1.35rem;
 		overflow-x: auto;
-		/* generous top padding so the centered circular badges aren't clipped by the scroll box */
-		padding: 2.7rem 1.1rem 1.4rem;
+		/* top padding leaves room for the badge pill that sits above each card */
+		padding: 1.8rem 1.1rem 1.4rem;
 	}
 	.ycard {
 		grid-row: 1 / -1;
@@ -379,21 +380,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.row.foot a { font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 0.06em; text-transform: uppercase; }
 	.small { font-size: 0.85rem; }
 
-	/* circular award + PR medallions, popping off the top-right corner */
-	.badges { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: row; gap: 10px; align-items: center; }
-	.badge {
-		width: 64px; height: 64px; border-radius: 50%;
-		display: flex; flex-direction: column; align-items: center; justify-content: center;
-		text-align: center; line-height: 1;
-		box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.18);
-		border: 2px solid rgba(255, 255, 255, 0.3);
-	}
-	.badge .b-glyph { font-size: 1.9rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
-	.badge .b-sub { font-family: var(--font-mono); font-size: 0.55rem; font-weight: 700; letter-spacing: 0.04em; margin-top: 2px; text-transform: uppercase; }
-	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 78%); color: #3a2a00; }
-	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 78%); color: #283038; }
-	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 78%); color: #3a2110; }
-	.badge.pr { background: radial-gradient(circle at 38% 30%, #fff3c4, #ffc83a 78%); color: #3a2a00; }
+	/* award + PR markers (shared PodiumMedal/PrBadge), centered above each year card */
+	.badges { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); z-index: 4; display: flex; flex-direction: row; gap: 0.7rem; align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 999px; padding: 0.25rem 0.7rem; box-shadow: var(--shadow); }
 
 	.rivalry { margin-top: 1rem; }
 	.rivalry h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.03em; margin: 0 0 0.25rem; }
@@ -414,7 +402,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 
 	.swimmers { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }
 	.swimmer { background: linear-gradient(180deg, var(--surface-2), var(--surface) 60px); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-	.sw-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--swim) 10%, transparent); }
+	.sw-head { display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--swim) 10%, transparent); }
+	.sw-head .sw-group { margin-left: auto; }
 	.sw-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.03em; color: var(--text); }
 	.sw-name:hover { color: var(--swim); text-decoration: none; }
 	.sw-group { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); }
