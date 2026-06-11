@@ -62,10 +62,6 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			<slot />
 		</main>
 
-		<footer class="site-footer">
-			<div class="container">Tri•Me — tracking the family's race results over the years.</div>
-		</footer>
-
 		<style is:global>
 			:root {
 				/* palette adapted from the "Monday Swim" app: deep navy + electric cyan + mint */
@@ -195,13 +191,6 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			.delta.faster { color: var(--faster); }
 			.delta.slower { color: var(--slower); }
 			.delta.same { color: var(--muted); }
-
-			.site-footer {
-				border-top: 1px solid var(--border);
-				color: var(--muted);
-				font-size: 0.85rem;
-				padding: 1.5rem 0;
-			}
 
 			.empty {
 				text-align: center;
