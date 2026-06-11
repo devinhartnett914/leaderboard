@@ -1,0 +1,27 @@
+---
+// Small circular person avatar with an initials fallback. Used anywhere combined
+// person data is shown (all-races feed, home recent).
+interface Props {
+	src?: string | null;
+	name: string;
+	size?: number; // px
+}
+const { src = null, name, size = 24 } = Astro.props;
+const initials = name
+	.split(/\s+/)
+	.map((w) => w[0])
+	.filter(Boolean)
+	.slice(0, 2)
+	.join('')
+	.toUpperCase();
+---
+{src ? (
+	<img class="avatar" src={src} alt={name} loading="lazy" style={`--s:${size}px`} />
+) : (
+	<span class="avatar avatar-fallback" style={`--s:${size}px`} aria-label={name}>{initials}</span>
+)}
+
+<style>
+	.avatar { width: var(--s); height: var(--s); border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 1px solid var(--border); display: inline-block; vertical-align: middle; }
+	.avatar-fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--surface-2); color: var(--muted); font-family: var(--font-mono); font-size: calc(var(--s) * 0.42); font-weight: 700; letter-spacing: 0.02em; }
+</style>

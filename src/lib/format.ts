@@ -150,6 +150,11 @@ export function parseSwimEvent(event: string | null | undefined): SwimEvent {
 	return { distance, stroke: strokeName, strokeKey, isRelay, short, icon: meta.icon, color: meta.color };
 }
 
+/** Strip the trailing heat token off a division → the age group: "9-10 C" → "9-10". */
+export function ageGroupOf(div: string | null | undefined): string | null {
+	return (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
+}
+
 /** Abbreviate a division/age-group for tight callouts: "8 & Under" → "8&U". */
 export function abbrevDivision(s: string | null | undefined): string | null {
 	if (!s) return null;
@@ -245,6 +250,15 @@ export function legColor(label: string): string {
 	if (l.includes('bike') || l.includes('cycle')) return 'var(--bike)';
 	if (l.includes('run') || /\bmile|\d+k\b|\bkm\b/.test(l)) return 'var(--run)';
 	return 'var(--muted)';
+}
+
+export const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Split an ISO date into a stacked date-rail's parts: { mon, day, year }. */
+export function dateParts(iso: string | null | undefined, fallbackYear?: number | null) {
+	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
+	return { mon: '', day: '', year: fallbackYear ? String(fallbackYear) : '' };
 }
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

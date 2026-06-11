@@ -1,0 +1,109 @@
+---
+// One tri/run result row, shared by the person page and the all-races feed. Lives in
+// the parent `.results` subgrid. Type+distance sit ABOVE the race name; on combined
+// views (showPerson) the person's avatar + name lead the row.
+import ResultMarks from './ResultMarks.astro';
+import Avatar from './Avatar.astro';
+import { categoryOf, catColor, catIcon } from '../lib/categories';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import { formatTime, legPace, legIcon, legColor, ordinal, placement, dateParts, abbrevDivision } from '../lib/format';
+import { podiumPlace, type FeedRow, type PrBadge } from '../lib/feed';
+
+interface Props {
+	r: FeedRow;
+	pr: PrBadge | null;
+	aw: { tier: number; sub: string } | null;
+	showPerson?: boolean;
+}
+const { r, pr, aw, showPerson = false } = Astro.props;
+const ed = r.race_edition;
+const sport = (ed?.race?.sport ?? 'other') as Sport;
+const cat = categoryOf(r);
+const dp = dateParts(ed?.date, ed?.year);
+const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
+const edge = catColor(cat.key);
+const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
+---
+<article class:list={['rcard', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
+	<div class="rc-date">
+		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
+	</div>
+	<div class="rc-race">
+		{showPerson && r.person && (
+			<a class="rc-who" href={`/people/${r.person.slug}`}>
+				<Avatar src={r.person.avatar_url} name={r.person.full_name} size={20} />
+				<span>{r.person.full_name}</span>
+			</a>
+		)}
+		<div class="rc-meta">
+			<span class="rc-sport">{sport === 'triathlon' ? cat.label : SPORT_LABELS[sport]}</span>
+			{showDist && <span class="rc-dist">· {ed?.distance_or_format}</span>}
+			{r.event && <span>· {r.event}</span>}
+		</div>
+		<div class="rc-title">
+			<span class="rc-cat-ic" style={`color:${edge}`}>{catIcon(cat.key)}</span>
+			{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
+		</div>
+	</div>
+	<div class="rc-finish">
+		<span class="rc-k">Finish</span>
+		<span class="rc-timewrap">
+			<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} />
+			<span class:list={['rc-time', { 'is-pr': pr?.gold }]}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
+		</span>
+	</div>
+	<div class="rc-legs">
+		{legs.map((s) => (
+			<div class="rc-leg">
+				<span class="leg-ic" style={`color:${legColor(s.label)}`}>{legIcon(s.label)}</span>
+				<span class="leg-t">{formatTime(s.segment_time_seconds)}</span>
+				<span class="leg-p">{legPace(s.distance_m, s.segment_time_seconds, s.distance_unit) ?? ''}</span>
+			</div>
+		))}
+	</div>
+	<div class="rc-places">
+		<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
+		<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
+	</div>
+</article>
+
+<style>
+	.rcard {
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
+	.rc-finish { position: relative; }
+	.rcard.has-marks .rc-race { padding-right: 76px; }
+	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
+	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
+	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
+
+	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
+	.rc-who { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; width: max-content; max-width: 100%; }
+	.rc-who:hover { color: var(--text); text-decoration: none; }
+	.rc-who span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 0.34rem; }
+	.rc-sport { color: var(--edge); font-weight: 600; }
+	.rc-dist { color: var(--edge); font-weight: 600; }
+	.rc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+	.rc-cat-ic { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
+	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rc-name:hover { color: var(--edge); text-decoration: none; }
+
+	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
+	.rc-timewrap { position: relative; width: max-content; }
+	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
+	.rc-time.is-pr { color: var(--gold); }
+
+	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }
+	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }
+	.leg-ic { font-size: 1.15rem; line-height: 1.3; }
+	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
+	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
+
+	.rc-places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
+	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; display: block; white-space: nowrap; }
+</style>
