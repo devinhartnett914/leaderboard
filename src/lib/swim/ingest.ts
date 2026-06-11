@@ -130,6 +130,14 @@ export async function ingestMeet(
 
 	const name = meetRaceName(meet);
 	const slug = slugify(name);
+
+	// Only materialize the race/edition if a family member actually swam this
+	// meet — don't leave empty shells for meets they missed or championships
+	// they didn't qualify for.
+	if (!matched.some((s) => s.individual.length || s.relays.length)) {
+		return { race: name, raceSlug: slug, year, date: meet.date, saved: [], familyWithNoSwims: roster.map((r) => r.full_name) };
+	}
+
 	const raceId = await ensureRace(db, name, slug, 'Reston, VA');
 	const editionId = await ensureEdition(db, raceId, year, meet.date, opts.sourceUrl ?? null, meet.course);
 

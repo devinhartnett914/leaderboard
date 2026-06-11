@@ -105,10 +105,16 @@ const COURSE: Record<string, string> = { 'SC Meter': 'SCM', 'SC Yard': 'SCY', 'L
 const EVENT_RE =
 	/^Event (\d+) (Boys|Girls|Women|Men|Mixed) (.+) (\d+) (SC Meter|SC Yard|LC Meter) (.+)$/;
 const DIVISION_RE = /^(A|B|C|Non-Award)\b.*Division/; // also matches page-break continuations
+// Handles two HY-TEK export variants:
+//   abbreviated, finals-only:  "3 Hartnett, Sierra K 8 GL-VA 33.93 1"
+//   full-name, seed+finals:    "4 Hartnett, Sierra K 7 Glade Dolphins-RT 32.25 33.64"
+// Team is free text (may contain spaces). An optional SEED time precedes the
+// finals time; we always keep the LAST (finals) time. Points are small
+// (e.g. 5/3/1/0.5) so they can't be mistaken for a two-decimal time.
 const INDIV_RE =
-	/^(\*?\d+|---)\s+(.+?)\s+(\d{1,2})\s+([A-Z]{2,}-[A-Z]{2})\s+(DQ|NS|SCR|DFS|DNF|(?:\d+:)?\d{1,2}\.\d{2})(?:\s+(\d+(?:\.\d+)?))?$/;
+	/^(\*?\d+|---)\s+(.+?,\s*.+?)\s+(\d{1,2})\s+(.+?)\s+(?:(NT|(?:\d+:)?\d{1,2}\.\d{2})\s+)?(DQ|NS|SCR|DFS|DNF|(?:\d+:)?\d{1,2}\.\d{2})(?:\s+(\d{1,2}(?:\.\d)?))?\s*$/;
 const RELAY_TEAM_RE =
-	/^(\*?\d+|---)\s+([A-Z]{2,}-[A-Z]{2})\s+([A-Z])\s+(DQ|NS|SCR|DFS|DNF|(?:\d+:)?\d+\.\d{2})(?:\s+(\d+(?:\.\d+)?))?$/;
+	/^(\*?\d+|---)\s+(.+?)\s+([A-Z])\s+(?:(NT|(?:\d+:)?\d+\.\d{2})\s+)?(DQ|NS|SCR|DFS|DNF|(?:\d+:)?\d+\.\d{2})(?:\s+(\d{1,2}(?:\.\d)?))?\s*$/;
 const LEG_RE = /(\d)\)\s+(.+?)\s+(\d{1,2})(?=\s+\d\)|\s*$)/g;
 const SCORE_RE = /^\d+\.\s+(.+?)\s+(\d+)$/;
 
@@ -209,11 +215,11 @@ export function parseHytekMeet(text: string): ParsedMeet {
 				ev.entries.push({
 					kind: 'relay',
 					place: rm[1],
-					team: rm[2],
+					team: rm[2].trim(),
 					relay: rm[3],
-					timeSeconds: timeToSeconds(rm[4]),
-					status: statusFor(rm[4]),
-					points: rm[5] ? parseFloat(rm[5]) : 0,
+					timeSeconds: timeToSeconds(rm[5]), // rm[4] = optional seed time (ignored)
+					status: statusFor(rm[5]),
+					points: rm[6] ? parseFloat(rm[6]) : 0,
 					legs: [],
 				});
 				continue;
@@ -235,11 +241,11 @@ export function parseHytekMeet(text: string): ParsedMeet {
 				place: im[1],
 				name: parseName(im[2]),
 				printedAge: +im[3],
-				team: im[4],
+				team: im[4].trim(),
 				division,
-				timeSeconds: timeToSeconds(im[5]),
-				status: statusFor(im[5]),
-				points: im[6] ? parseFloat(im[6]) : 0,
+				timeSeconds: timeToSeconds(im[6]), // im[5] = optional seed time (ignored)
+				status: statusFor(im[6]),
+				points: im[7] ? parseFloat(im[7]) : 0,
 			});
 		}
 	}
