@@ -46,6 +46,7 @@ export interface Result {
 	person_id: string;
 	event: string | null;
 	finish_time_seconds: number | null;
+	finish_time_cs: number | null; // exact hundredths for sub-second sports (swim); null otherwise
 	overall_place: number | null;
 	overall_field_size: number | null;
 	division: string | null;

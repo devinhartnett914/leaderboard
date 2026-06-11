@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { getRaceBySlug } from '../../lib/queries';
+import ResultMarks from '../../components/ResultMarks.astro';
+import { getRaceBySlug, getAllFamilyResults } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
 import { SPORT_LABELS, type Result, type Split } from '../../lib/types';
 import {
@@ -16,6 +17,11 @@ import {
 	legIcon,
 	legColor,
 	formatFullDate,
+	formatSwimTime,
+	parseSwimEvent,
+	swimEventKey,
+	swimEventSlug,
+	abbrevDivision,
 } from '../../lib/format';
 
 const { slug } = Astro.params;
@@ -23,10 +29,58 @@ const data = slug ? await getRaceBySlug(slug) : null;
 if (!data) return new Response('Race not found', { status: 404 });
 const { race, editions } = data;
 
-const tracks = familyTracks(editions);
-const rivalries = recurringRivals(editions);
+// Swimming doesn't fit the year-over-year track model (a swimmer has many event
+// results per meet, not one finish). It gets its own per-meet, split-by-person view.
+const swim = race.sport === 'swim_meet';
+const tracks = swim ? [] : familyTracks(editions);
+const rivalries = swim ? [] : recurringRivals(editions);
 
 const MEDAL = ['🥇', '🥈', '🥉'];
+
+// ---- Swim meet view: each edition (meet) grouped by family swimmer ----------
+const STROKE_ORDER: Record<string, number> = { free: 0, back: 1, breast: 2, fly: 3, im: 4, other: 5 };
+const eventOrder = (r: Result) => {
+	const ev = parseSwimEvent(r.event);
+	return (ev.isRelay ? 1000 : 0) + (STROKE_ORDER[ev.strokeKey] ?? 9) * 100 + (ev.distance ?? 0) / 100;
+};
+const swimCs = (r: Result) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
+const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
+const heatOf = (div: string | null | undefined) => (div ?? '').replace(ageGroupOf(div) ?? '', '').trim();
+const swimMeets = swim
+	? [...editions].sort((a, b) => b.year - a.year).map((ed) => {
+			const byPerson = new Map<string, { person: NonNullable<(typeof ed.result)[number]['person']>; events: Result[] }>();
+			for (const r of ed.result) {
+				if (!r.person) continue; // swim only stores family results
+				const g = byPerson.get(r.person.id) ?? { person: r.person, events: [] };
+				g.events.push(r);
+				byPerson.set(r.person.id, g);
+			}
+			const swimmers = [...byPerson.values()]
+				.map((s) => ({ ...s, events: [...s.events].sort((a, b) => eventOrder(a) - eventOrder(b)) }))
+				.sort((a, b) => (a.person.birth_year ?? 0) - (b.person.birth_year ?? 0)); // oldest first
+			return { ed, swimmers };
+		})
+	: [];
+
+// A PR star on this meet means best-EVER for that swimmer + event, so we need
+// their whole swim history (each weekly meet is a different race), not just this one.
+const courseTok = (s: string | null | undefined) => (s ?? '').split(/\s+/)[0] || null;
+const swimPrBest = new Map<string, number>(); // `${personId}|${eventKey}` -> best cs
+if (swim) {
+	for (const r of await getAllFamilyResults()) {
+		if ((r.race_edition?.race?.sport ?? '') !== 'swim_meet' || r.status !== 'finished' || !r.person) continue;
+		const cs = r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
+		if (cs == null) continue;
+		const key = `${r.person.id}|${swimEventKey(r.event, courseTok(r.race_edition?.distance_or_format))}`;
+		const best = swimPrBest.get(key);
+		if (best == null || cs < best) swimPrBest.set(key, cs);
+	}
+}
+const isSwimPr = (r: Result, personId: string, course: string | null) => {
+	if (r.status !== 'finished') return false;
+	const cs = swimCs(r);
+	return cs != null && swimPrBest.get(`${personId}|${swimEventKey(r.event, course)}`) === cs;
+};
 
 function awardInfo(result: Result | null): { tier: number; sub: string } | null {
 	if (!result) return null;
@@ -71,8 +125,73 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	</section>
 	{race.description && <p class="race-desc muted">{race.description}</p>}
 
+	{swim && (
+		swimMeets.length === 0 ? (
+			<div class="empty">No meets recorded for this race yet.</div>
+		) : (
+			swimMeets.map((m) => (
+				<section class="smeet">
+					<div class="sm-head">
+						<div class="sm-when">
+							<span class="sm-yr">{m.ed.year}</span>
+							<span class="sm-date">{formatFullDate(m.ed.date)}</span>
+						</div>
+						<div class="sm-tags">
+							{m.ed.distance_or_format && <span class="sm-fmt">{m.ed.distance_or_format}</span>}
+							{m.ed.source_url && <a class="sm-src" href={m.ed.source_url} target="_blank" rel="noopener">Full results ↗</a>}
+						</div>
+					</div>
+					<div class="swimmers">
+						{m.swimmers.map((s) => (
+							<div class="swimmer">
+								<div class="sw-head">
+									{s.person.slug ? (
+										<a class="sw-name" href={`/people/${s.person.slug}`}>{s.person.full_name}</a>
+									) : (
+										<span class="sw-name">{s.person.full_name}</span>
+									)}
+									{ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division) && (
+										<span class="sw-group">{ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division)}</span>
+									)}
+								</div>
+								<div class="sw-events">
+									{s.events.map((e) => {
+										const ev = parseSwimEvent(e.event);
+										const place = e.division_place;
+										const podium = place != null && isPodium(place) ? place : null;
+										const dq = e.status !== 'finished';
+										const heat = heatOf(e.division);
+										const pr = isSwimPr(e, s.person.id, courseTok(m.ed.distance_or_format));
+										return (
+											<div class={`sw-ev${dq ? ' is-dq' : ''}`} style={`--c:${ev.color}`}>
+												<span class="ev-ic">{ev.icon}</span>
+												<a class="ev-name" href={`/swim/${swimEventSlug(e.event)}`}>{ev.short}</a>
+												<span class="ev-time">
+													<ResultMarks medalTier={podium} medalSub={abbrevDivision(ageGroupOf(e.division))} pr={pr && !dq} compact />
+													{dq ? (
+														<span class="ev-dq">{e.status.toUpperCase()}</span>
+													) : (
+														<b class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</b>
+													)}
+												</span>
+												<span class="ev-place">
+													<span class="ev-ord">{place != null ? ordinal(place) : '—'}</span>
+													{heat && <span class="ev-heat">{heat}</span>}
+												</span>
+											</div>
+										);
+									})}
+								</div>
+							</div>
+						))}
+					</div>
+				</section>
+			))
+		)
+	)}
+
 	{
-		tracks.length === 0 ? (
+		!swim && (tracks.length === 0 ? (
 			<div class="empty">No family results recorded for this race yet.</div>
 		) : (
 			tracks.map((track) => {
@@ -175,7 +294,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 					</section>
 				);
 			})
-		)
+		))
 	}
 
 	{
@@ -282,4 +401,39 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.rival-card { padding: 1rem 1.1rem; }
 	.rival-line { margin-bottom: 0.25rem; }
 	.podium-note { margin-top: 0.5rem; color: var(--gold); font-size: 0.88rem; }
+
+	/* ---- Swim meet view: one block per meet, split by swimmer ---- */
+	.smeet { margin-bottom: 2.4rem; }
+	.sm-head { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 0.6rem 1rem; margin-bottom: 1.1rem; padding-bottom: 0.7rem; border-bottom: 1px solid var(--border); }
+	.sm-when { display: flex; align-items: baseline; gap: 0.8rem; }
+	.sm-yr { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.03em; color: var(--swim); line-height: 0.9; }
+	.sm-date { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
+	.sm-tags { display: flex; align-items: center; gap: 0.7rem; }
+	.sm-fmt { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem 0.7rem; }
+	.sm-src { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+	.swimmers { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }
+	.swimmer { background: linear-gradient(180deg, var(--surface-2), var(--surface) 60px); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+	.sw-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--swim) 10%, transparent); }
+	.sw-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.03em; color: var(--text); }
+	.sw-name:hover { color: var(--swim); text-decoration: none; }
+	.sw-group { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); }
+
+	.sw-events { display: grid; grid-template-columns: 1.5rem minmax(5rem, 1fr) max-content minmax(4rem, max-content); align-items: center; gap: 0.15rem 0.7rem; padding: 0.5rem 1rem 0.7rem; }
+	.sw-ev { display: contents; }
+	.sw-ev > * { padding-top: 0.34rem; padding-bottom: 0.34rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.sw-ev:first-child > * { border-top: none; }
+	.ev-ic { font-size: 1.15rem; line-height: 1; }
+	.ev-name { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.03em; color: var(--text); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	a.ev-name { border-bottom: 1px dotted color-mix(in srgb, var(--swim) 55%, transparent); }
+	a.ev-name:hover { color: var(--swim); text-decoration: none; }
+	/* time cell is the anchor; the medal/PR marks sit just left of it */
+	.ev-time { position: relative; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; }
+	.ev-t.is-pr { color: var(--gold); }
+	.ev-dq { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; color: var(--slower); }
+	.ev-place { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+	.ev-ord { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; color: var(--text); }
+	.ev-heat { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+	.sw-ev.is-dq .ev-name { color: var(--muted); }
 </style>

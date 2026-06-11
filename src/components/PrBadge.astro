@@ -1,0 +1,15 @@
+---
+// A personal-record marker: a gold star with "PR" beneath it in gray — styled to
+// match the "PRs" filter chip exactly. No pill / no fill, so it sits quietly in
+// dense tables, to the LEFT of the time alongside the podium medal. Always "PR".
+---
+<span class="prbadge">
+	<span class="pr-star">⭐</span>
+	<span class="pr-lab">PR</span>
+</span>
+
+<style>
+	.prbadge { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; line-height: 1; vertical-align: middle; }
+	.pr-star { font-size: 1.15rem; line-height: 1; }
+	.pr-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+</style>

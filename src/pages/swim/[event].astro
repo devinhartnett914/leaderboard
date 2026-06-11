@@ -1,0 +1,150 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ResultMarks from '../../components/ResultMarks.astro';
+import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
+import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, abbrevDivision } from '../../lib/format';
+
+const { event } = Astro.params;
+const all = await getAllFamilyResults();
+const matching = all.filter((r) => (r.race_edition?.race?.sport ?? '') === 'swim_meet' && swimEventSlug(r.event) === event);
+if (matching.length === 0) return new Response('Event not found', { status: 404 });
+
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ev = parseSwimEvent(matching[0].event);
+const title = matching[0].event ?? ev.short; // canonical "50m Backstroke"
+const course = (matching[0].race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null;
+
+const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
+const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
+const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
+function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
+	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
+	return { mon: '', day: '', year: fy ? String(fy) : '' };
+}
+
+// Group by swimmer; oldest swimmer first (matches the rest of the site).
+interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
+interface Track { person: NonNullable<FeedResult['person']>; occ: Occ[]; bestCs: number | null }
+const byPerson = new Map<string, FeedResult[]>();
+for (const r of matching) {
+	if (!r.person) continue;
+	(byPerson.get(r.person.id) ?? byPerson.set(r.person.id, []).get(r.person.id)!).push(r);
+}
+const tracks: Track[] = [...byPerson.values()].map((rows) => {
+	const chrono = [...rows].sort((a, b) => sortKey(a).localeCompare(sortKey(b))); // oldest first
+	const finishedCs = chrono.filter((r) => r.status === 'finished').map(swimCs).filter((c): c is number => c != null);
+	const bestCs = finishedCs.length ? Math.min(...finishedCs) : null;
+	let prevCs: number | null = null;
+	const occChrono: Occ[] = chrono.map((r) => {
+		const cs = r.status === 'finished' ? swimCs(r) : null;
+		const deltaCs = cs != null && prevCs != null ? cs - prevCs : null;
+		if (cs != null) prevCs = cs;
+		return { r, cs, deltaCs, isBest: cs != null && cs === bestCs };
+	});
+	return { person: rows[0].person!, occ: occChrono.reverse(), bestCs }; // newest first for display
+}).sort((a, b) => (a.person.birth_year ?? 0) - (b.person.birth_year ?? 0));
+
+const swimmerCount = tracks.length;
+const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? 'swimmer' : 'swimmers'}`].filter(Boolean).join(' · ');
+---
+
+<Layout title={title} subtitle={subtitle}>
+	<p class="lead">
+		<a href="/races">← All results</a>
+		<span class="lead-ic">{ev.icon}</span>
+		Every recorded swim of the <strong>{title}</strong>, fastest-tracked over time.
+	</p>
+
+	{tracks.map((t) => (
+		<section class="track">
+			<div class="track-head">
+				<h2>{t.person.slug ? <a href={`/people/${t.person.slug}`}>{t.person.full_name}</a> : t.person.full_name}</h2>
+				{t.bestCs != null && <span class="pill"><span class="pill-star">⭐</span> Best {formatSwimTime(t.bestCs)}</span>}
+				<span class="track-count">{t.occ.length} {t.occ.length === 1 ? 'swim' : 'swims'}</span>
+			</div>
+
+			<div class="occ-list">
+				{t.occ.map((o) => {
+					const r = o.r;
+					const ed = r.race_edition;
+					const dp = dateParts(ed?.date, ed?.year);
+					const place = r.division_place;
+					const podium = isPodium(place);
+					const dq = r.status !== 'finished';
+					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
+					return (
+						<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
+							<div class="occ-date">
+								<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
+							</div>
+							<div class="occ-meet">
+								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
+								{r.division && <span class="occ-div">{r.division}</span>}
+							</div>
+							<div class="occ-time">
+								<ResultMarks medalTier={podium ? place : null} medalSub={abbrevDivision(ageGroupOf(r.division))} pr={o.isBest && !dq} compact />
+								{dq ? (
+									<span class="occ-dq">{r.status.toUpperCase()}</span>
+								) : (
+									<span class={`occ-t${o.isBest ? ' is-best' : ''}`}>{formatSwimTime(o.cs)}</span>
+								)}
+							</div>
+							<div class="occ-delta">
+								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
+								{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
+							</div>
+							<div class="occ-place">{place != null ? ordinal(place) : '—'}</div>
+						</article>
+					);
+				})}
+			</div>
+		</section>
+	))}
+</Layout>
+
+<style>
+	.lead { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; margin: 0 0 2rem; color: var(--muted); font-size: 0.95rem; }
+	.lead a { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
+	.lead-ic { font-size: 1.3rem; }
+	.lead strong { color: var(--text); }
+
+	.track { margin-bottom: 2.6rem; }
+	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem; }
+	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
+	.track-head h2 a { color: var(--text); }
+	.track-head h2 a:hover { color: var(--swim); text-decoration: none; }
+	.pill { display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); background: color-mix(in srgb, var(--gold) 12%, transparent); border-radius: 999px; padding: 0.2rem 0.7rem; }
+	.track-count { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+
+	/* one grid per swimmer so every time lines up in its column */
+	.occ-list { display: grid; grid-template-columns: 86px minmax(140px, 1fr) max-content max-content max-content; row-gap: 0.6rem; }
+	.occ {
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 80px);
+		border: 1px solid var(--border); border-radius: 13px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.occ.is-best { border-color: color-mix(in srgb, var(--gold) 50%, var(--border)); box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent); }
+	.occ-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.6rem 0.4rem; background: color-mix(in srgb, var(--c, var(--swim)) 13%, transparent); border-right: 1px solid var(--border); }
+	.d-mon { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c, var(--swim)); }
+	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; line-height: 0.85; }
+	.d-yr { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; color: var(--muted); }
+
+	.occ-meet { display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.6rem 1.1rem; min-width: 0; }
+	.occ-name { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; letter-spacing: 0.02em; line-height: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.occ-name:hover { color: var(--swim); text-decoration: none; }
+	.occ-div { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+
+	.occ-time { position: relative; display: flex; align-items: center; padding: 0.6rem 1.1rem; }
+	.occ-t { font-family: var(--font-display); font-weight: 400; font-size: 1.85rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
+	.occ-t.is-best { color: var(--gold); }
+	.occ-dq { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; color: var(--slower); }
+
+	.occ-delta { display: flex; align-items: center; justify-content: flex-end; padding: 0.6rem 0.9rem; }
+	.delta { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+	.delta.faster { color: var(--faster); }
+	.delta.slower { color: var(--slower); }
+	.delta.same { color: var(--faint); }
+
+	.occ-place { display: flex; align-items: center; justify-content: flex-end; padding: 0.6rem 1.2rem 0.6rem 0.6rem; font-family: var(--font-mono); font-size: 0.86rem; font-weight: 600; }
+</style>

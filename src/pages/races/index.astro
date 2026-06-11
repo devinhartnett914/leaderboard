@@ -1,8 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import ResultMarks from '../../components/ResultMarks.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { SPORT_LABELS, type Sport, type Person } from '../../lib/types';
-import { formatTime, placement, ordinal, isPodium, legPace, legIcon, legColor } from '../../lib/format';
+import { formatTime, formatSwimTime, placement, ordinal, legPace, legIcon, legColor, abbrevDivision } from '../../lib/format';
 
 const results = await getAllFamilyResults();
 
@@ -162,7 +163,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 		)}
 
 		<div class="fgroup" style="--g: var(--accent)">
-			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Types</span></span>
+			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Sports</span></span>
 			{catChips.map(([key, { label, count }]) => (
 				<button class="seg" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
 					<span class="ic">{CAT_ICON[key] ?? '🏁'}</span>
@@ -214,7 +215,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 							const aw = award(r);
 							const pc = personColor.get(r.person?.id ?? '') ?? 'var(--text)';
 							return (
-								<article class={`rcard${aw ? ' has-medal' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<article class={`rcard${aw || pr ? ' has-marks' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
 									<div class="rc-date">
 										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 									</div>
@@ -231,17 +232,11 @@ const subtitle = `${results.length} results across the family — filter by who,
 										</div>
 									</div>
 									<div class="rc-finish">
-										{aw && (
-											<div class={`medallion medal-${aw.tier}`}>
-												<span class="m-glyph">{MEDAL[aw.tier - 1]}</span>
-												<span class="m-sub">{aw.sub}</span>
-											</div>
-										)}
 										<span class="rc-k">Finish</span>
-										<span class={`rc-time${pr?.gold ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
-										<div class="rc-tags">
-											{pr && <span class={`tag ${pr.gold ? 'tag-pr' : 'tag-series'}`}>{pr.gold ? '⭐ ' : ''}{pr.label}</span>}
-										</div>
+										<span class="rc-timewrap">
+											<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} />
+											<span class={`rc-time${pr?.gold ? ' is-pr' : ''}`}>{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</span>
+										</span>
 									</div>
 									<div class="rc-legs">
 										{legs.map((s) => (
@@ -254,7 +249,7 @@ const subtitle = `${results.length} results across the family — filter by who,
 									</div>
 									<div class="rc-places">
 										<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-										<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}{isPodium(r.division_place) && ` ${MEDAL[(r.division_place ?? 1) - 1]}`}</span></div>
+										<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
 									</div>
 								</article>
 							);
@@ -322,18 +317,9 @@ const subtitle = `${results.length} results across the family — filter by who,
 	}
 	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
 
-	/* circular podium medallion (race-page style), sitting just left of the finish time */
+	/* the shared podium medallion sits just left of the finish time */
 	.rc-finish { position: relative; }
-	.medallion {
-		position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3;
-		width: 46px; height: 46px; border-radius: 50%;
-		display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1;
-		border: 2px solid rgba(255, 255, 255, 0.3);
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.18);
-	}
-	.medallion .m-glyph { font-size: 1.35rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
-	.medallion .m-sub { font-family: var(--font-mono); font-size: 0.44rem; font-weight: 700; letter-spacing: 0.02em; margin-top: 1px; text-transform: uppercase; }
-	.rcard.has-medal .rc-race { padding-right: 56px; }
+	.rcard.has-marks .rc-race { padding-right: 76px; }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
 	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
@@ -350,15 +336,9 @@ const subtitle = `${results.length} results across the family — filter by who,
 
 	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
+	.rc-timewrap { position: relative; width: max-content; }
 	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
 	.rc-time.is-pr { color: var(--gold); }
-	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem; }
-	.tag { font-family: var(--font-mono); font-size: 0.57rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
-	.tag-pr { background: linear-gradient(135deg, #fff3c4, #ffc83a); color: #3a2a00; }
-	.tag-series { background: color-mix(in srgb, var(--faster) 20%, transparent); color: var(--faster); border: 1px solid color-mix(in srgb, var(--faster) 45%, transparent); }
-	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 80%); color: #3a2a00; }
-	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 80%); color: #283038; }
-	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 80%); color: #3a2110; }
 
 	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }
 	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }

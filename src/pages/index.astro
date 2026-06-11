@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { getFamilyMembers, getRecentResults, getUpcomingRaces } from '../lib/queries';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { currentAge, formatFullDate, formatTime } from '../lib/format';
+import { currentAge, formatFullDate, formatTime, formatSwimTime, parseSwimEvent } from '../lib/format';
 
 const [family, recent, upcoming] = await Promise.all([
 	getFamilyMembers(),
@@ -113,7 +113,8 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 										<span class="rec-who">{r.person?.full_name ?? ''}</span>
 									</div>
 									<div class="rec-name">{ed?.race?.name ?? 'Race'}</div>
-									<div class="rec-fin">{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</div>
+									{sport === 'swim_meet' && r.event && <div class="rec-ev">{parseSwimEvent(r.event).short}</div>}
+									<div class="rec-fin">{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</div>
 								</div>
 							</a>
 						);
@@ -160,5 +161,6 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 	.rec-ic { font-size: 1.1rem; line-height: 1; }
 	.rec-who { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.rec-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.02em; margin-top: 0.2rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rec-ev { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); margin-top: 0.3rem; }
 	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--accent); margin-top: 0.35rem; }
 </style>

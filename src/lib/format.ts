@@ -71,6 +71,118 @@ export function isPodium(place: number | null | undefined): boolean {
 	return place != null && place <= 3;
 }
 
+// ---- Swimming --------------------------------------------------------------
+// Swim times live in hundredths (result.finish_time_cs); a PR can be 1/100th.
+// Convention: under a minute shows as "SS.cc" (33.93), over as "M:SS.cc" (1:03.60).
+
+/**
+ * Format a swim time from hundredths of a second. Falls back to whole seconds
+ * (finish_time_seconds) when cs is missing, so older/rounded rows still render.
+ * 3393 -> "33.93"; 6360 -> "1:03.60"; 17543 -> "2:55.43".
+ */
+export function formatSwimTime(cs: number | null | undefined, secondsFallback?: number | null): string {
+	let hundredths = cs;
+	if (hundredths == null) {
+		if (secondsFallback == null) return '—';
+		hundredths = Math.round(secondsFallback * 100);
+	}
+	const sign = hundredths < 0 ? '−' : '';
+	const h = Math.abs(Math.round(hundredths));
+	const totalSec = Math.floor(h / 100);
+	const frac = h % 100;
+	const m = Math.floor(totalSec / 60);
+	const s = totalSec % 60;
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return m > 0 ? `${sign}${m}:${pad(s)}.${pad(frac)}` : `${sign}${s}.${pad(frac)}`;
+}
+
+/** Signed swim delta in seconds vs a baseline (hundredths in): -1.60 faster, +0.45 slower. */
+export function formatSwimDelta(cs: number | null | undefined, baselineCs: number | null | undefined): string | null {
+	if (cs == null || baselineCs == null) return null;
+	const diff = (cs - baselineCs) / 100;
+	if (diff === 0) return '±0.00';
+	return `${diff < 0 ? '−' : '+'}${Math.abs(diff).toFixed(2)}`;
+}
+
+export interface SwimEvent {
+	distance: number | null; // meters (or yards), as printed in the event label
+	stroke: string; // full stroke, e.g. "Freestyle"
+	strokeKey: 'free' | 'back' | 'breast' | 'fly' | 'im' | 'other';
+	isRelay: boolean;
+	short: string; // compact label for chips/rows, e.g. "50 Free", "100 Free Relay"
+	icon: string;
+	color: string;
+}
+
+const STROKE_META: Record<SwimEvent['strokeKey'], { short: string; icon: string; color: string }> = {
+	free: { short: 'Free', icon: '🏊', color: 'var(--swim)' },
+	back: { short: 'Back', icon: '🔙', color: '#5bd1ff' },
+	breast: { short: 'Breast', icon: '🐸', color: '#3ddc97' },
+	fly: { short: 'Fly', icon: '🦋', color: '#b98bff' },
+	im: { short: 'IM', icon: '🌀', color: '#ffb86b' },
+	other: { short: '', icon: '🏊', color: 'var(--swim)' },
+};
+
+/**
+ * Parse a canonical swim event string ("50m Freestyle", "100m Freestyle Relay")
+ * into its parts for display + grouping. Distance/stroke/relay determine an
+ * event's identity for progression (age group is intentionally excluded).
+ */
+export function parseSwimEvent(event: string | null | undefined): SwimEvent {
+	const raw = (event ?? '').trim();
+	const m = raw.match(/^(\d+)\s*(?:m|y)?\s+(.+)$/i);
+	const distance = m ? Number(m[1]) : null;
+	const rest = (m ? m[2] : raw).trim();
+	const isRelay = /relay/i.test(rest);
+	const strokeName = rest.replace(/\s*relay\s*$/i, '').trim();
+	const l = strokeName.toLowerCase();
+	const strokeKey: SwimEvent['strokeKey'] =
+		/free/.test(l) ? 'free' :
+		/back/.test(l) ? 'back' :
+		/breast/.test(l) ? 'breast' :
+		/fly|butter/.test(l) ? 'fly' :
+		/medley|\bim\b|individual/.test(l) ? 'im' : 'other';
+	const meta = STROKE_META[strokeKey];
+	const shortStroke = meta.short || strokeName;
+	const short = [distance != null ? String(distance) : null, shortStroke, isRelay ? 'Relay' : null]
+		.filter(Boolean)
+		.join(' ');
+	return { distance, stroke: strokeName, strokeKey, isRelay, short, icon: meta.icon, color: meta.color };
+}
+
+/** Abbreviate a division/age-group for tight callouts: "8 & Under" → "8&U". */
+export function abbrevDivision(s: string | null | undefined): string | null {
+	if (!s) return null;
+	return s
+		.replace(/(\d+)\s*&\s*under/gi, '$1&U')
+		.replace(/(\d+)\s*&\s*over/gi, '$1&O')
+		.replace(/\s+/g, ' ')
+		.trim() || null;
+}
+
+/** Stable identity for a swim event across meets/ages: course + distance + stroke. */
+export function swimEventKey(event: string | null | undefined, course: string | null | undefined): string {
+	const e = parseSwimEvent(event);
+	const c = (course ?? '').trim().toUpperCase();
+	return `${c}|${e.distance ?? '?'}|${e.strokeKey}|${e.isRelay ? 'R' : 'I'}`;
+}
+
+const STROKE_SLUG: Record<SwimEvent['strokeKey'], string> = {
+	free: 'freestyle', back: 'backstroke', breast: 'breaststroke', fly: 'butterfly', im: 'im', other: '',
+};
+
+/**
+ * URL slug for an event series, e.g. "50m Backstroke" → "50m-backstroke",
+ * "100m Freestyle Relay" → "100m-freestyle-relay". Identity is distance + stroke
+ * (course-agnostic — fine while the league is single-course; revisit if yards appear).
+ */
+export function swimEventSlug(event: string | null | undefined): string {
+	const e = parseSwimEvent(event);
+	const stroke = STROKE_SLUG[e.strokeKey] || e.stroke.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+	const dist = e.distance != null ? `${e.distance}m` : 'event';
+	return `${dist}-${stroke}${e.isRelay ? '-relay' : ''}`.replace(/-+/g, '-').replace(/(^-|-$)/g, '');
+}
+
 // ---- Distance + pace -------------------------------------------------------
 // distance_m is always meters (canonical). distance_unit is how to display it.
 

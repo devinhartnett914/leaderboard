@@ -1,8 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import ResultMarks from '../../components/ResultMarks.astro';
 import { getPersonBySlug, type ResultWithEdition } from '../../lib/queries';
 import { SPORT_LABELS, type Sport } from '../../lib/types';
-import { formatTime, placement, ordinal, isPodium, legPace, legIcon, legColor, currentAge } from '../../lib/format';
+import { formatTime, placement, ordinal, legPace, legIcon, legColor, currentAge, formatSwimTime, parseSwimEvent, swimEventKey, swimEventSlug, abbrevDivision } from '../../lib/format';
 
 const { slug } = Astro.params;
 const data = slug ? await getPersonBySlug(slug) : null;
@@ -25,6 +26,14 @@ const CAT_COLOR: Record<string, string> = {
 const CAT_ICON: Record<string, string> = {
 	sprint: '⚡', olympic: '🔥', triathlon: '🚴', trail_run: '⛰️', road_run: '🏃', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', other: '🏁',
 };
+
+const isSwim = (r: ResultWithEdition) => (r.race_edition?.race?.sport ?? 'other') === 'swim_meet';
+const courseOf = (r: ResultWithEdition) => ((r.race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null);
+/** exact swim time in hundredths, falling back to rounded whole seconds */
+const swimCs = (r: ResultWithEdition) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
+/** strip the trailing heat token off a division → the age group: "9-10 C" → "9-10" */
+const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
+
 function categoryOf(r: ResultWithEdition): { key: string; label: string } {
 	const sport = (r.race_edition?.race?.sport ?? 'other') as Sport;
 	if (sport === 'triathlon') {
@@ -53,12 +62,31 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 }
 
 const sortKey = (r: ResultWithEdition) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
-const sorted = [...results].sort((a, b) => sortKey(b).localeCompare(sortKey(a)));
+
+// ---- Swim: per-event best (drives the gold time + PR star on each event row).
+// Identity is course + distance + stroke (NOT age group), so a 25 Back keeps the
+// same PR line as the kid ages up. The full progression lives on /swim/[event].
+const swimResults = results.filter(isSwim);
+const prByEventKey = new Map<string, number>(); // swimEventKey -> best cs (finished only)
+for (const r of swimResults) {
+	if (r.status !== 'finished') continue;
+	const cs = swimCs(r);
+	if (cs == null) continue;
+	const k = swimEventKey(r.event, courseOf(r));
+	const best = prByEventKey.get(k);
+	if (best == null || cs < best) prByEventKey.set(k, cs);
+}
+const isSwimPr = (r: ResultWithEdition) => {
+	if (r.status !== 'finished') return false;
+	const cs = swimCs(r);
+	return cs != null && prByEventKey.get(swimEventKey(r.event, courseOf(r))) === cs;
+};
 
 // Per-series PR (best at this specific recurring race) + how many times raced here.
 const prByRace = new Map<string, number>();
 const countByRace = new Map<string, number>();
 for (const r of results) {
+	if (isSwim(r)) continue;
 	const raceId = r.race_edition?.race?.id;
 	if (!raceId || r.status !== 'finished' || r.finish_time_seconds == null) continue;
 	countByRace.set(raceId, (countByRace.get(raceId) ?? 0) + 1);
@@ -99,7 +127,7 @@ for (const r of results) {
 
 // Which PR badge (if any) a result earns. Gold = the headline PR (sets the time gold);
 // a recurring series' own best still shows as a quieter "Series PR" when a different
-// race holds the distance PR.
+// race holds the distance PR. (Swim PRs are handled separately, per-event.)
 function prBadge(r: ResultWithEdition): { gold: boolean; label: string } | null {
 	if (r.status !== 'finished' || r.finish_time_seconds == null) return null;
 	const raceId = r.race_edition?.race?.id;
@@ -119,39 +147,73 @@ function prBadge(r: ResultWithEdition): { gold: boolean; label: string } | null 
 	return null;
 }
 
-// counts for filter chips
-const catCounts = new Map<string, { label: string; count: number }>();
+// ---- Feed entries: tri/run = one card per result; swim = one card per meet --
+type CardEntry = { type: 'card'; r: ResultWithEdition; date: string };
+type MeetEntry = { type: 'meet'; key: string; events: ResultWithEdition[]; date: string };
+const entries: (CardEntry | MeetEntry)[] = [];
+const swimByEdition = new Map<string, ResultWithEdition[]>();
 for (const r of results) {
-	const c = categoryOf(r);
-	const e = catCounts.get(c.key) ?? { label: c.label, count: 0 };
-	e.count++;
-	catCounts.set(c.key, e);
+	if (isSwim(r)) {
+		const k = r.race_edition_id;
+		(swimByEdition.get(k) ?? swimByEdition.set(k, []).get(k)!).push(r);
+	} else {
+		entries.push({ type: 'card', r, date: sortKey(r) });
+	}
+}
+const STROKE_ORDER: Record<string, number> = { free: 0, back: 1, breast: 2, fly: 3, im: 4, other: 5 };
+const EVENT_ORDER = (r: ResultWithEdition) => {
+	const ev = parseSwimEvent(r.event);
+	return (ev.isRelay ? 1000 : 0) + (STROKE_ORDER[ev.strokeKey] ?? 9) * 100 + (ev.distance ?? 0) / 100;
+};
+for (const [key, evs] of swimByEdition) {
+	const sorted = [...evs].sort((a, b) => EVENT_ORDER(a) - EVENT_ORDER(b));
+	entries.push({ type: 'meet', key, events: sorted, date: sortKey(sorted[0]) });
+}
+entries.sort((a, b) => b.date.localeCompare(a.date));
+
+// counts for filter chips — sport count is per-entry (a meet counts once);
+// medals + PRs stay per-result so each event's podium/best still tallies.
+const catCounts = new Map<string, { label: string; count: number }>();
+const medalCounts = [0, 0, 0];
+let prCount = 0;
+for (const e of entries) {
+	if (e.type === 'card') {
+		const c = categoryOf(e.r);
+		const acc = catCounts.get(c.key) ?? { label: c.label, count: 0 };
+		acc.count++; catCounts.set(c.key, acc);
+		const p = podiumPlace(e.r); if (p) medalCounts[p - 1]++;
+		if (prBadge(e.r)) prCount++;
+	} else {
+		const acc = catCounts.get('swim_meet') ?? { label: 'Swim Meet', count: 0 };
+		acc.count++; catCounts.set('swim_meet', acc);
+		for (const ev of e.events) { const p = podiumPlace(ev); if (p) medalCounts[p - 1]++; }
+		if (e.events.some(isSwimPr)) prCount++;
+	}
 }
 const catChips = [...catCounts.entries()].sort((a, b) => b[1].count - a[1].count);
-const medalCounts = [0, 0, 0];
-for (const r of results) {
-	const p = podiumPlace(r);
-	if (p) medalCounts[p - 1]++;
-}
-const prCount = results.filter((r) => prBadge(r) != null).length;
 
-type Item = { type: 'year'; year: number | null } | { type: 'card'; r: ResultWithEdition };
+// interleave year headers into the date-sorted entries
+type Item = { type: 'year'; year: number | null } | CardEntry | MeetEntry;
 const items: Item[] = [];
 let lastYear: number | null | undefined = undefined;
-for (const r of sorted) {
-	const y = r.race_edition?.year ?? null;
+for (const e of entries) {
+	const y = Number(e.date.slice(0, 4)) || null;
 	if (y !== lastYear) { items.push({ type: 'year', year: y }); lastYear = y; }
-	items.push({ type: 'card', r });
+	items.push(e);
 }
 
 const age = currentAge(person.birth_date, person.birth_year);
 const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.length} results`].filter(Boolean).join(' · ');
+
+// data-place for a meet card is the set of its events' podium places (so the
+// medal filter reveals a meet that contains, say, a 2nd anywhere inside it).
+const meetPlaces = (e: MeetEntry) => [...new Set(e.events.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 ---
 
 <Layout title={person.full_name} subtitle={subtitle} avatarUrl={person.avatar_url}>
 	<div class="filters">
 		<div class="fgroup" style="--g: var(--accent)">
-			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Types</span></span>
+			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Sports</span></span>
 			{catChips.map(([key, { label, count }]) => (
 				<button class="seg" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
 					<span class="ic">{CAT_ICON[key] ?? '🏁'}</span>
@@ -184,13 +246,67 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	</div>
 
 	{
-		sorted.length === 0 ? (
+		items.length === 0 ? (
 			<div class="empty">No results recorded yet for {person.full_name}.</div>
 		) : (
 			<div class="results" id="results">
 				{items.map((it) =>
 					it.type === 'year' ? (
 						<div class="year-header" data-year={String(it.year ?? '')}><span>{it.year ?? '—'}</span></div>
+					) : it.type === 'meet' ? (
+						(() => {
+							const ed = it.events[0].race_edition;
+							const dp = dateParts(ed?.date, ed?.year);
+							const group = ageGroupOf(it.events.find((e) => e.status === 'finished')?.division ?? it.events[0].division);
+							const medals = it.events.filter((e) => podiumPlace(e) != null).length;
+							const year = Number(it.date.slice(0, 4)) || ed?.year || '';
+							return (
+								<article class="mcard" data-cat="swim_meet" data-place={meetPlaces(it)} data-pr={it.events.some(isSwimPr) ? '1' : '0'} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + it.events.length}, auto)`}>
+									<div class="mc-date">
+										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
+									</div>
+									<div class="mc-head">
+										<div class="mc-title">
+											<span class="mc-ic">🏊</span>
+											{ed?.race ? <a class="mc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="mc-name">Swim meet</span>}
+										</div>
+										<div class="mc-meta">
+											<span class="mc-sport">Swim Meet</span>
+											{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
+											{group && <span>· {group}</span>}
+											<span>· {it.events.length} {it.events.length === 1 ? 'event' : 'events'}</span>
+											{medals > 0 && <span class="mc-medals">· {medals} 🏅</span>}
+										</div>
+									</div>
+									{it.events.map((e, i) => {
+										const ev = parseSwimEvent(e.event);
+										const place = podiumPlace(e);
+										const pr = isSwimPr(e);
+										const dq = e.status !== 'finished';
+										const row = 2 + i;
+										return (
+											<Fragment>
+												<a class="mc-evname" href={`/swim/${swimEventSlug(e.event)}`} style={`grid-row:${row}; --c:${ev.color}`}>
+													<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
+												</a>
+												<div class="mc-evtime" style={`grid-row:${row}`}>
+													<ResultMarks medalTier={place} medalSub={abbrevDivision(ageGroupOf(e.division))} pr={pr && !dq} compact />
+													{dq ? (
+														<span class="ev-dq">{e.status.toUpperCase()}</span>
+													) : (
+														<span class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</span>
+													)}
+												</div>
+												<div class="mc-evplace" style={`grid-row:${row}`}>
+													<span class="ev-ord">{e.division_place != null ? ordinal(e.division_place) : '—'}</span>
+													{e.division && <span class="ev-heat">{e.division}</span>}
+												</div>
+											</Fragment>
+										);
+									})}
+								</article>
+							);
+						})()
 					) : (
 						(() => {
 							const r = it.r;
@@ -202,7 +318,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 							const pr = prBadge(r);
 							const aw = award(r);
 							return (
-								<article class={`rcard${aw ? ' has-medal' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+								<article class={`rcard${aw || pr ? ' has-marks' : ''}`} data-cat={categoryOf(r).key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-year={String(ed?.year ?? '')} style={`--edge:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
 									<div class="rc-date">
 										<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 									</div>
@@ -218,17 +334,11 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 										</div>
 									</div>
 									<div class="rc-finish">
-										{aw && (
-											<div class={`medallion medal-${aw.tier}`}>
-												<span class="m-glyph">{MEDAL[aw.tier - 1]}</span>
-												<span class="m-sub">{aw.sub}</span>
-											</div>
-										)}
 										<span class="rc-k">Finish</span>
-										<span class={`rc-time${pr?.gold ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
-										<div class="rc-tags">
-											{pr && <span class={`tag ${pr.gold ? 'tag-pr' : 'tag-series'}`}>{pr.gold ? '⭐ ' : ''}{pr.label}</span>}
-										</div>
+										<span class="rc-timewrap">
+											<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} />
+											<span class={`rc-time${pr?.gold ? ' is-pr' : ''}`}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
+										</span>
 									</div>
 									<div class="rc-legs">
 										{legs.map((s) => (
@@ -241,7 +351,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 									</div>
 									<div class="rc-places">
 										<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-										<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}{isPodium(r.division_place) && ` ${MEDAL[(r.division_place ?? 1) - 1]}`}</span></div>
+										<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
 									</div>
 								</article>
 							);
@@ -303,22 +413,13 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
+	.rc-date, .mc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 13%, transparent); border-right: 1px solid var(--border); }
 
-	/* circular podium medallion (race-page style), sitting just left of the finish
-	   time; the finish cell is the anchor so every medal lines up with the times. */
-	.rc-finish { position: relative; }
-	.medallion {
-		position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3;
-		width: 46px; height: 46px; border-radius: 50%;
-		display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 1;
-		border: 2px solid rgba(255, 255, 255, 0.3);
-		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 5px rgba(0, 0, 0, 0.18);
-	}
-	.medallion .m-glyph { font-size: 1.35rem; line-height: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
-	.medallion .m-sub { font-family: var(--font-mono); font-size: 0.44rem; font-weight: 700; letter-spacing: 0.02em; margin-top: 1px; text-transform: uppercase; }
-	/* on podium rows the race title gives way so the medal never shifts the finish time */
-	.rcard.has-medal .rc-race { padding-right: 56px; }
+	/* shared: the circular podium medallion sits just left of the time. The time
+	   cell is the positioning anchor so every medal lines up with the times. */
+	.rc-finish, .mc-evtime { position: relative; }
+	/* on marked rows the race title gives way so the medal/PR marks never overlap it */
+	.rcard.has-marks .rc-race { padding-right: 76px; }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
 	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
@@ -333,15 +434,9 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
+	.rc-timewrap { position: relative; width: max-content; }
 	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
 	.rc-time.is-pr { color: var(--gold); }
-	.rc-tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem; }
-	.tag { font-family: var(--font-mono); font-size: 0.57rem; font-weight: 700; letter-spacing: 0.03em; padding: 0.18rem 0.45rem; border-radius: 999px; white-space: nowrap; }
-	.tag-pr { background: linear-gradient(135deg, #fff3c4, #ffc83a); color: #3a2a00; }
-	.tag-series { background: color-mix(in srgb, var(--faster) 20%, transparent); color: var(--faster); border: 1px solid color-mix(in srgb, var(--faster) 45%, transparent); }
-	.medal-1 { background: radial-gradient(circle at 38% 30%, #ffe9a8, #f0b400 80%); color: #3a2a00; }
-	.medal-2 { background: radial-gradient(circle at 38% 30%, #f8fbff, #b4bfca 80%); color: #283038; }
-	.medal-3 { background: radial-gradient(circle at 38% 30%, #f8cfa6, #cf7d44 80%); color: #3a2110; }
 
 	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }
 	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }
@@ -351,10 +446,41 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 
 	.rc-places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
 	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; display: block; white-space: nowrap; }
+
+	/* ---- Swim meet card: subgrid so event times line up with the finish column ---- */
+	.mcard {
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.mc-date { grid-column: 1; grid-row: 1 / -1; }
+	.mc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
+	.mc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+	.mc-ic { font-size: 1.2rem; line-height: 1; flex-shrink: 0; color: var(--swim); }
+	.mc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.mc-name:hover { color: var(--swim); text-decoration: none; }
+	.mc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.45rem; }
+	.mc-sport { color: var(--swim); font-weight: 600; }
+	.mc-medals { color: var(--gold); }
+
+	/* event rows: name (col2) · time+medal+PR (col3) · place (col4-5), aligned to the grid */
+	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evname:hover { color: var(--swim); text-decoration: none; }
+	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
+	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.03em; white-space: nowrap; border-bottom: 1px dotted color-mix(in srgb, var(--swim) 55%, transparent); }
+	.mc-evtime { grid-column: 3; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
+	.ev-t.is-pr { color: var(--gold); }
+	.ev-dq { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.08em; color: var(--slower); }
+	.mc-evplace { grid-column: 4 / -1; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evplace .ev-ord { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; }
+	.mc-evplace .ev-heat { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.1rem; }
+	/* the first event row sits under the header, which already has a bottom border */
+	.mc-head + .mc-evname, .mc-head + .mc-evname + .mc-evtime, .mc-head + .mc-evname + .mc-evtime + .mc-evplace { border-top: none; }
 </style>
 
 <script>
-	const cards = [...document.querySelectorAll<HTMLElement>('.rcard')];
+	const cards = [...document.querySelectorAll<HTMLElement>('.rcard, .mcard')];
 	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
 	const chips = [...document.querySelectorAll<HTMLElement>('[data-f]')];
 	const prOnlyEl = document.querySelector<HTMLInputElement>('#pr-only');
@@ -364,7 +490,8 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	function apply() {
 		const prOnly = !!prOnlyEl?.checked;
 		for (const c of cards) {
-			const matchF = f === 'all' || (f === 'cat' && c.dataset.cat === v) || (f === 'place' && c.dataset.place === v);
+			const places = (c.dataset.place || '').split(' ').filter(Boolean);
+			const matchF = f === 'all' || (f === 'cat' && c.dataset.cat === v) || (f === 'place' && places.includes(v));
 			const ok = matchF && (!prOnly || c.dataset.pr === '1');
 			c.style.display = ok ? '' : 'none';
 		}

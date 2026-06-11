@@ -1,0 +1,29 @@
+---
+// The left-of-time markers on a result row: podium medal (outer) + PR star (inner,
+// nearest the time). Each lives in a FIXED-WIDTH slot that's always reserved, so
+// down a table every medal lines up in one column and every PR star in another —
+// regardless of which markers a given row has. Anchors to the nearest positioned
+// ancestor (the time wrapper / time cell), sitting just left of the time.
+import PodiumMedal from './PodiumMedal.astro';
+import PrBadge from './PrBadge.astro';
+interface Props {
+	medalTier?: number | null; // 1|2|3 for a podium, else null
+	medalSub?: string | null; // caption under the medal (division / age group)
+	pr?: boolean;
+	compact?: boolean; // narrower medal slot for tight cards (swim age groups)
+}
+const { medalTier = null, medalSub = null, pr = false, compact = false } = Astro.props;
+---
+{(medalTier || pr) && (
+	<span class:list={['marks', { compact }]}>
+		<span class="mk-medal">{medalTier && <PodiumMedal tier={medalTier} sub={medalSub} />}</span>
+		<span class="mk-pr">{pr && <PrBadge />}</span>
+	</span>
+)}
+
+<style>
+	.marks { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.3rem; padding-right: 0.3rem; --mw: 2.5rem; }
+	.marks.compact { --mw: 2rem; }
+	.mk-medal { width: var(--mw); display: flex; justify-content: center; }
+	.mk-pr { width: 1.4rem; display: flex; justify-content: center; }
+</style>
