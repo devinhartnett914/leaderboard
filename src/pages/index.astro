@@ -1,35 +1,25 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { getFamilyMembers, getRecentResults, getUpcomingRaces } from '../lib/queries';
+import Avatar from '../components/Avatar.astro';
+import PrBadge from '../components/PrBadge.astro';
+import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { currentAge, formatFullDate, formatTime, formatSwimTime, parseSwimEvent } from '../lib/format';
+import { categoryOf, catColor, catIcon } from '../lib/categories';
+import { buildPrContext } from '../lib/feed';
+import { currentAge, formatFullDate, formatTime, formatSwimTime, parseSwimEvent, dateParts } from '../lib/format';
 
-const [family, recent, upcoming] = await Promise.all([
+const [family, allResults, upcoming] = await Promise.all([
 	getFamilyMembers(),
-	getRecentResults(3),
+	getAllFamilyResults(),
 	getUpcomingRaces(),
 ]);
+const prCtx = buildPrContext(allResults);
+const recent = allResults.slice(0, 3); // already newest-first
 
 // Show the family oldest → youngest (earliest birth date first).
 const birthKey = (p: (typeof family)[number]) =>
 	p.birth_date ?? (p.birth_year ? `${p.birth_year}-00-00` : '9999-99-99');
 const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKey(b)));
-
-// Race-type metadata, matching the person + race pages.
-const SPORT_ICON: Record<string, string> = {
-	triathlon: '🚴', swim_meet: '🏊', open_water: '🌊', gravel: '🚵', trail_run: '⛰️', road_run: '🏃', other: '🏁',
-};
-// Match the category colors used on the races feed: triathlon purple, swim light blue.
-const SPORT_COLOR: Record<string, string> = {
-	triathlon: '#a78bfa', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b',
-	trail_run: '#29e3a4', road_run: '#ffb86b', other: '#8fa5c4',
-};
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
-	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
-	return { mon: '', day: fy ? String(fy) : '', year: fy ? String(fy) : '' };
-}
 ---
 
 <Layout title="Tri•Me">
@@ -100,9 +90,11 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 					{recent.map((r) => {
 						const ed = r.race_edition;
 						const sport = (ed?.race?.sport ?? 'other') as Sport;
+						const cat = categoryOf(r);
 						const dp = dateParts(ed?.date, ed?.year);
+						const isPr = sport === 'swim_meet' ? prCtx.isSwimPr(r) : !!prCtx.prBadge(r);
 						return (
-							<a class="card recent-card" href={ed?.race ? `/races/${ed.race.slug}` : '#'} style={`--c:${SPORT_COLOR[sport] ?? 'var(--muted)'}`}>
+							<a class="card recent-card" href={ed?.race ? `/races/${ed.race.slug}` : '#'} style={`--c:${catColor(cat.key)}`}>
 								<div class="rec-date">
 									<span class="rd-mon">{dp.mon}</span>
 									<span class="rd-day">{dp.day}</span>
@@ -110,12 +102,15 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 								</div>
 								<div class="rec-body">
 									<div class="rec-top">
-										<span class="rec-ic">{SPORT_ICON[sport] ?? '🏁'}</span>
+										{r.person && <Avatar src={r.person.avatar_url} name={r.person.full_name} size={18} />}
 										<span class="rec-who">{r.person?.full_name ?? ''}</span>
 									</div>
-									<div class="rec-name">{ed?.race?.name ?? 'Race'}</div>
+									<div class="rec-name"><span class="rec-ic" style={`color:${catColor(cat.key)}`}>{catIcon(cat.key)}</span>{ed?.race?.name ?? 'Race'}</div>
 									{sport === 'swim_meet' && r.event && <div class="rec-ev">{parseSwimEvent(r.event).short}</div>}
-									<div class="rec-fin">{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</div>
+									<div class="rec-finrow">
+										<span class:list={['rec-fin', { 'is-pr': isPr }]}>{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</span>
+										{isPr && <PrBadge />}
+									</div>
 								</div>
 							</a>
 						);
@@ -158,10 +153,12 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 	.rd-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.rd-yr { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); }
 	.rec-body { display: flex; flex-direction: column; justify-content: center; padding: 0.8rem 1rem; min-width: 0; }
-	.rec-top { display: flex; align-items: center; gap: 0.45rem; }
-	.rec-ic { font-size: 1.1rem; line-height: 1; }
+	.rec-top { display: flex; align-items: center; gap: 0.4rem; }
+	.rec-ic { font-size: 1rem; margin-right: 0.3rem; vertical-align: -0.05em; }
 	.rec-who { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.rec-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.02em; margin-top: 0.2rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.rec-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.02em; margin-top: 0.3rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.rec-ev { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); margin-top: 0.3rem; }
-	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--accent); margin-top: 0.35rem; }
+	.rec-finrow { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.35rem; }
+	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--text); }
+	.rec-fin.is-pr { color: var(--gold); }
 </style>

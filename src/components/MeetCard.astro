@@ -78,7 +78,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	.mcard {
 		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
-		border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
 	.mc-date { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
 	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
