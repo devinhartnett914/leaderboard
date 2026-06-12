@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import Avatar from '../../components/Avatar.astro';
 import PrBadge from '../../components/PrBadge.astro';
+import PrTime from '../../components/PrTime.astro';
 import PodiumMedal from '../../components/PodiumMedal.astro';
 import { getRaceBySlug, getAllFamilyResults } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
@@ -208,10 +209,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 							<Avatar src={track.person.avatar_url} name={track.person.full_name} size={34} />
 							<h2><a href={`/people/${track.person.slug}`}>{track.person.full_name}</a></h2>
 							{track.prSeconds != null && (
-								<span class="track-pr">
-									<PrBadge />
-									<span class="track-pr-tw"><b class="track-pr-time">{formatTime(track.prSeconds)}</b><span class="track-pr-yr">{track.prYear}</span></span>
-								</span>
+								<PrTime time={formatTime(track.prSeconds)} caption={track.prYear ? String(track.prYear) : null} />
 							)}
 						</div>
 
@@ -334,12 +332,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }
 	.track-head h2 a:hover { color: var(--accent); text-decoration: none; }
-	/* PR best-time + year as glyph-over-caption pairs (★/PR and time/year), bottom-
-	   aligned so "PR" and the year sit on one line — the same stacked pattern as the marks */
-	.track-pr { display: inline-flex; align-items: flex-end; gap: 0.5rem; margin-left: 0.15rem; }
-	.track-pr-tw { display: inline-flex; flex-direction: column; align-items: center; gap: 0.1rem; }
-	.track-pr-time { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; line-height: 1; color: var(--gold); }
-	.track-pr-yr { font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); line-height: 1; }
+	/* PR best-time + year lives in <PrTime/>: same tight star ↔ time gap as the feed rows. */
 
 	/* standalone year cards, rows aligned via subgrid */
 	.cards {

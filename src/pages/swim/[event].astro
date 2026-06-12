@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
+import PrTime from '../../components/PrTime.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, abbrevDivision } from '../../lib/format';
 
@@ -25,7 +26,7 @@ function dateParts(iso: string | null | undefined, fy: number | null | undefined
 
 // Group by swimmer; oldest swimmer first (matches the rest of the site).
 interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
-interface Track { person: NonNullable<FeedResult['person']>; occ: Occ[]; bestCs: number | null }
+interface Track { person: NonNullable<FeedResult['person']>; occ: Occ[]; bestCs: number | null; bestYear: number | null }
 const byPerson = new Map<string, FeedResult[]>();
 for (const r of matching) {
 	if (!r.person) continue;
@@ -42,7 +43,9 @@ const tracks: Track[] = [...byPerson.values()].map((rows) => {
 		if (cs != null) prevCs = cs;
 		return { r, cs, deltaCs, isBest: cs != null && cs === bestCs };
 	});
-	return { person: rows[0].person!, occ: occChrono.reverse(), bestCs }; // newest first for display
+	const bestRow = bestCs != null ? chrono.find((r) => swimCs(r) === bestCs) : null;
+	const bestYear = bestRow?.race_edition?.year ?? null;
+	return { person: rows[0].person!, occ: occChrono.reverse(), bestCs, bestYear }; // newest first for display
 }).sort((a, b) => (a.person.birth_year ?? 0) - (b.person.birth_year ?? 0));
 
 const swimmerCount = tracks.length;
@@ -60,7 +63,7 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 		<section class="track">
 			<div class="track-head">
 				<h2>{t.person.slug ? <a href={`/people/${t.person.slug}`}>{t.person.full_name}</a> : t.person.full_name}</h2>
-				{t.bestCs != null && <span class="pill"><span class="pill-star">⭐</span> Best {formatSwimTime(t.bestCs)}</span>}
+				{t.bestCs != null && <PrTime time={formatSwimTime(t.bestCs)} caption={t.bestYear ? String(t.bestYear) : null} />}
 				<span class="track-count">{t.occ.length} {t.occ.length === 1 ? 'swim' : 'swims'}</span>
 			</div>
 
@@ -114,7 +117,6 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }
 	.track-head h2 a:hover { color: var(--swim); text-decoration: none; }
-	.pill { display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent); background: color-mix(in srgb, var(--gold) 12%, transparent); border-radius: 999px; padding: 0.2rem 0.7rem; }
 	.track-count { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
 
 	/* one grid per swimmer so every time lines up in its column */
