@@ -2,9 +2,12 @@
 
 Branch: `feat/ux-sweep`. Nothing was pushed.
 
-## What landed (5 commits on top of `feat/scaffold-and-display`)
+## What landed (commits on top of `feat/scaffold-and-display`)
 
 ```
+7c53666 docs(proposals): tighten IA + swim event drafts
+cac5d42 refactor(components): DateRail — shared 86px date anchor for every card
+4c786c7 docs: overnight-summary — what landed + what's left for Devin
 c47649b fix(race): drop duplicate inline medal emoji from Division row
 ab1603e feat(layout): subtle nav polish — page-enter fade + @view-transition
 7072e98 docs(proposals): IA + swim event page layout options
@@ -13,14 +16,14 @@ ab1603e feat(layout): subtle nav polish — page-enter fade + @view-transition
 ```
 
 Each commit was build-verified (`npm run build` passes) and the change was
-verified via `curl` against the dev server before the commit. Eight tasks in
-the brief; all six addressed below.
+verified via `curl` against the dev server before the commit. All six tasks
+from the brief are addressed below.
 
 ## Task-by-task
 
-### 1. Site-wide consistency sweep — FIXED
+### 1. Site-wide consistency sweep — FIXED (across two passes)
 
-The audit found three points of drift; all were fixed:
+First pass found three points of drift; all fixed:
 
 - **`/swim/[event]` showed the personal best as a custom gold "Best 57.40" pill.**
   Replaced with the standard ⭐ PR treatment using the new `PrTime` component
@@ -30,10 +33,16 @@ The audit found three points of drift; all were fixed:
 - **`/races/[slug]` was double-marking podium places** — the badge pill above
   each year card already shows the medal via `PodiumMedal`, and the Division
   row was *also* appending an inline 🥇/🥈/🥉 after the ordinal. Removed the
-  inline emoji; the badge stays.
+  inline emoji; the badge stays. (`MEDAL = […]` const deleted with it.)
 
-The Division row had its own `MEDAL = ['🥇','🥈','🥉']` constant; deleted
-since nothing else used it.
+Second pass (the re-audit per the brief) caught one more:
+
+- **Mon/Day/Year date-rail was hand-implemented 4×** (ResultRow, MeetCard,
+  RaceGroupCard, `/swim/[event]`) with the same shape but subtle proportion
+  drift — feed cards used a 2.4rem day digit while the swim event page
+  used 2.1rem, plus a local-only `dateParts` helper in `/swim/[event]`
+  that duplicated the lib version. Extracted `DateRail.astro` so the rail
+  is defined once and proportions are identical across every card.
 
 ### 2. IA proposal — WRITTEN (`docs/ia-proposals.md`)
 
@@ -121,12 +130,16 @@ ADDED
   docs/swim-event-page-options.md
   docs/overnight-summary.md            (this file)
   src/components/PrTime.astro
+  src/components/DateRail.astro
 
 CHANGED
   src/layouts/Layout.astro             (view-transition + page-enter fade)
   src/pages/index.astro                (Recent races uses shared cards)
   src/pages/races/[slug].astro         (PrTime + drop inline medal emoji)
-  src/pages/swim/[event].astro         (PrTime + abbrevDivision)
+  src/pages/swim/[event].astro         (PrTime + abbrevDivision + DateRail)
+  src/components/ResultRow.astro       (uses DateRail)
+  src/components/MeetCard.astro        (uses DateRail)
+  src/components/RaceGroupCard.astro   (uses DateRail)
 ```
 
 Nothing was deleted.
