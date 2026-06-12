@@ -128,7 +128,6 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 
-	/* Recent races list: same grid as /races so the cards render identically
-	   here and there (subgrid alignment lines finish times up). */
-	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
+	/* Recent races list reuses the global .results grid + the shared feed
+	   cards so a result here renders identically to the same result on /races. */
 </style>

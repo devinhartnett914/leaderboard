@@ -171,6 +171,22 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
 			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 
+			/* The 5-column container grid every feed card lives in (home,
+			   /races, /people/[slug]). The card-shell below is a subgrid of
+			   this, so finish times line up across every card type. */
+			.results {
+				display: grid;
+				grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content;
+				row-gap: 0.7rem;
+			}
+			/* Year separator interleaved between feed entries on /races and
+			   /people/[slug] — display-font year + a hairline that fades to
+			   the right. Lives here so the two pages can't drift. */
+			.year-header { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0 0.2rem; }
+			.year-header:first-child { margin-top: 0; }
+			.year-header span { font-family: var(--font-display); font-weight: 400; font-size: 2rem; letter-spacing: 0.04em; color: var(--accent); }
+			.year-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
 			/* Shared shell for the three feed cards (ResultRow / MeetCard /
 			   RaceGroupCard) — full-width subgrid box with the category edge
 			   accent on the left. The card sets `--edge` on itself and the

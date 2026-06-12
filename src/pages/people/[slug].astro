@@ -146,12 +146,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	.fpr .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--gold); }
 	.fpr:has(input:checked) { border-color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, var(--surface)); }
 
-	/* one grid for all rows so finish times line up across every card */
-	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
-	.year-header { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0 0.2rem; }
-	.year-header:first-child { margin-top: 0; }
-	.year-header span { font-family: var(--font-display); font-weight: 400; font-size: 2rem; letter-spacing: 0.04em; color: var(--accent); }
-	.year-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+	/* .results + .year-header live in Layout.astro */
 </style>
 
 <script>
