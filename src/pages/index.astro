@@ -1,10 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Avatar from '../components/Avatar.astro';
 import PrBadge from '../components/PrBadge.astro';
+import RaceTitle from '../components/RaceTitle.astro';
+import PersonChip from '../components/PersonChip.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { categoryOf, catColor, catIcon } from '../lib/categories';
+import { categoryOf, catColor } from '../lib/categories';
 import { buildPrContext } from '../lib/feed';
 import { currentAge, formatFullDate, formatTime, formatSwimTime, parseSwimEvent, dateParts } from '../lib/format';
 
@@ -102,14 +103,13 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 								</div>
 								<div class="rec-body">
 									<div class="rec-top">
-										{r.person && <Avatar src={r.person.avatar_url} name={r.person.full_name} size={18} />}
-										<span class="rec-who">{r.person?.full_name ?? ''}</span>
+										<PersonChip person={r.person} avatar={18} nameRem={0.6} link={false} />
 									</div>
-									<div class="rec-name"><span class="rec-ic" style={`color:${catColor(cat.key)}`}>{catIcon(cat.key)}</span>{ed?.race?.name ?? 'Race'}</div>
+									<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={null} nameRem={1.45} />
 									{sport === 'swim_meet' && r.event && <div class="rec-ev">{parseSwimEvent(r.event).short}</div>}
 									<div class="rec-finrow">
-										<span class:list={['rec-fin', { 'is-pr': isPr }]}>{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</span>
 										{isPr && <PrBadge />}
+										<span class:list={['rec-fin', { 'is-pr': isPr }]}>{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</span>
 									</div>
 								</div>
 							</a>
@@ -152,13 +152,10 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.rd-mon { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--c, var(--accent)); }
 	.rd-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
 	.rd-yr { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); }
-	.rec-body { display: flex; flex-direction: column; justify-content: center; padding: 0.8rem 1rem; min-width: 0; }
-	.rec-top { display: flex; align-items: center; gap: 0.4rem; }
-	.rec-ic { font-size: 1rem; margin-right: 0.3rem; vertical-align: -0.05em; }
-	.rec-who { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.rec-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.02em; margin-top: 0.3rem; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.rec-ev { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); margin-top: 0.3rem; }
-	.rec-finrow { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.35rem; }
+	.rec-body { display: flex; flex-direction: column; justify-content: center; gap: 0.34rem; padding: 0.8rem 1rem; min-width: 0; }
+	.rec-top { display: flex; align-items: center; min-width: 0; }
+	.rec-ev { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); }
+	.rec-finrow { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.1rem; }
 	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--text); }
 	.rec-fin.is-pr { color: var(--gold); }
 </style>

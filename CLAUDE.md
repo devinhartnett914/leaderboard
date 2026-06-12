@@ -40,6 +40,44 @@ for production.
   `src/pages/admin/` — auth-gated entry + review screens.
 - `supabase/` — `migrations/` (reversible SQL) and `seed.sql` (family members).
 
+## Design system
+Principled & patterned: the UI is built from a small set of shared components + tokens so new
+pieces fall out of the system. **Reuse or extend these before writing a one-off** — when a
+pattern repeats ~2–3×, extract it rather than copy it.
+
+### Tokens (defined `:root` in `src/layouts/Layout.astro`)
+- Colors: `--bg/--surface/--surface-2`, `--text/--muted/--faint`, `--accent` (cyan), discipline
+  accents `--swim/--bike/--run`, `--gold` (PR), `--faster/--slower` (deltas), `--border/--line-strong`.
+- Category color/icon/label live in `src/lib/categories.ts` (`catColor`/`catIcon`/`categoryOf`) —
+  the single source for sport tinting; every card reads from it (don't hardcode sport colors).
+- Fonts: `--font-display` (Bebas Neue — headings + times, **all-caps face**), `--font-mono`
+  (JetBrains Mono — labels/captions), `--font-body` (Inter Tight). Plus `--radius`, `--shadow`.
+
+### Shared components (`src/components/`)
+- `RaceTitle.astro` — category icon + race name, vertically centered. The one race title; use
+  everywhere a race is named.
+- `PersonChip.astro` — avatar + name (mono uppercase). The one way to name a family member; pass
+  `link={false}` when it sits inside another link.
+- `ResultMarks.astro` — medal + PR markers left of a time (medal outer, PR nearest the time; only
+  present markers render — no reserved empty slots).
+- `PrBadge.astro` / `PodiumMedal.astro` — the two marks, kept identical via `.mk-glyph` (1.1rem) +
+  `.mk-cap` (0.5rem). **Glyph-over-caption** is the recurring "mark" pattern (also the date rail and
+  the race-page PR best-time/year).
+- `ResultRow.astro` / `MeetCard.astro` / `RaceGroupCard.astro` — the three feed cards (tri·run /
+  swim meet / multi-family-member race), all living in the shared `.results` subgrid so finish
+  times line up across every card.
+- `Avatar.astro` — circular photo with an initials fallback.
+
+### Layout patterns (keep consistent across cards)
+- Card top row = the **type · distance** tag, on its own line *above* the race name. On the
+  combined feed a `PersonChip` leads that row, pipe-separated from the tag.
+- Finish time is right-aligned with marks to its left; place / division sit at the far right.
+- Run every division string through `abbrevDivision()` before display (`8 & Under` → `8&U`).
+
+### Gotcha
+Astro's dev HMR can serve **stale scoped CSS** after a component edit — verify the *served* output
+(`curl` the page), and `touch` the component (or restart `npm run dev`) to force a recompile.
+
 ## Commands
 - `npm run dev` — dev server (binds to `--host`; preview from laptop at `http://100.71.23.28:<port>/`)
 - `npm run build` — production build

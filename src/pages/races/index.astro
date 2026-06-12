@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
+import RaceGroupCard from '../../components/RaceGroupCard.astro';
 import Avatar from '../../components/Avatar.astro';
 import { getAllFamilyResults } from '../../lib/queries';
 import type { Person } from '../../lib/types';
@@ -9,7 +10,8 @@ import { buildEntries, buildPrContext, award, type Entry } from '../../lib/feed'
 
 const results = await getAllFamilyResults();
 const prCtx = buildPrContext(results);
-const entries = buildEntries(results);
+// group a single edition run by 2+ family members into one shared card
+const entries = buildEntries(results, { groupRaces: true });
 
 // the family, oldest → youngest, for the avatar links (each navigates to a person page)
 const personCounts = new Map<string, { person: Person; count: number }>();
@@ -55,6 +57,8 @@ const subtitle = `${results.length} results across the family`;
 						<div class="year-header"><span>{it.year ?? '—'}</span></div>
 					) : it.type === 'meet' ? (
 						<MeetCard entry={it} prCtx={prCtx} showPerson />
+					) : it.type === 'race' ? (
+						<RaceGroupCard entry={it} prCtx={prCtx} />
 					) : (
 						<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson />
 					),

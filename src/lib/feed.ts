@@ -116,10 +116,18 @@ export function buildPrContext(results: FeedRow[]): PrContext {
 	};
 }
 
-// ---- Feed entries: tri/run = one card per result; swim = one card per (person, meet).
+// ---- Feed entries: tri/run = one card per result; swim = one card per (person, meet);
+// with groupRaces, a non-swim edition done by 2+ family members becomes one shared card.
 export type CardEntry = { type: 'card'; r: FeedRow; date: string };
 export type MeetEntry = { type: 'meet'; key: string; events: FeedRow[]; date: string };
-export type Entry = CardEntry | MeetEntry;
+export type RaceEntry = { type: 'race'; key: string; results: FeedRow[]; date: string };
+export type Entry = CardEntry | MeetEntry | RaceEntry;
+
+// Fastest finisher first; non-finishers (DNF/DNS/DQ) sink to the bottom.
+const byFinish = (a: FeedRow, b: FeedRow) => {
+	const t = (r: FeedRow) => (r.status === 'finished' ? r.finish_time_seconds ?? Infinity : Infinity);
+	return t(a) - t(b);
+};
 
 const STROKE_ORDER: Record<string, number> = { free: 0, back: 1, breast: 2, fly: 3, im: 4, other: 5 };
 export const eventOrder = (r: FeedRow) => {
@@ -127,14 +135,22 @@ export const eventOrder = (r: FeedRow) => {
 	return (ev.isRelay ? 1000 : 0) + (STROKE_ORDER[ev.strokeKey] ?? 9) * 100 + (ev.distance ?? 0) / 100;
 };
 
-/** Group swim results into one meet entry per (person, edition); everything else is a card. Newest first. */
-export function buildEntries(results: FeedRow[]): Entry[] {
+/**
+ * Group swim results into one meet entry per (person, edition); everything else is a
+ * card. With `groupRaces`, a non-swim edition that 2+ family members ran collapses
+ * into a single shared `race` entry (one card listing each finisher). Newest first.
+ */
+export function buildEntries(results: FeedRow[], opts: { groupRaces?: boolean } = {}): Entry[] {
 	const entries: Entry[] = [];
 	const swimByMeet = new Map<string, FeedRow[]>();
+	const raceByEdition = new Map<string, FeedRow[]>(); // non-swim, grouped per edition when groupRaces
 	for (const r of results) {
 		if (isSwim(r)) {
 			const k = `${pid(r)}|${r.race_edition_id}`;
 			(swimByMeet.get(k) ?? swimByMeet.set(k, []).get(k)!).push(r);
+		} else if (opts.groupRaces && r.race_edition_id) {
+			const k = r.race_edition_id;
+			(raceByEdition.get(k) ?? raceByEdition.set(k, []).get(k)!).push(r);
 		} else {
 			entries.push({ type: 'card', r, date: sortKey(r) });
 		}
@@ -142,6 +158,15 @@ export function buildEntries(results: FeedRow[]): Entry[] {
 	for (const [key, evs] of swimByMeet) {
 		const sorted = [...evs].sort((a, b) => eventOrder(a) - eventOrder(b));
 		entries.push({ type: 'meet', key, events: sorted, date: sortKey(sorted[0]) });
+	}
+	for (const [key, rs] of raceByEdition) {
+		const distinctPeople = new Set(rs.map((r) => r.person?.id ?? r.id)).size;
+		if (distinctPeople >= 2) {
+			const sorted = [...rs].sort(byFinish);
+			entries.push({ type: 'race', key, results: sorted, date: sortKey(sorted[0]) });
+		} else {
+			for (const r of rs) entries.push({ type: 'card', r, date: sortKey(r) });
+		}
 	}
 	entries.sort((a, b) => b.date.localeCompare(a.date));
 	return entries;

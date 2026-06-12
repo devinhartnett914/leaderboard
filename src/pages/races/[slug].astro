@@ -155,7 +155,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										<span class="sw-name">{s.person.full_name}</span>
 									)}
 									{ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division) && (
-										<span class="sw-group">{ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division)}</span>
+										<span class="sw-group">{abbrevDivision(ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division))}</span>
 									)}
 								</div>
 								<div class="sw-events">
@@ -208,7 +208,10 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 							<Avatar src={track.person.avatar_url} name={track.person.full_name} size={34} />
 							<h2><a href={`/people/${track.person.slug}`}>{track.person.full_name}</a></h2>
 							{track.prSeconds != null && (
-								<span class="track-pr"><PrBadge /><b>{formatTime(track.prSeconds)}</b><span class="track-pr-yr">· {track.prYear}</span></span>
+								<span class="track-pr">
+									<PrBadge />
+									<span class="track-pr-tw"><b class="track-pr-time">{formatTime(track.prSeconds)}</b><span class="track-pr-yr">{track.prYear}</span></span>
+								</span>
 							)}
 						</div>
 
@@ -223,7 +226,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 									<article class={`ycard${i === 0 ? ' latest' : ''}`}>
 										{(a || pr) && (
 											<div class="badges">
-												{a && <PodiumMedal tier={a.tier} sub={a.sub} />}
+												{a && <PodiumMedal tier={a.tier} sub={abbrevDivision(a.sub)} />}
 												{pr && <PrBadge />}
 											</div>
 										)}
@@ -269,7 +272,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 											<span class="rl">Division</span>
 											<span class="rv">
 												<b>
-													{c.result?.division ? `${c.result.division} · ${ordinal(c.result.division_place)}` : '—'}
+													{c.result?.division ? `${abbrevDivision(c.result.division)} · ${ordinal(c.result.division_place)}` : '—'}
 													{isPodium(c.result?.division_place) && ` ${MEDAL[(c.result!.division_place ?? 1) - 1]}`}
 												</b>
 											</span>
@@ -331,9 +334,12 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }
 	.track-head h2 a:hover { color: var(--accent); text-decoration: none; }
-	.track-pr { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); margin-left: 0.15rem; }
-	.track-pr b { font-family: var(--font-display); font-weight: 400; font-size: 1.15rem; letter-spacing: 0.02em; color: var(--gold); }
-	.track-pr-yr { color: var(--faint); }
+	/* PR best-time + year as glyph-over-caption pairs (★/PR and time/year), bottom-
+	   aligned so "PR" and the year sit on one line — the same stacked pattern as the marks */
+	.track-pr { display: inline-flex; align-items: flex-end; gap: 0.5rem; margin-left: 0.15rem; }
+	.track-pr-tw { display: inline-flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+	.track-pr-time { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; line-height: 1; color: var(--gold); }
+	.track-pr-yr { font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); line-height: 1; }
 
 	/* standalone year cards, rows aligned via subgrid */
 	.cards {

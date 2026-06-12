@@ -1,10 +1,12 @@
 ---
 // One tri/run result row, shared by the person page and the all-races feed. Lives in
-// the parent `.results` subgrid. Type+distance sit ABOVE the race name; on combined
-// views (showPerson) the person's avatar + name lead the row.
+// the parent `.results` subgrid. The type · distance tag always sits on its own TOP
+// row, above the race name. On the combined feed (showPerson) the person's name leads
+// that row, with the type after it (pipe-separated).
 import ResultMarks from './ResultMarks.astro';
-import Avatar from './Avatar.astro';
-import { categoryOf, catColor, catIcon } from '../lib/categories';
+import RaceTitle from './RaceTitle.astro';
+import PersonChip from './PersonChip.astro';
+import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, legPace, legIcon, legColor, ordinal, placement, dateParts, abbrevDivision } from '../lib/format';
 import { podiumPlace, type FeedRow, type PrBadge } from '../lib/feed';
@@ -22,6 +24,7 @@ const cat = categoryOf(r);
 const dp = dateParts(ed?.date, ed?.year);
 const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
 const edge = catColor(cat.key);
+const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
 ---
 <article class:list={['rcard', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
@@ -29,21 +32,20 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 	</div>
 	<div class="rc-race">
-		{showPerson && r.person && (
-			<a class="rc-who" href={`/people/${r.person.slug}`}>
-				<Avatar src={r.person.avatar_url} name={r.person.full_name} size={20} />
-				<span>{r.person.full_name}</span>
-			</a>
-		)}
-		<div class="rc-meta">
-			<span class="rc-sport">{sport === 'triathlon' ? cat.label : SPORT_LABELS[sport]}</span>
-			{showDist && <span class="rc-dist">· {ed?.distance_or_format}</span>}
-			{r.event && <span>· {r.event}</span>}
+		<div class="rc-toprow">
+			{showPerson && r.person && (
+				<Fragment>
+					<PersonChip person={r.person} avatar={20} nameRem={0.62} />
+					<span class="rc-pipe" aria-hidden="true">|</span>
+				</Fragment>
+			)}
+			<span class="rc-meta">
+				<span class="rc-type">{typeLabel}</span>
+				{showDist && <span class="rc-dist">· {ed?.distance_or_format}</span>}
+				{r.event && <span class="rc-ev">· {r.event}</span>}
+			</span>
 		</div>
-		<div class="rc-title">
-			<span class="rc-cat-ic" style={`color:${edge}`}>{catIcon(cat.key)}</span>
-			{ed?.race ? <a class="rc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="rc-name">Unknown race</span>}
-		</div>
+		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	<div class="rc-finish">
 		<span class="rc-k">Finish</span>
@@ -63,7 +65,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	</div>
 	<div class="rc-places">
 		<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-		<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${r.division}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
+		<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${abbrevDivision(r.division)}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
 	</div>
 </article>
 
@@ -81,16 +83,14 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
-	.rc-who { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; width: max-content; max-width: 100%; }
-	.rc-who:hover { color: var(--text); text-decoration: none; }
-	.rc-who span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.rc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 0.34rem; }
-	.rc-sport { color: var(--edge); font-weight: 600; }
+	/* top row above the race name (RaceTitle): type · distance tag, led by the person's
+	   name (PersonChip) + pipe on the combined feed */
+	.rc-toprow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.34rem; min-width: 0; }
+	.rc-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
+	.rc-meta { flex-shrink: 0; display: inline-flex; align-items: baseline; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	.rc-type { color: var(--edge); }
 	.rc-dist { color: var(--edge); font-weight: 600; }
-	.rc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-	.rc-cat-ic { font-size: 1.2rem; line-height: 1; flex-shrink: 0; }
-	.rc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.rc-name:hover { color: var(--edge); text-decoration: none; }
+	.rc-ev { color: var(--faint); }
 
 	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }

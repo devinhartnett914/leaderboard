@@ -2,8 +2,9 @@
 // One swim meet, grouped — shared by the person page and the all-races feed. Lives in
 // the parent `.results` subgrid; event times line up with the tri/run finish column.
 import ResultMarks from './ResultMarks.astro';
-import Avatar from './Avatar.astro';
-import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision, ageGroupOf, dateParts } from '../lib/format';
+import RaceTitle from './RaceTitle.astro';
+import PersonChip from './PersonChip.astro';
+import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision, dateParts } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -16,8 +17,6 @@ const events = entry.events;
 const ed = events[0].race_edition;
 const person = events[0].person;
 const dp = dateParts(ed?.date, ed?.year);
-const group = ageGroupOf(events.find((e) => e.status === 'finished')?.division ?? events[0].division);
-const medals = events.filter((e) => podiumPlace(e) != null).length;
 const year = Number(entry.date.slice(0, 4)) || ed?.year || '';
 const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 ---
@@ -26,23 +25,16 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
 	</div>
 	<div class="mc-head">
-		{showPerson && person && (
-			<a class="mc-who" href={`/people/${person.slug}`}>
-				<Avatar src={person.avatar_url} name={person.full_name} size={20} />
-				<span>{person.full_name}</span>
-			</a>
-		)}
-		<div class="mc-meta">
-			<span class="mc-sport">Swim Meet</span>
-			{ed?.distance_or_format && <span>· {ed.distance_or_format}</span>}
-			{group && <span>· {group}</span>}
-			<span>· {events.length} {events.length === 1 ? 'event' : 'events'}</span>
-			{medals > 0 && <span class="mc-medals">· {medals} 🏅</span>}
+		<div class="mc-toprow">
+			{showPerson && person && (
+				<Fragment>
+					<PersonChip person={person} avatar={20} nameRem={0.62} />
+					<span class="mc-pipe" aria-hidden="true">|</span>
+				</Fragment>
+			)}
+			<span class="mc-type">Swim Meet</span>
 		</div>
-		<div class="mc-title">
-			<span class="mc-ic">🏊</span>
-			{ed?.race ? <a class="mc-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="mc-name">Swim meet</span>}
-		</div>
+		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
@@ -67,7 +59,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 				</div>
 				<div class="mc-evplace" style={`grid-row:${row}`}>
 					<span class="ev-ord">{e.division_place != null ? ordinal(e.division_place) : '—'}</span>
-					{e.division && <span class="ev-heat">{e.division}</span>}
+					{e.division && <span class="ev-heat">{abbrevDivision(e.division)}</span>}
 				</div>
 			</Fragment>
 		);
@@ -86,16 +78,10 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.mc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
-	.mc-who { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; width: max-content; max-width: 100%; }
-	.mc-who:hover { color: var(--text); text-decoration: none; }
-	.mc-who span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.mc-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-bottom: 0.34rem; }
-	.mc-sport { color: var(--swim); font-weight: 600; }
-	.mc-medals { color: var(--gold); }
-	.mc-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-	.mc-ic { font-size: 1.2rem; line-height: 1; flex-shrink: 0; color: var(--swim); }
-	.mc-name { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.03em; color: var(--text); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	.mc-name:hover { color: var(--swim); text-decoration: none; }
+	/* top row: "Swim Meet", led by the swimmer's name (PersonChip) + pipe on the feed */
+	.mc-toprow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.34rem; min-width: 0; }
+	.mc-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
+	.mc-type { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); white-space: nowrap; }
 
 	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--swim); text-decoration: none; }

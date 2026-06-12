@@ -1,0 +1,26 @@
+---
+// Avatar + person name, mono uppercase — the single standard for naming a family
+// member across the site (combined feed rows, grouped-race finishers, homepage
+// recent). Links to the person page when a slug exists.
+import Avatar from './Avatar.astro';
+interface Props {
+	person: { full_name: string; slug: string | null; avatar_url: string | null } | null | undefined;
+	avatar?: number; // avatar diameter px
+	nameRem?: number; // name font size in rem
+	link?: boolean; // render as a link to the person page (false when nested inside another link)
+}
+const { person, avatar = 20, nameRem = 0.62, link = true } = Astro.props;
+const name = person?.full_name ?? '—';
+const href = link && person?.slug ? `/people/${person.slug}` : null;
+const Tag = href ? 'a' : 'span';
+---
+<Tag class="pchip" href={href ?? undefined} style={`--nm:${nameRem}rem`}>
+	<Avatar src={person?.avatar_url} name={name} size={avatar} />
+	<span class="pc-name">{name}</span>
+</Tag>
+
+<style>
+	.pchip { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+	a.pchip:hover { color: var(--text); text-decoration: none; }
+	.pc-name { font-size: var(--nm); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>

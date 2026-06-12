@@ -1,0 +1,104 @@
+---
+// One non-swim race edition that 2+ family members ran, collapsed into a single card
+// (mirrors the swim MeetCard): the race header once, then one sub-row per finisher
+// with avatar + name, finish time, and place. Lives in the parent `.results` subgrid
+// so finish times line up with every other card. Only used on the all-races feed.
+import ResultMarks from './ResultMarks.astro';
+import RaceTitle from './RaceTitle.astro';
+import PersonChip from './PersonChip.astro';
+import { categoryOf, catColor } from '../lib/categories';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import { formatTime, ordinal, abbrevDivision, dateParts } from '../lib/format';
+import { award, podiumPlace, type RaceEntry, type PrContext } from '../lib/feed';
+
+interface Props {
+	entry: RaceEntry;
+	prCtx: PrContext;
+}
+const { entry, prCtx } = Astro.props;
+const results = entry.results;
+const lead = results[0];
+const ed = lead.race_edition;
+const sport = (ed?.race?.sport ?? 'other') as Sport;
+const cat = categoryOf(lead);
+const edge = catColor(cat.key);
+const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
+const dp = dateParts(ed?.date, ed?.year);
+const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
+const places = [...new Set(results.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
+const anyPr = results.some((r) => prCtx.prBadge(r));
+---
+<article class="gcard" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
+	<div class="gc-date">
+		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
+	</div>
+	<div class="gc-head">
+		<div class="gc-toprow">
+			<span class="gc-meta">
+				<span class="gc-type">{typeLabel}</span>
+				{showDist && <span class="gc-dist">· {ed?.distance_or_format}</span>}
+			</span>
+		</div>
+		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+	</div>
+	{results.map((r, i) => {
+		const aw = award(r);
+		const pr = prCtx.prBadge(r);
+		const dnf = r.status !== 'finished';
+		const place = r.overall_place ?? r.division_place;
+		const row = 2 + i;
+		return (
+			<Fragment>
+				<div class="gc-who" style={`grid-row:${row}`}>
+					<PersonChip person={r.person} avatar={20} nameRem={0.72} />
+				</div>
+				<div class="gc-time" style={`grid-row:${row}`}>
+					<span class="gc-timewrap">
+						<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} compact />
+						{dnf ? (
+							<span class="gc-dq">{r.status.toUpperCase()}</span>
+						) : (
+							<span class:list={['gc-t', { 'is-pr': pr?.gold }]}>{formatTime(r.finish_time_seconds)}</span>
+						)}
+					</span>
+				</div>
+				<div class="gc-place" style={`grid-row:${row}`}>
+					<span class="gc-ord">{place != null ? ordinal(place) : '—'}</span>
+					{r.division && <span class="gc-div">{abbrevDivision(r.division)}</span>}
+				</div>
+			</Fragment>
+		);
+	})}
+</article>
+
+<style>
+	.gcard {
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.gc-date { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
+	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
+	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
+	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
+
+	.gc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
+	/* type · distance tag on its own row, above the race name (consistent with every card) */
+	.gc-toprow { margin-bottom: 0.34rem; }
+	.gc-meta { display: inline-flex; align-items: baseline; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	.gc-type { color: var(--edge); }
+	.gc-dist { color: var(--edge); font-weight: 600; }
+
+	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines */
+	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.4rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.gc-time { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.gc-timewrap { position: relative; width: max-content; }
+	.gc-t { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
+	.gc-t.is-pr { color: var(--gold); }
+	.gc-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
+	.gc-place { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.45rem 1.2rem 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.gc-ord { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; }
+	.gc-div { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.1rem; }
+	/* first finisher row sits directly under the header — no doubled divider */
+	.gc-head + .gc-who, .gc-head + .gc-who + .gc-time, .gc-head + .gc-who + .gc-time + .gc-place { border-top: none; }
+</style>

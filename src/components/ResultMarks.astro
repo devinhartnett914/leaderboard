@@ -1,31 +1,29 @@
 ---
 // The left-of-time markers on a result row: podium medal (outer) + PR star (inner,
-// nearest the time). Each lives in a FIXED-WIDTH slot that's always reserved, so
-// down a table every medal lines up in one column and every PR star in another —
-// regardless of which markers a given row has. Anchors to the nearest positioned
-// ancestor (the time wrapper / time cell), sitting just left of the time.
+// nearest the time). They hug the time with no reserved empty slot — a PR-only row
+// has the star tight against the time, a medal-only row has the medal tight against
+// it. When both are present the PR sits nearest the time and the medal bumps left.
+// Anchors to the nearest positioned ancestor (the time wrapper / time cell).
 import PodiumMedal from './PodiumMedal.astro';
 import PrBadge from './PrBadge.astro';
 interface Props {
 	medalTier?: number | null; // 1|2|3 for a podium, else null
 	medalSub?: string | null; // caption under the medal (division / age group)
 	pr?: boolean;
-	compact?: boolean; // narrower medal slot for tight cards (swim age groups)
+	compact?: boolean; // tighter gap for dense cards (swim age groups)
 }
 const { medalTier = null, medalSub = null, pr = false, compact = false } = Astro.props;
 ---
 {(medalTier || pr) && (
 	<span class:list={['marks', { compact }]}>
-		<span class="mk-medal">{medalTier && <PodiumMedal tier={medalTier} sub={medalSub} />}</span>
-		<span class="mk-pr">{pr && <PrBadge />}</span>
+		{medalTier && <PodiumMedal tier={medalTier} sub={medalSub} />}
+		{pr && <PrBadge />}
 	</span>
 )}
 
 <style>
-	/* even spacing: medal — star — time. The medal hugs the right of its slot so
-	   it sits as close to the star as the star sits to the time. */
-	.marks { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.55rem; padding-right: 0.6rem; --mw: 2.1rem; }
-	.marks.compact { --mw: 1.7rem; }
-	.mk-medal { width: var(--mw); display: flex; justify-content: flex-end; }
-	.mk-pr { width: 1.35rem; display: flex; justify-content: center; }
+	/* medal — star — time, packed tight: only present markers render, so no row ever
+	   leaves a hole where a marker it doesn't have would go. */
+	.marks { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); z-index: 3; display: flex; align-items: center; gap: 0.5rem; padding-right: 0.55rem; }
+	.marks.compact { gap: 0.4rem; padding-right: 0.45rem; }
 </style>
