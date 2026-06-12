@@ -83,7 +83,7 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 							</div>
 							<div class="occ-meet">
 								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
-								{r.division && <span class="occ-div">{r.division}</span>}
+								{r.division && <span class="occ-div">{abbrevDivision(r.division)}</span>}
 							</div>
 							<div class="occ-time">
 								<ResultMarks medalTier={podium ? place : null} medalSub={abbrevDivision(ageGroupOf(r.division))} pr={o.isBest && !dq} compact />

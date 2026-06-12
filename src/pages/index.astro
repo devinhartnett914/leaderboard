@@ -1,13 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import PrBadge from '../components/PrBadge.astro';
-import RaceTitle from '../components/RaceTitle.astro';
-import PersonChip from '../components/PersonChip.astro';
+import ResultRow from '../components/ResultRow.astro';
+import MeetCard from '../components/MeetCard.astro';
+import RaceGroupCard from '../components/RaceGroupCard.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
-import { SPORT_LABELS, type Sport } from '../lib/types';
-import { categoryOf, catColor } from '../lib/categories';
-import { buildPrContext } from '../lib/feed';
-import { currentAge, formatFullDate, formatTime, formatSwimTime, parseSwimEvent, dateParts } from '../lib/format';
+import { SPORT_LABELS } from '../lib/types';
+import { buildEntries, buildPrContext, award } from '../lib/feed';
+import { currentAge, formatFullDate } from '../lib/format';
 
 const [family, allResults, upcoming] = await Promise.all([
 	getFamilyMembers(),
@@ -15,7 +14,9 @@ const [family, allResults, upcoming] = await Promise.all([
 	getUpcomingRaces(),
 ]);
 const prCtx = buildPrContext(allResults);
-const recent = allResults.slice(0, 3); // already newest-first
+// the same grouping as /races — so a swim event lands inside its meet card
+// and a multi-family-member race collapses into one shared row in both places.
+const recentEntries = buildEntries(allResults, { groupRaces: true }).slice(0, 3);
 
 // Show the family oldest → youngest (earliest birth date first).
 const birthKey = (p: (typeof family)[number]) =>
@@ -84,37 +85,19 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 			<a href="/races" class="all-link">All races →</a>
 		</div>
 		{
-			recent.length === 0 ? (
+			recentEntries.length === 0 ? (
 				<div class="empty">No races recorded yet.</div>
 			) : (
-				<div class="grid cols-3">
-					{recent.map((r) => {
-						const ed = r.race_edition;
-						const sport = (ed?.race?.sport ?? 'other') as Sport;
-						const cat = categoryOf(r);
-						const dp = dateParts(ed?.date, ed?.year);
-						const isPr = sport === 'swim_meet' ? prCtx.isSwimPr(r) : !!prCtx.prBadge(r);
-						return (
-							<a class="card recent-card" href={ed?.race ? `/races/${ed.race.slug}` : '#'} style={`--c:${catColor(cat.key)}`}>
-								<div class="rec-date">
-									<span class="rd-mon">{dp.mon}</span>
-									<span class="rd-day">{dp.day}</span>
-									<span class="rd-yr">{dp.year}</span>
-								</div>
-								<div class="rec-body">
-									<div class="rec-top">
-										<PersonChip person={r.person} avatar={18} nameRem={0.6} link={false} />
-									</div>
-									<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={null} nameRem={1.45} />
-									{sport === 'swim_meet' && r.event && <div class="rec-ev">{parseSwimEvent(r.event).short}</div>}
-									<div class="rec-finrow">
-										{isPr && <PrBadge />}
-										<span class:list={['rec-fin', { 'is-pr': isPr }]}>{r.status === 'finished' ? (sport === 'swim_meet' ? formatSwimTime(r.finish_time_cs, r.finish_time_seconds) : formatTime(r.finish_time_seconds)) : r.status.toUpperCase()}</span>
-									</div>
-								</div>
-							</a>
-						);
-					})}
+				<div class="results">
+					{recentEntries.map((it) =>
+						it.type === 'meet' ? (
+							<MeetCard entry={it} prCtx={prCtx} showPerson />
+						) : it.type === 'race' ? (
+							<RaceGroupCard entry={it} prCtx={prCtx} />
+						) : (
+							<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson />
+						),
+					)}
 				</div>
 			)
 		}
@@ -145,17 +128,7 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 
-	/* recent-race cards: date anchor + who + race + finish */
-	.recent-card { display: flex; align-items: stretch; gap: 0; padding: 0; overflow: hidden; color: var(--text); border-left: 3px solid var(--c, var(--accent)); transition: transform 0.15s; }
-	.recent-card:hover { text-decoration: none; transform: translateY(-2px); }
-	.rec-date { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 76px; padding: 0.9rem 0.5rem; background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent); }
-	.rd-mon { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--c, var(--accent)); }
-	.rd-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
-	.rd-yr { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; color: var(--muted); }
-	.rec-body { display: flex; flex-direction: column; justify-content: center; gap: 0.34rem; padding: 0.8rem 1rem; min-width: 0; }
-	.rec-top { display: flex; align-items: center; min-width: 0; }
-	.rec-ev { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); }
-	.rec-finrow { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.1rem; }
-	.rec-fin { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; color: var(--text); }
-	.rec-fin.is-pr { color: var(--gold); }
+	/* Recent races list: same grid as /races so the cards render identically
+	   here and there (subgrid alignment lines finish times up). */
+	.results { display: grid; grid-template-columns: 86px minmax(150px, 1fr) max-content max-content max-content; row-gap: 0.7rem; }
 </style>
