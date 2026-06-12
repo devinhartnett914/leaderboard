@@ -5,6 +5,8 @@ Branch: `feat/ux-sweep`. Nothing was pushed.
 ## What landed (commits on top of `feat/scaffold-and-display`)
 
 ```
+5361e77 refactor(components): CardTopRow — the strip above every RaceTitle
+d58c744 docs(summary): note third-pass CardMeta extraction
 db0ece5 refactor(components): CardMeta — shared "type · distance · event" tag
 81d5adc docs(summary): note the second-pass DateRail extraction
 7c53666 docs(proposals): tighten IA + swim event drafts
@@ -55,6 +57,16 @@ Third pass extracted another duplicated piece:
   `CardMeta.astro` — reads `--edge` from the parent card so the type
   color always matches the card's left-edge accent, takes optional
   `distance` and `event` props.
+
+Fourth pass closed the loop on the strip-above-the-title:
+
+- **The whole strip above `<RaceTitle/>`** — flex container + optional
+  PersonChip + pipe + CardMeta — was the natural next step once
+  CardMeta was extracted. With identical `.rc-toprow`/`.mc-toprow`
+  + `.rc-pipe`/`.mc-pipe` rules left in two files, wrapping them as
+  `CardTopRow.astro` collapses ResultRow / MeetCard / RaceGroupCard
+  each to a single `<CardTopRow…/>` call. The 0.34rem margin, the
+  pipe color, and the flex layout now live in exactly one place.
 
 ### 2. IA proposal — WRITTEN (`docs/ia-proposals.md`)
 
@@ -133,6 +145,25 @@ than oversights:
   per-person sections land.
 - **`<ClientRouter />` (SPA nav)** — see Task 3 above and `docs/nav-polish-notes.md`.
 
+## Where the audit naturally stopped
+
+After the fourth visual-extraction pass (CardTopRow), the only remaining
+DRY violations are **code-level helpers**, not visual rendering:
+
+- `swimCs` is defined in `lib/feed.ts` *and* re-defined locally in both
+  `/swim/[event]` and `/races/[slug]`.
+- `ageGroupOf` is exported from `lib/format.ts` *and* re-defined locally
+  in both pages.
+- `STROKE_ORDER` + `eventOrder` are exported from `lib/feed.ts` *and*
+  re-defined locally in `/races/[slug]`.
+- `courseOf` (in `lib/feed.ts`, unexported) and `courseTok` (local to
+  `/races/[slug]`) are the same one-liner under different names.
+
+Deduping these is straight code-quality work — none of them shape what
+the user sees on the page, and consolidating them in this branch starts
+to feel like scope creep on a UX sweep. Left for Devin's call as a
+small follow-up if it bothers him.
+
 ## Files added / removed / changed
 
 ```
@@ -144,15 +175,16 @@ ADDED
   src/components/PrTime.astro
   src/components/DateRail.astro
   src/components/CardMeta.astro
+  src/components/CardTopRow.astro
 
 CHANGED
   src/layouts/Layout.astro             (view-transition + page-enter fade)
   src/pages/index.astro                (Recent races uses shared cards)
   src/pages/races/[slug].astro         (PrTime + drop inline medal emoji)
   src/pages/swim/[event].astro         (PrTime + abbrevDivision + DateRail)
-  src/components/ResultRow.astro       (uses DateRail + CardMeta)
-  src/components/MeetCard.astro        (uses DateRail + CardMeta)
-  src/components/RaceGroupCard.astro   (uses DateRail + CardMeta)
+  src/components/ResultRow.astro       (uses DateRail + CardTopRow)
+  src/components/MeetCard.astro        (uses DateRail + CardTopRow)
+  src/components/RaceGroupCard.astro   (uses DateRail + CardTopRow)
 ```
 
 Nothing was deleted.
