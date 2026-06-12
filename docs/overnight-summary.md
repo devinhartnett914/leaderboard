@@ -5,6 +5,8 @@ Branch: `feat/ux-sweep`. Nothing was pushed.
 ## What landed (commits on top of `feat/scaffold-and-display`)
 
 ```
+9319e92 refactor(layout): hoist .results grid + .year-header to Layout
+af86893 docs(summary): note fifth pass — .feed-card shell + accent-token fixes
 07f879f refactor(layout): .feed-card — the shared shell for every feed card
 639549b fix(race): use --accent token, not raw cyan rgba, on finish + latest
 5d68062 docs(summary): note fourth-pass CardTopRow + where the audit stopped
@@ -84,6 +86,16 @@ Fifth pass picked off the last two remaining visual drift items:
   were the `--accent` hex spelled out. Swapped to
   `color-mix(in srgb, var(--accent) N%, transparent)` so palette
   changes can't leave these lines visibly out of step.
+
+Sixth pass finished the page-level CSS hoist:
+
+- **`.results`** — the 5-column feed container grid — was defined
+  identically on `/`, `/races`, and `/people/[slug]`. Hoisted next
+  to `.feed-card` in Layout so the global stylesheet owns both
+  the container and the cards living in it.
+- **`.year-header`** — the year separator interleaved into the feed
+  — had four identical rules duplicated between `/races` and
+  `/people/[slug]`. Same hoist; both pages now just trust Layout.
 
 ### 2. IA proposal — WRITTEN (`docs/ia-proposals.md`)
 
