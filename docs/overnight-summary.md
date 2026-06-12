@@ -5,6 +5,8 @@ Branch: `feat/ux-sweep`. Nothing was pushed.
 ## What landed (commits on top of `feat/scaffold-and-display`)
 
 ```
+db0ece5 refactor(components): CardMeta — shared "type · distance · event" tag
+81d5adc docs(summary): note the second-pass DateRail extraction
 7c53666 docs(proposals): tighten IA + swim event drafts
 cac5d42 refactor(components): DateRail — shared 86px date anchor for every card
 4c786c7 docs: overnight-summary — what landed + what's left for Devin
@@ -43,6 +45,16 @@ Second pass (the re-audit per the brief) caught one more:
   used 2.1rem, plus a local-only `dateParts` helper in `/swim/[event]`
   that duplicated the lib version. Extracted `DateRail.astro` so the rail
   is defined once and proportions are identical across every card.
+
+Third pass extracted another duplicated piece:
+
+- **The "type · distance · event" mono-uppercase tag** that sits above the
+  race title on every card was hand-rolled three times (`.rc-meta` on
+  ResultRow, `.gc-meta` on RaceGroupCard, bare `.mc-type` on MeetCard).
+  Each had its own scoped CSS doing the same thing. Extracted
+  `CardMeta.astro` — reads `--edge` from the parent card so the type
+  color always matches the card's left-edge accent, takes optional
+  `distance` and `event` props.
 
 ### 2. IA proposal — WRITTEN (`docs/ia-proposals.md`)
 
@@ -131,15 +143,16 @@ ADDED
   docs/overnight-summary.md            (this file)
   src/components/PrTime.astro
   src/components/DateRail.astro
+  src/components/CardMeta.astro
 
 CHANGED
   src/layouts/Layout.astro             (view-transition + page-enter fade)
   src/pages/index.astro                (Recent races uses shared cards)
   src/pages/races/[slug].astro         (PrTime + drop inline medal emoji)
   src/pages/swim/[event].astro         (PrTime + abbrevDivision + DateRail)
-  src/components/ResultRow.astro       (uses DateRail)
-  src/components/MeetCard.astro        (uses DateRail)
-  src/components/RaceGroupCard.astro   (uses DateRail)
+  src/components/ResultRow.astro       (uses DateRail + CardMeta)
+  src/components/MeetCard.astro        (uses DateRail + CardMeta)
+  src/components/RaceGroupCard.astro   (uses DateRail + CardMeta)
 ```
 
 Nothing was deleted.
