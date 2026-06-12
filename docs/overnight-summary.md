@@ -5,6 +5,9 @@ Branch: `feat/ux-sweep`. Nothing was pushed.
 ## What landed (commits on top of `feat/scaffold-and-display`)
 
 ```
+07f879f refactor(layout): .feed-card — the shared shell for every feed card
+639549b fix(race): use --accent token, not raw cyan rgba, on finish + latest
+5d68062 docs(summary): note fourth-pass CardTopRow + where the audit stopped
 5361e77 refactor(components): CardTopRow — the strip above every RaceTitle
 d58c744 docs(summary): note third-pass CardMeta extraction
 db0ece5 refactor(components): CardMeta — shared "type · distance · event" tag
@@ -67,6 +70,20 @@ Fourth pass closed the loop on the strip-above-the-title:
   `CardTopRow.astro` collapses ResultRow / MeetCard / RaceGroupCard
   each to a single `<CardTopRow…/>` call. The 0.34rem margin, the
   pipe color, and the flex layout now live in exactly one place.
+
+Fifth pass picked off the last two remaining visual drift items:
+
+- **The card-shell rule** (subgrid, surface gradient, 1px border with
+  3px `--edge` left accent, 14px radius, shadow) was byte-identical
+  across `.rcard` / `.mcard` / `.gcard`. Pulled up to a global
+  `.feed-card` class in `Layout.astro`; each component now just
+  declares `class="rcard feed-card"` etc. so a future tweak to the
+  shell hits all three at once.
+- **Two raw `rgba(0, 212, 255, …)` values** on `/races/[slug]` — the
+  `.row.finish` background and the `.ycard.latest` border/shadow —
+  were the `--accent` hex spelled out. Swapped to
+  `color-mix(in srgb, var(--accent) N%, transparent)` so palette
+  changes can't leave these lines visibly out of step.
 
 ### 2. IA proposal — WRITTEN (`docs/ia-proposals.md`)
 
@@ -178,13 +195,15 @@ ADDED
   src/components/CardTopRow.astro
 
 CHANGED
-  src/layouts/Layout.astro             (view-transition + page-enter fade)
+  src/layouts/Layout.astro             (view-transition + page-enter fade
+                                        + global .feed-card shell)
   src/pages/index.astro                (Recent races uses shared cards)
-  src/pages/races/[slug].astro         (PrTime + drop inline medal emoji)
+  src/pages/races/[slug].astro         (PrTime + drop inline medal emoji
+                                        + --accent token cleanup)
   src/pages/swim/[event].astro         (PrTime + abbrevDivision + DateRail)
-  src/components/ResultRow.astro       (uses DateRail + CardTopRow)
-  src/components/MeetCard.astro        (uses DateRail + CardTopRow)
-  src/components/RaceGroupCard.astro   (uses DateRail + CardTopRow)
+  src/components/ResultRow.astro       (uses DateRail + CardTopRow + .feed-card)
+  src/components/MeetCard.astro        (uses DateRail + CardTopRow + .feed-card)
+  src/components/RaceGroupCard.astro   (uses DateRail + CardTopRow + .feed-card)
 ```
 
 Nothing was deleted.
