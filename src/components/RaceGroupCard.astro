@@ -29,7 +29,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 const places = [...new Set(results.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 const anyPr = results.some((r) => prCtx.prBadge(r));
 ---
-<article class="gcard" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
+<article class="gcard feed-card" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
 		<CardTopRow type={typeLabel} distance={showDist ? ed?.distance_or_format : null} />
@@ -66,11 +66,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 </article>
 
 <style>
-	.gcard {
-		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
-		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
-		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
-	}
 
 	.gc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 

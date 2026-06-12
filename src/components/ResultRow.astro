@@ -27,7 +27,7 @@ const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
 ---
-<article class:list={['rcard', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
+<article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-race">
 		<CardTopRow person={showPerson ? r.person : null} type={typeLabel} distance={showDist ? ed?.distance_or_format : null} event={r.event} />
@@ -56,11 +56,6 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 </article>
 
 <style>
-	.rcard {
-		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
-		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
-		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
-	}
 	.rc-finish { position: relative; }
 	.rcard.has-marks .rc-race { padding-right: 76px; }
 

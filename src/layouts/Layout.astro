@@ -171,6 +171,24 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
 			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
 
+			/* Shared shell for the three feed cards (ResultRow / MeetCard /
+			   RaceGroupCard) — full-width subgrid box with the category edge
+			   accent on the left. The card sets `--edge` on itself and the
+			   border-left reads it. Defined globally so all three components
+			   stay in lockstep on radius / shadow / gradient. */
+			.feed-card {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
+				align-items: stretch;
+				background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+				border: 1px solid var(--border);
+				border-left: 3px solid var(--edge);
+				border-radius: 14px;
+				box-shadow: var(--shadow);
+				overflow: hidden;
+			}
+
 			.card {
 				background: var(--surface);
 				border: 1px solid var(--border);

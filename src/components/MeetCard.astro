@@ -20,7 +20,7 @@ const person = events[0].person;
 const year = Number(entry.date.slice(0, 4)) || ed?.year || '';
 const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 ---
-<article class="mcard" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
+<article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
 		<CardTopRow person={showPerson ? person : null} type="Swim Meet" />
@@ -57,11 +57,6 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 </article>
 
 <style>
-	.mcard {
-		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
-		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
-		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
-	}
 
 	.mc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 
