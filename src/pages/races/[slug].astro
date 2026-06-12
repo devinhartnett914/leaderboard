@@ -350,7 +350,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 		position: relative;
 		box-shadow: var(--shadow);
 	}
-	.ycard.latest { border-color: rgba(0, 212, 255, 0.5); box-shadow: var(--shadow), 0 0 0 1px rgba(0, 212, 255, 0.45); }
+	.ycard.latest { border-color: color-mix(in srgb, var(--accent) 50%, transparent); box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
 
 	.row { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.6rem; padding: 0.5rem 0.95rem; border-bottom: 1px solid var(--border); }
 	.row:last-child { border-bottom: none; }
@@ -364,7 +364,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.rv b { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 0.35rem; }
 	.rv .big { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; letter-spacing: 0.02em; line-height: 1; }
 	.rv .big.is-pr { color: var(--gold); }
-	.row.finish { background: rgba(0, 212, 255, 0.05); }
+	.row.finish { background: color-mix(in srgb, var(--accent) 5%, transparent); }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; color: var(--faint); }
 	.delta { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600; }
 	.delta.faster { color: var(--faster); }
