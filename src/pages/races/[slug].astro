@@ -39,8 +39,6 @@ const swim = race.sport === 'swim_meet';
 const tracks = swim ? [] : familyTracks(editions);
 const rivalries = swim ? [] : recurringRivals(editions);
 
-const MEDAL = ['🥇', '🥈', '🥉'];
-
 // ---- Swim meet view: each edition (meet) grouped by family swimmer ----------
 const STROKE_ORDER: Record<string, number> = { free: 0, back: 1, breast: 2, fly: 3, im: 4, other: 5 };
 const eventOrder = (r: Result) => {
@@ -269,10 +267,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										<div class="row">
 											<span class="rl">Division</span>
 											<span class="rv">
-												<b>
-													{c.result?.division ? `${abbrevDivision(c.result.division)} · ${ordinal(c.result.division_place)}` : '—'}
-													{isPodium(c.result?.division_place) && ` ${MEDAL[(c.result!.division_place ?? 1) - 1]}`}
-												</b>
+												<b>{c.result?.division ? `${abbrevDivision(c.result.division)} · ${ordinal(c.result.division_place)}` : '—'}</b>
 											</span>
 										</div>
 
