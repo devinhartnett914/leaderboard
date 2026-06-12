@@ -1,0 +1,30 @@
+---
+// The strip above the RaceTitle on every feed card: optionally a PersonChip
+// + a pipe separator (combined feed only), then a CardMeta tag. By wrapping
+// these together, the flex layout, pipe color, and the 0.34rem margin to
+// the title below are all defined ONCE — feed cards just declare what
+// pieces they want.
+import PersonChip from './PersonChip.astro';
+import CardMeta from './CardMeta.astro';
+interface Props {
+	person?: { full_name: string; slug: string | null; avatar_url: string | null } | null;
+	type: string;
+	distance?: string | null;
+	event?: string | null;
+}
+const { person = null, type, distance = null, event = null } = Astro.props;
+---
+<div class="ctrow">
+	{person && (
+		<Fragment>
+			<PersonChip person={person} avatar={20} nameRem={0.62} />
+			<span class="ct-pipe" aria-hidden="true">|</span>
+		</Fragment>
+	)}
+	<CardMeta type={type} distance={distance} event={event} />
+</div>
+
+<style>
+	.ctrow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.34rem; min-width: 0; }
+	.ct-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
+</style>

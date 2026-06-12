@@ -7,7 +7,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
 import DateRail from './DateRail.astro';
-import CardMeta from './CardMeta.astro';
+import CardTopRow from './CardTopRow.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, ordinal, abbrevDivision } from '../lib/format';
@@ -32,9 +32,7 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 <article class="gcard" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
-		<div class="gc-toprow">
-			<CardMeta type={typeLabel} distance={showDist ? ed?.distance_or_format : null} />
-		</div>
+		<CardTopRow type={typeLabel} distance={showDist ? ed?.distance_or_format : null} />
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	{results.map((r, i) => {
@@ -75,8 +73,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 	}
 
 	.gc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
-	/* type · distance tag on its own row, above the race name (consistent with every card) */
-	.gc-toprow { margin-bottom: 0.34rem; }
 
 	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines */
 	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.4rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
