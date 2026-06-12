@@ -6,9 +6,10 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
+import DateRail from './DateRail.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, ordinal, abbrevDivision, dateParts } from '../lib/format';
+import { formatTime, ordinal, abbrevDivision } from '../lib/format';
 import { award, podiumPlace, type RaceEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -23,15 +24,12 @@ const sport = (ed?.race?.sport ?? 'other') as Sport;
 const cat = categoryOf(lead);
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
-const dp = dateParts(ed?.date, ed?.year);
 const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
 const places = [...new Set(results.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 const anyPr = results.some((r) => prCtx.prBadge(r));
 ---
 <article class="gcard" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
-	<div class="gc-date">
-		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
-	</div>
+	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
 		<div class="gc-toprow">
 			<span class="gc-meta">
@@ -77,10 +75,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.gc-date { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
-	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
-	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.gc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 	/* type · distance tag on its own row, above the race name (consistent with every card) */

@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import PrTime from '../../components/PrTime.astro';
+import DateRail from '../../components/DateRail.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, abbrevDivision } from '../../lib/format';
 
@@ -10,7 +11,6 @@ const all = await getAllFamilyResults();
 const matching = all.filter((r) => (r.race_edition?.race?.sport ?? '') === 'swim_meet' && swimEventSlug(r.event) === event);
 if (matching.length === 0) return new Response('Event not found', { status: 404 });
 
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const ev = parseSwimEvent(matching[0].event);
 const title = matching[0].event ?? ev.short; // canonical "50m Backstroke"
 const course = (matching[0].race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null;
@@ -18,11 +18,6 @@ const course = (matching[0].race_edition?.distance_or_format ?? '').split(/\s+/)
 const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
 const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
-function dateParts(iso: string | null | undefined, fy: number | null | undefined) {
-	const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})/);
-	if (m) return { mon: MON[Number(m[2]) - 1], day: String(Number(m[3])), year: m[1] };
-	return { mon: '', day: '', year: fy ? String(fy) : '' };
-}
 
 // Group by swimmer; oldest swimmer first (matches the rest of the site).
 interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
@@ -71,16 +66,13 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 				{t.occ.map((o) => {
 					const r = o.r;
 					const ed = r.race_edition;
-					const dp = dateParts(ed?.date, ed?.year);
 					const place = r.division_place;
 					const podium = isPodium(place);
 					const dq = r.status !== 'finished';
 					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
 					return (
 						<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
-							<div class="occ-date">
-								<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
-							</div>
+							<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
 							<div class="occ-meet">
 								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
 								{r.division && <span class="occ-div">{abbrevDivision(r.division)}</span>}
@@ -127,10 +119,6 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 		border: 1px solid var(--border); border-radius: 13px; box-shadow: var(--shadow); overflow: hidden;
 	}
 	.occ.is-best { border-color: color-mix(in srgb, var(--gold) 50%, var(--border)); box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent); }
-	.occ-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.6rem 0.4rem; background: color-mix(in srgb, var(--c, var(--swim)) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
-	.d-mon { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c, var(--swim)); }
-	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.occ-meet { display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.6rem 1.1rem; min-width: 0; }
 	.occ-name { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; letter-spacing: 0.02em; line-height: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -6,9 +6,10 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
+import DateRail from './DateRail.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, legPace, legIcon, legColor, ordinal, placement, dateParts, abbrevDivision } from '../lib/format';
+import { formatTime, legPace, legIcon, legColor, ordinal, placement, abbrevDivision } from '../lib/format';
 import { podiumPlace, type FeedRow, type PrBadge } from '../lib/feed';
 
 interface Props {
@@ -21,16 +22,13 @@ const { r, pr, aw, showPerson = false } = Astro.props;
 const ed = r.race_edition;
 const sport = (ed?.race?.sport ?? 'other') as Sport;
 const cat = categoryOf(r);
-const dp = dateParts(ed?.date, ed?.year);
 const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
 ---
 <article class:list={['rcard', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
-	<div class="rc-date">
-		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
-	</div>
+	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-race">
 		<div class="rc-toprow">
 			{showPerson && r.person && (
@@ -75,12 +73,8 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.rc-date { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
 	.rc-finish { position: relative; }
 	.rcard.has-marks .rc-race { padding-right: 76px; }
-	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
-	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
 	/* top row above the race name (RaceTitle): type · distance tag, led by the person's

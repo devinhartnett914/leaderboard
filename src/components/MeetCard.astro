@@ -4,7 +4,8 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
-import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision, dateParts } from '../lib/format';
+import DateRail from './DateRail.astro';
+import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -16,14 +17,11 @@ const { entry, prCtx, showPerson = false } = Astro.props;
 const events = entry.events;
 const ed = events[0].race_edition;
 const person = events[0].person;
-const dp = dateParts(ed?.date, ed?.year);
 const year = Number(entry.date.slice(0, 4)) || ed?.year || '';
 const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 ---
 <article class="mcard" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
-	<div class="mc-date">
-		<span class="d-mon">{dp.mon}</span><span class="d-day">{dp.day || dp.year}</span><span class="d-yr">{dp.day ? dp.year : ''}</span>
-	</div>
+	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
 		<div class="mc-toprow">
 			{showPerson && person && (
@@ -72,10 +70,6 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
 		border: 1px solid var(--border); border-left: 3px solid var(--edge); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.mc-date { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--edge) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
-	.d-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--edge); }
-	.d-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
-	.d-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
 
 	.mc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 	/* top row: "Swim Meet", led by the swimmer's name (PersonChip) + pipe on the feed */

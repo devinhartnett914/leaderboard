@@ -1,0 +1,35 @@
+---
+// The 86px-wide date anchor on the left of every feed card (ResultRow,
+// MeetCard, RaceGroupCard) and the swim event-page occurrence cards. Tints
+// to the parent's edge color: cards set `--edge` on themselves; this
+// reads it, with an optional `color` prop to override (e.g. swim event
+// per-stroke color on `/swim/[event]`).
+import { dateParts } from '../lib/format';
+interface Props {
+	date?: string | null;
+	year?: number | null;
+	color?: string | null;
+}
+const { date, year, color = null } = Astro.props;
+const dp = dateParts(date, year);
+---
+<div class="daterail" style={color ? `--rail-c:${color}` : undefined}>
+	<span class="dr-mon">{dp.mon}</span>
+	<span class="dr-day">{dp.day || dp.year}</span>
+	<span class="dr-yr">{dp.day ? dp.year : ''}</span>
+</div>
+
+<style>
+	/* tinted column the rest of the card hangs off of. The fallback chain
+	   (--rail-c → --edge → --accent) is so feed cards can stay style-free
+	   and let `--edge` flow through, while pages with their own color
+	   pass it explicitly. */
+	/* `grid-column: 1; grid-row: 1 / -1` pins the rail to column 1 and lets
+	   it span every row of the parent subgrid card — so multi-row cards
+	   (MeetCard, RaceGroupCard) keep the rail as a full-height anchor and
+	   single-row cards (ResultRow, swim occurrence) are unaffected. */
+	.daterail { grid-column: 1; grid-row: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.7rem 0.4rem; background: color-mix(in srgb, var(--rail-c, var(--edge, var(--accent))) 16%, var(--surface-2)); border-right: 1px solid var(--border); }
+	.dr-mon { font-family: var(--font-mono); font-size: 0.64rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--rail-c, var(--edge, var(--accent))); }
+	.dr-day { font-family: var(--font-display); font-weight: 400; font-size: 2.4rem; line-height: 0.85; }
+	.dr-yr { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; color: var(--muted); }
+</style>
