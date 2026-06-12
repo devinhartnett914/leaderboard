@@ -212,3 +212,21 @@ for this one page is unbalanced.
   leaderboard explicitly ranks family members against each other; the
   rest of the site avoids this. Worth checking with the swimmers (and
   the parents) before shipping a "Sierra > Mae" row at the top.
+
+---
+
+## Components this proposal would reuse
+
+If Option 1 ships, every piece below already exists in the design system:
+
+| Piece                          | Reuses                                              |
+| ------------------------------ | --------------------------------------------------- |
+| Family-best row                | `PrTime` (shipped this branch) + `PodiumMedal`      |
+| Per-swimmer track header       | `PersonChip` (with link to the person page)         |
+| History sub-cards              | `ResultRow`-style layout + `DateRail` for the date  |
+| PR/medal marks on history rows | `ResultMarks` (already used)                        |
+| Sparkline                      | NEW. Pure inline SVG, ~20 lines. No library needed. |
+
+The only new piece is the sparkline. Everything else is a re-wiring of
+existing components, which is why this isn't a heavy refactor — it's
+mostly a re-arrangement of what's already there.

@@ -219,3 +219,28 @@ Suggested sequence:
 - **Does the homepage stay landing-y or go dashboardy?** If you'd rather
   someone arriving at `/` immediately see "Devin's latest PR" + "Sierra's
   next meet" instead of a hero, that's Option C.
+
+---
+
+## Smaller, separate gripes worth noting
+
+These are below the level of an IA decision but came up while auditing,
+and any of them could be picked off in a small follow-up PR:
+
+- **Homepage Upcoming card has no category icon.** It renders the race
+  name as a plain `<div class="name">` plus a sport `.pill` on the right.
+  Adding `<RaceTitle />` would put the same icon-before-name treatment
+  every other card uses, with the sport pill staying on the right for
+  the calendar feel. Couldn't verify visually (no upcoming items in the
+  current data) so left for Devin's call.
+- **No "back-up" link on `/people/[slug]` or `/races/[slug]`.** The
+  swim event page already has `← All results` in its header strip.
+  Once `/people` and `/races` (the index pages) land, every detail page
+  should grow the same line — same component, same style. Cheap once
+  the index pages exist.
+- **Format-badge is the only gold-gradient pill in the system.** It's
+  the big "SPRINT" / "OLYMPIC" / "10K" tag in the race header on
+  `/races/[slug]`. It looks great but it's the only piece of UI using
+  that gradient — if the IA reshuffle moves the format somewhere new
+  (e.g. into a recurring-race index card), the gradient should follow
+  or be retired, not copied into a fourth place.
