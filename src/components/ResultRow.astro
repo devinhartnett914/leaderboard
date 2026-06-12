@@ -7,6 +7,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
 import DateRail from './DateRail.astro';
+import CardMeta from './CardMeta.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, legPace, legIcon, legColor, ordinal, placement, abbrevDivision } from '../lib/format';
@@ -37,11 +38,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 					<span class="rc-pipe" aria-hidden="true">|</span>
 				</Fragment>
 			)}
-			<span class="rc-meta">
-				<span class="rc-type">{typeLabel}</span>
-				{showDist && <span class="rc-dist">· {ed?.distance_or_format}</span>}
-				{r.event && <span class="rc-ev">· {r.event}</span>}
-			</span>
+			<CardMeta type={typeLabel} distance={showDist ? ed?.distance_or_format : null} event={r.event} />
 		</div>
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
@@ -77,14 +74,10 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	.rcard.has-marks .rc-race { padding-right: 76px; }
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
-	/* top row above the race name (RaceTitle): type · distance tag, led by the person's
-	   name (PersonChip) + pipe on the combined feed */
+	/* top row above the race name (RaceTitle): <CardMeta/> tag, led by the
+	   person's name (PersonChip) + pipe on the combined feed */
 	.rc-toprow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.34rem; min-width: 0; }
 	.rc-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
-	.rc-meta { flex-shrink: 0; display: inline-flex; align-items: baseline; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-	.rc-type { color: var(--edge); }
-	.rc-dist { color: var(--edge); font-weight: 600; }
-	.rc-ev { color: var(--faint); }
 
 	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }

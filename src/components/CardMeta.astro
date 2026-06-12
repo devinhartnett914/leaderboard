@@ -1,0 +1,25 @@
+---
+// The "type · distance · event" mono-uppercase strip that sits ABOVE the
+// RaceTitle on every card (ResultRow, MeetCard, RaceGroupCard). Each piece
+// is optional. The strip reads `--edge` from the parent card so its color
+// always matches the card's left-edge accent.
+interface Props {
+	type: string;
+	distance?: string | null;
+	event?: string | null;
+}
+const { type, distance = null, event = null } = Astro.props;
+---
+<span class="cardmeta">
+	<span class="cm-type">{type}</span>
+	{distance && <span class="cm-dist">· {distance}</span>}
+	{event && <span class="cm-ev">· {event}</span>}
+</span>
+
+<style>
+	/* mono-uppercase strip — inherits the card's --edge color so the type
+	   tag, distance, and (optional) swim event read in one consistent voice. */
+	.cardmeta { flex-shrink: 0; display: inline-flex; align-items: baseline; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	.cm-type, .cm-dist { color: var(--edge); }
+	.cm-ev { color: var(--faint); }
+</style>

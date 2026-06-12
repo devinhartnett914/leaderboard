@@ -5,6 +5,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
 import DateRail from './DateRail.astro';
+import CardMeta from './CardMeta.astro';
 import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
@@ -30,7 +31,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 					<span class="mc-pipe" aria-hidden="true">|</span>
 				</Fragment>
 			)}
-			<span class="mc-type">Swim Meet</span>
+			<CardMeta type="Swim Meet" />
 		</div>
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
@@ -75,7 +76,6 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	/* top row: "Swim Meet", led by the swimmer's name (PersonChip) + pipe on the feed */
 	.mc-toprow { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.34rem; min-width: 0; }
 	.mc-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
-	.mc-type { flex-shrink: 0; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); white-space: nowrap; }
 
 	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--swim); text-decoration: none; }
