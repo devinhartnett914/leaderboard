@@ -63,6 +63,11 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 		</main>
 
 		<style is:global>
+			/* Subtle cross-document view transition for browsers that support it
+			   (Chromium 126+). Firefox/Safari ignore this rule, so the entrance
+			   fade below covers fallback. No JS, no SPA — pages stay SSR. */
+			@view-transition { navigation: auto; }
+
 			:root {
 				/* palette adapted from the "Monday Swim" app: deep navy + electric cyan + mint */
 				--bg: #0a1628;
@@ -148,6 +153,18 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			}
 
 			main { padding: 2rem 0 3rem; min-height: 60vh; }
+			/* Tasteful entrance: each page softly settles in. Skipped for users
+			   who prefer reduced motion. Browsers running the @view-transition
+			   above will already cross-fade the document — this animation runs
+			   in parallel and stays subtle enough not to compete. */
+			main { animation: page-enter 180ms ease-out both; }
+			@keyframes page-enter {
+				from { opacity: 0; transform: translateY(4px); }
+				to { opacity: 1; transform: translateY(0); }
+			}
+			@media (prefers-reduced-motion: reduce) {
+				main { animation: none; }
+			}
 
 			.page-head { display: flex; align-items: center; gap: 1.4rem; margin-bottom: 1.75rem; }
 			.page-avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 3px solid var(--surface-2); box-shadow: var(--shadow), 0 0 0 1px var(--border); }
