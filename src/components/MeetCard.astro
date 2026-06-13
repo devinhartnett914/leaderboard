@@ -5,7 +5,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
-import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, abbrevDivision } from '../lib/format';
+import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, swimDivision } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -39,7 +39,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 				</a>
 				<div class="mc-evtime" style={`grid-row:${row}`}>
 					<span class="ev-timewrap">
-						<ResultMarks medalTier={place} medalSub={abbrevDivision(e.division)} pr={pr && !dq} compact />
+						<ResultMarks medalTier={place} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />
 						{dq ? (
 							<span class="ev-dq">{e.status.toUpperCase()}</span>
 						) : (
@@ -49,7 +49,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 				</div>
 				<div class="mc-evplace" style={`grid-row:${row}`}>
 					<span class="ev-ord">{e.division_place != null ? ordinal(e.division_place) : '—'}</span>
-					{e.division && <span class="ev-heat">{abbrevDivision(e.division)}</span>}
+					{e.division && <span class="ev-heat">{swimDivision(e.division)}</span>}
 				</div>
 			</Fragment>
 		);
@@ -63,7 +63,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--swim); text-decoration: none; }
 	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
-	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.03em; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
+	.mc-evname .ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
 	.mc-evname:hover .ev-lbl { text-decoration-color: var(--swim); }
 	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.ev-timewrap { position: relative; width: max-content; }

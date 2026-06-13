@@ -4,7 +4,7 @@ import ResultMarks from '../../components/ResultMarks.astro';
 import PrTime from '../../components/PrTime.astro';
 import DateRail from '../../components/DateRail.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
-import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, abbrevDivision } from '../../lib/format';
+import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, swimDivision } from '../../lib/format';
 
 const { event } = Astro.params;
 const all = await getAllFamilyResults();
@@ -17,7 +17,6 @@ const course = (matching[0].race_edition?.distance_or_format ?? '').split(/\s+/)
 
 const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
 const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
-const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
 
 // Group by swimmer; oldest swimmer first (matches the rest of the site).
 interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
@@ -75,10 +74,10 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 							<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
 							<div class="occ-meet">
 								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
-								{r.division && <span class="occ-div">{abbrevDivision(r.division)}</span>}
+								{r.division && <span class="occ-div">{swimDivision(r.division)}</span>}
 							</div>
 							<div class="occ-time">
-								<ResultMarks medalTier={podium ? place : null} medalSub={abbrevDivision(ageGroupOf(r.division))} pr={o.isBest && !dq} compact />
+								<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
 								{dq ? (
 									<span class="occ-dq">{r.status.toUpperCase()}</span>
 								) : (

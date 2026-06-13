@@ -26,6 +26,7 @@ import {
 	swimEventKey,
 	swimEventSlug,
 	abbrevDivision,
+	swimDivision,
 } from '../../lib/format';
 
 const { slug } = Astro.params;
@@ -170,7 +171,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 												<span class="ev-ic">{ev.icon}</span>
 												<a class="ev-name" href={`/swim/${swimEventSlug(e.event)}`}>{ev.short}</a>
 												<span class="ev-time">
-													<ResultMarks medalTier={podium} medalSub={abbrevDivision(ageGroupOf(e.division))} pr={pr && !dq} compact />
+													<ResultMarks medalTier={podium} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />
 													{dq ? (
 														<span class="ev-dq">{e.status.toUpperCase()}</span>
 													) : (
@@ -407,7 +408,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.sw-ev > * { padding-top: 0.34rem; padding-bottom: 0.34rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.sw-ev:first-child > * { border-top: none; }
 	.ev-ic { font-size: 1.15rem; line-height: 1; }
-	.ev-name { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.03em; color: var(--text); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+	.ev-name { font-family: var(--font-mono); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 	a.ev-name { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
 	a.ev-name:hover { color: var(--swim); text-decoration-color: var(--swim); }
 	/* time cell is the anchor; the medal/PR marks sit just left of it */

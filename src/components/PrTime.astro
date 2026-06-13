@@ -20,10 +20,10 @@ const { time, caption = null, sizeRem = 1.3 } = Astro.props;
 </span>
 
 <style>
-	/* tight star ↔ time — matches ResultMarks padding-right: 0.55rem so the gap
-	   reads identical to the feed-row PR badge. align-items: flex-end puts the
-	   "PR" cap and the year/caption on one baseline. */
-	.prtime { display: inline-flex; align-items: flex-end; gap: 0.55rem; }
+	/* star ↔ time, bottom-aligned: the "PR" cap and the year/caption share one
+	   baseline (align-items: flex-end), gap 0.5rem. The whole group reads as a
+	   tidy stack — star above time, PR-cap beside the year. */
+	.prtime { display: inline-flex; align-items: flex-end; gap: 0.5rem; }
 	.pt-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.1rem; line-height: 1; }
 	.pt-time { font-family: var(--font-display); font-weight: 400; font-size: var(--sz); letter-spacing: 0.02em; line-height: 1; color: var(--gold); }
 	.pt-cap { font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); line-height: 1; }

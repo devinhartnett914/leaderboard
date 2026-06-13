@@ -165,6 +165,15 @@ export function abbrevDivision(s: string | null | undefined): string | null {
 		.trim() || null;
 }
 
+/** Swim division for tight callouts: full age-group + heat joined by a dot
+ *  ("8 & Under C" → "8&U•C") — keeps the heat the marks need while tightening
+ *  the awkward space between the two. */
+export function swimDivision(s: string | null | undefined): string | null {
+	const a = abbrevDivision(s);
+	if (!a) return null;
+	return a.replace(/\s+(A|B|C|D|Non-?Award)\b/i, '•$1');
+}
+
 /** Stable identity for a swim event across meets/ages: course + distance + stroke. */
 export function swimEventKey(event: string | null | undefined, course: string | null | undefined): string {
 	const e = parseSwimEvent(event);

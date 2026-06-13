@@ -1,11 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import ResultRow from '../components/ResultRow.astro';
-import MeetCard from '../components/MeetCard.astro';
-import RaceGroupCard from '../components/RaceGroupCard.astro';
+import RecentCard from '../components/RecentCard.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
 import { SPORT_LABELS } from '../lib/types';
-import { buildEntries, buildPrContext, award } from '../lib/feed';
+import { buildEntries, buildPrContext } from '../lib/feed';
 import { currentAge, formatFullDate } from '../lib/format';
 
 const [family, allResults, upcoming] = await Promise.all([
@@ -88,16 +86,8 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 			recentEntries.length === 0 ? (
 				<div class="empty">No races recorded yet.</div>
 			) : (
-				<div class="results">
-					{recentEntries.map((it) =>
-						it.type === 'meet' ? (
-							<MeetCard entry={it} prCtx={prCtx} showPerson />
-						) : it.type === 'race' ? (
-							<RaceGroupCard entry={it} prCtx={prCtx} />
-						) : (
-							<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson />
-						),
-					)}
+				<div class="grid cols-3">
+					{recentEntries.map((it) => <RecentCard entry={it} prCtx={prCtx} />)}
 				</div>
 			)
 		}
@@ -128,6 +118,7 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 
-	/* Recent races list reuses the global .results grid + the shared feed
-	   cards so a result here renders identically to the same result on /races. */
+	/* Recent races are teaser TILES (RecentCard) in the shared cols-3 grid — each a
+	   self-contained card that summarizes one entry, built from the same DateRail /
+	   CardTopRow / RaceTitle / ResultMarks pieces the all-races feed rows use. */
 </style>

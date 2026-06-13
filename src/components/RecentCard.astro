@@ -1,0 +1,136 @@
+---
+// Home-only teaser for one recent entry. Follows the all-races feed-card anatomy
+// (DateRail on the left, race meta + title, a right-aligned finish figure with its
+// marks) — but as a STANDALONE card (not the .results subgrid) that SUMMARIZES
+// complex entries: a swim meet collapses to "N swims" + its marks, a multi-family
+// race to the fastest time + "+N more". One recent thing = one tidy card.
+import RaceTitle from './RaceTitle.astro';
+import ResultMarks from './ResultMarks.astro';
+import CardTopRow from './CardTopRow.astro';
+import DateRail from './DateRail.astro';
+import { categoryOf, catColor } from '../lib/categories';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import { formatTime, formatSwimTime, placement, ordinal, abbrevDivision } from '../lib/format';
+import { award, podiumPlace, swimCs, type Entry, type PrContext } from '../lib/feed';
+
+interface Props {
+	entry: Entry;
+	prCtx: PrContext;
+}
+const { entry, prCtx } = Astro.props;
+
+// Resolve a common shape regardless of entry type, then render one card body.
+let person = null as { full_name: string; slug: string | null; avatar_url: string | null } | null;
+let extraPeople = 0;
+let ed;
+let catKey = 'other';
+let edge = 'var(--border)';
+let typeLabel = '';
+let distance: string | null = null;
+let figure = '';
+let figureLabel = '';
+let isGold = false;
+let medalTier: number | null = null;
+let medalSub: string | null = null;
+let pr = false;
+let sub = ''; // small context line under the finish figure
+
+if (entry.type === 'meet') {
+	const events = entry.events;
+	person = events[0].person ?? null;
+	ed = events[0].race_edition;
+	catKey = 'swim_meet';
+	edge = 'var(--swim)';
+	typeLabel = 'Swim Meet';
+	figure = String(events.length);
+	figureLabel = events.length === 1 ? 'Swim' : 'Swims';
+	pr = events.some(prCtx.isSwimPr);
+	const podiums = events.map(podiumPlace).filter((p): p is number => p != null);
+	if (podiums.length) medalTier = Math.min(...podiums);
+	medalSub = podiums.length > 1 ? `×${podiums.length}` : null;
+	const fastest = events.filter((e) => e.status === 'finished').map(swimCs).filter((c): c is number => c != null).sort((a, b) => a - b)[0];
+	sub = fastest != null ? `Best ${formatSwimTime(fastest)}` : '';
+} else if (entry.type === 'race') {
+	const results = entry.results;
+	const lead = results[0];
+	person = lead.person ?? null;
+	extraPeople = results.length - 1;
+	ed = lead.race_edition;
+	const cat = categoryOf(lead);
+	const sport = (ed?.race?.sport ?? 'other') as Sport;
+	catKey = cat.key;
+	edge = catColor(cat.key);
+	typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
+	distance = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed?.distance_or_format : null;
+	const aw = award(lead);
+	const b = prCtx.prBadge(lead);
+	medalTier = aw ? aw.tier : null;
+	medalSub = aw ? abbrevDivision(aw.sub) : null;
+	pr = !!b;
+	isGold = !!b?.gold;
+	figure = lead.status === 'finished' ? formatTime(lead.finish_time_seconds) : lead.status.toUpperCase();
+	figureLabel = 'Fastest';
+	sub = lead.overall_place ? placement(lead.overall_place, lead.overall_field_size) : '';
+} else {
+	const r = entry.r;
+	person = r.person ?? null;
+	ed = r.race_edition;
+	const cat = categoryOf(r);
+	const sport = (ed?.race?.sport ?? 'other') as Sport;
+	catKey = cat.key;
+	edge = catColor(cat.key);
+	typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
+	distance = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed?.distance_or_format : null;
+	const aw = award(r);
+	const b = prCtx.prBadge(r);
+	medalTier = aw ? aw.tier : null;
+	medalSub = aw ? abbrevDivision(aw.sub) : null;
+	pr = !!b;
+	isGold = !!b?.gold;
+	figure = r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase();
+	figureLabel = 'Finish';
+	sub = r.division ? `${abbrevDivision(r.division)}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : (r.overall_place ? placement(r.overall_place, r.overall_field_size) : '');
+}
+
+const raceName = ed?.race?.name ?? (entry.type === 'meet' ? 'Swim meet' : 'Race');
+const hasMarks = !!(medalTier || pr);
+---
+<article class:list={['recent', { 'has-marks': hasMarks }]} data-cat={catKey} style={`--edge:${edge}`}>
+	<DateRail date={ed?.date} year={ed?.year} />
+	<div class="rc-body">
+		<CardTopRow person={person} type={typeLabel} distance={distance} />
+		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
+		<div class="rc-finish">
+			<span class="rc-k">{figureLabel}</span>
+			<span class="rc-finrow">
+				<ResultMarks medalTier={medalTier} medalSub={medalSub} pr={pr} compact inline />
+				<span class:list={['rc-fig', { 'is-pr': isGold }]}>{figure}</span>
+			</span>
+			{sub && <span class="rc-sub">{sub}</span>}
+		</div>
+	</div>
+</article>
+
+<style>
+	/* A teaser TILE (sits in a cols-3 grid), built from the same pieces as a feed
+	   row but stacked: DateRail on the left, body stacked on the right. Shares the
+	   .feed-card shell look (gradient, edge accent, radius, overflow). */
+	.recent {
+		display: grid; grid-template-columns: 86px 1fr; align-items: stretch; color: var(--text);
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-left: 3px solid var(--edge);
+		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+
+	.rc-body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.85rem 1rem; min-width: 0; }
+	.rc-more { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+
+	/* finish block, stacked under the race title: label, then marks + figure in flow */
+	.rc-finish { display: flex; flex-direction: column; gap: 0.15rem; margin-top: 0.25rem; }
+	.rc-k { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.rc-finrow { display: inline-flex; align-items: flex-end; gap: 0.5rem; width: max-content; }
+	.rc-fig { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
+	.rc-fig.is-pr { color: var(--gold); }
+	.rc-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+</style>
