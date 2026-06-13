@@ -1,0 +1,28 @@
+---
+// The one way to render a result's DIVISION as a stacked field: the group on top
+// (age-group with its swim heat — "F40-44", "8&U•C" — or "Overall"/"Masters") and the
+// rank below ("3rd"). Built on divisionParts() so the group string matches the medal
+// caption and every other division surface. Used wherever a division stands on its own
+// (the home card's non-medal results today; the dense feed grids next).
+import { divisionParts } from '../lib/format';
+interface Props {
+	division: string | null | undefined;
+	divisionPlace?: number | null;
+	overallPlace?: number | null;
+	align?: 'start' | 'end'; // which edge the stack hugs (default start)
+}
+const { division, divisionPlace = null, overallPlace = null, align = 'start' } = Astro.props;
+const { group, rank } = divisionParts(division, divisionPlace, overallPlace);
+---
+<div class:list={['division', `al-${align}`]}>
+	<span class="dv-g">{group}</span>
+	{rank && <span class="dv-r">{rank}</span>}
+</div>
+
+<style>
+	.division { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+	.al-start { align-items: flex-start; text-align: left; }
+	.al-end { align-items: flex-end; text-align: right; }
+	.dv-g { font-family: var(--font-mono); font-size: 0.74rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+	.dv-r { font-family: var(--font-mono); font-size: 0.92rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+</style>

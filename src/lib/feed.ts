@@ -29,6 +29,27 @@ export function award(r: FeedRow): { tier: number; sub: string } | null {
 	return null;
 }
 
+/**
+ * The "headline" event of a multi-event entry (a swim meet, later a ski race):
+ * the standout to surface when collapsing the whole event into one summary card.
+ * Ranked by best division place, then best overall place, then fastest time — so
+ * a 1st-in-division beats a faster swim that placed lower. Finished events only.
+ */
+export function bestEvent(events: FeedRow[]): FeedRow | null {
+	const finished = events.filter((e) => e.status === 'finished');
+	if (!finished.length) return null;
+	const rank = (e: FeedRow): [number, number, number] => [
+		e.division_place ?? Infinity,
+		e.overall_place ?? Infinity,
+		swimCs(e) ?? Infinity,
+	];
+	return [...finished].sort((a, b) => {
+		const ra = rank(a);
+		const rb = rank(b);
+		return ra[0] - rb[0] || ra[1] - rb[1] || ra[2] - rb[2];
+	})[0];
+}
+
 export type PrBadge = { gold: boolean; label: string };
 
 /** Per-person PR context: tells each result whether it's a PR (and the swim per-event best). */

@@ -27,6 +27,7 @@ import {
 	swimEventSlug,
 	abbrevDivision,
 	swimDivision,
+	divisionLabel,
 } from '../../lib/format';
 
 const { slug } = Astro.params;
@@ -268,7 +269,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										<div class="row">
 											<span class="rl">Division</span>
 											<span class="rv">
-												<b>{c.result?.division ? `${abbrevDivision(c.result.division)} · ${ordinal(c.result.division_place)}` : '—'}</b>
+												<b>{divisionLabel(c.result?.division, c.result?.division_place)}</b>
 											</span>
 										</div>
 

@@ -155,6 +155,35 @@ export function ageGroupOf(div: string | null | undefined): string | null {
 	return (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
 }
 
+/**
+ * The ONE way to render a result's division inline: group + place side by side
+ * ("F40-44 · 5th", "8&U•C · 3rd"). The group runs through `swimDivision`, so the swim
+ * heat (A/B/C) is preserved — every surface reads identically. "—" when none.
+ */
+export function divisionLabel(div: string | null | undefined, place: number | null | undefined): string {
+	const g = swimDivision(div);
+	if (!g) return '—';
+	return place != null ? `${g} · ${ordinal(place)}` : g;
+}
+
+/**
+ * The division as separate parts for a STACKED field (group over rank), the shared
+ * source for `Division.astro` and the medal caption. The group runs through
+ * `swimDivision` so the swim heat is kept ("8&U•C"). Every result denotes a division:
+ * an age-group with its place, else it falls back to the overall standing ("Overall" /
+ * "Masters" carry through as the group). Returns `{ group, rank }`; rank null if unknown.
+ */
+export function divisionParts(
+	div: string | null | undefined,
+	divPlace: number | null | undefined,
+	overallPlace: number | null | undefined,
+): { group: string; rank: string | null } {
+	const g = swimDivision(div);
+	if (g) return { group: g, rank: divPlace != null ? ordinal(divPlace) : null };
+	if (overallPlace != null) return { group: 'Overall', rank: ordinal(overallPlace) };
+	return { group: '—', rank: null };
+}
+
 /** Abbreviate a division/age-group for tight callouts: "8 & Under" → "8&U". */
 export function abbrevDivision(s: string | null | undefined): string | null {
 	if (!s) return null;

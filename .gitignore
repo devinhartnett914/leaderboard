@@ -21,8 +21,8 @@ pnpm-debug.log*
 # netlify
 .netlify/
 
-# claude worktrees
-.claude/worktrees/
+# claude local files (worktrees, scheduled-task locks, etc.)
+.claude/
 
 # macOS-specific files
 .DS_Store

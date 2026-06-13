@@ -1,0 +1,25 @@
+---
+// The one way to name a swim event: its stroke icon + the short label ("🔙 25 Back"),
+// linked to the event's year-over-year page. This is the chip the feed's MeetCard rows
+// use (mc-evname) — extracted so the home card and the meet rows render it identically.
+import { parseSwimEvent, swimEventSlug } from '../lib/format';
+interface Props {
+	event: string | null | undefined;
+	link?: boolean; // wrap in a link to /swim/[event] (default true)
+}
+const { event, link = true } = Astro.props;
+const ev = parseSwimEvent(event);
+const href = `/swim/${swimEventSlug(event)}`;
+const Tag = link ? 'a' : 'span';
+---
+<Tag class="evchip" href={link ? href : undefined} style={`--c:${ev.color}`}>
+	<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
+</Tag>
+
+<style>
+	.evchip { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; color: var(--text); }
+	a.evchip:hover { text-decoration: none; color: var(--swim); }
+	.ev-ic { font-size: 1rem; line-height: 1; }
+	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
+	a.evchip:hover .ev-lbl { text-decoration-color: var(--swim); }
+</style>

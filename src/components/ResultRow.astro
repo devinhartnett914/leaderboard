@@ -9,7 +9,7 @@ import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, legPace, legIcon, legColor, ordinal, placement, abbrevDivision } from '../lib/format';
+import { formatTime, legPace, legIcon, legColor, placement, abbrevDivision, divisionLabel } from '../lib/format';
 import { podiumPlace, type FeedRow, type PrBadge } from '../lib/feed';
 
 interface Props {
@@ -51,7 +51,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	</div>
 	<div class="rc-places">
 		<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-		<div><span class="rc-k">Division</span><span class="rc-v">{r.division ? `${abbrevDivision(r.division)}${r.division_place ? ` · ${ordinal(r.division_place)}` : ''}` : '—'}</span></div>
+		<div><span class="rc-k">Division</span><span class="rc-v">{divisionLabel(r.division, r.division_place)}</span></div>
 	</div>
 </article>
 
