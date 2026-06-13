@@ -224,4 +224,19 @@ const comparable = (c: Cell): number | null => pacePer100m(c.distance_m, c.time)
 	.rival-card { padding: 1rem 1.1rem; }
 	.rival-line { margin-bottom: 0.25rem; }
 	.podium-note { margin-top: 0.5rem; color: var(--gold); font-size: 0.88rem; }
+
+	/* The year-over-year matrix is inherently wide, so it scrolls sideways on
+	   phones — pin the leg-label column so you don't lose track of the row. */
+	@media (max-width: 640px) {
+		.track table th[scope='row'],
+		.track thead th:first-child {
+			position: sticky;
+			left: 0;
+			z-index: 1;
+			background: var(--surface);
+			border-right: 1px solid var(--border);
+		}
+		.editions { gap: 0.5rem; }
+		.edition-card { min-width: 0; flex: 1 1 calc(50% - 0.5rem); }
+	}
 </style>

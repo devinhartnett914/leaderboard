@@ -66,7 +66,7 @@ const sportsCount = groups.length;
 							<tbody>
 								{group.results.map((r) => (
 									<tr>
-										<td>
+										<td class="cell-race">
 											{r.race_edition?.race ? (
 												<a href={`/races/${r.race_edition.race.slug}`}>{r.race_edition.race.name}</a>
 											) : (
@@ -74,12 +74,12 @@ const sportsCount = groups.length;
 											)}
 											{r.event && <span class="muted"> · {r.event}</span>}
 										</td>
-										<td>{r.race_edition?.year ?? '—'}</td>
-										<td>
+										<td data-label="Year">{r.race_edition?.year ?? '—'}</td>
+										<td data-label="Time">
 											{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}
 											{isPR(r) && <span class="pill gold pr">PR</span>}
 										</td>
-										<td class="splits">
+										<td class="splits" data-label="Splits">
 											{r.split && r.split.length > 0
 												? r.split
 														.map((s) => {
@@ -89,8 +89,8 @@ const sportsCount = groups.length;
 														.join('  ·  ')
 												: '—'}
 										</td>
-										<td>{placement(r.overall_place, r.overall_field_size)}</td>
-										<td>
+										<td data-label="Overall">{placement(r.overall_place, r.overall_field_size)}</td>
+										<td data-label="Division">
 											{r.division ? (
 												<>
 													{r.division} · {ordinal(r.division_place)}
@@ -112,7 +112,7 @@ const sportsCount = groups.length;
 </Layout>
 
 <style>
-	.stats { display: flex; gap: 1rem; margin-bottom: 2rem; }
+	.stats { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
 	.stat {
 		background: var(--surface);
 		border: 1px solid var(--border);
@@ -130,4 +130,60 @@ const sportsCount = groups.length;
 	.table-card { padding: 0; overflow-x: auto; }
 	.splits { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
 	.pill.pr { margin-left: 0.4rem; }
+
+	/* On phones, the wide results table doesn't fit — render each result as a
+	   stacked card: full race name on top, then labeled rows underneath. */
+	@media (max-width: 640px) {
+		.table-card { overflow-x: visible; }
+		.sport-block thead { display: none; }
+		.sport-block table,
+		.sport-block tbody,
+		.sport-block tr,
+		.sport-block td { display: block; width: 100%; }
+		.sport-block tbody tr {
+			padding: 0.95rem 1.1rem;
+			border-bottom: 1px solid var(--border);
+		}
+		.sport-block tbody tr:last-child { border-bottom: none; }
+		.sport-block td {
+			border: none;
+			padding: 0.25rem 0;
+			text-align: right;
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+			gap: 1rem;
+			white-space: normal;
+		}
+		.sport-block td::before {
+			content: attr(data-label);
+			flex-shrink: 0;
+			text-align: left;
+			font-size: 0.72rem;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+			color: var(--muted);
+		}
+		/* Race name = card header: full width, no label, never truncated. */
+		.sport-block td.cell-race {
+			display: block;
+			text-align: left;
+			font-size: 1.05rem;
+			font-weight: 600;
+			margin-bottom: 0.5rem;
+			padding-bottom: 0.5rem;
+			border-bottom: 1px solid var(--border);
+		}
+		.sport-block td.cell-race::before { content: none; }
+		/* Splits can be long — stack label above the (wrapping) value. */
+		.sport-block td.splits {
+			display: block;
+			text-align: left;
+		}
+		.sport-block td.splits::before {
+			display: block;
+			margin-bottom: 0.15rem;
+		}
+	}
 </style>
