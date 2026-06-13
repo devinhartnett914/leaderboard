@@ -1,15 +1,61 @@
-// Backfill: download every Glade meet-RESULTS PDF via the Gmail API, run the
-// proven pipeline (de-column pdftotext -> deterministic parser -> roster match),
-// and either preview (dry) or ingest (live).  usage: node gmail-backfill.cjs [dry|live]
+// Download Glade meet-RESULTS PDFs via the Gmail API, run the proven pipeline
+// (de-column pdftotext -> deterministic parser -> roster match), and either
+// preview (dry) or ingest (live).  usage: node swim-backfill.cjs [dry|live]
+//
+//   - Roster comes from the DB (person.is_family), not a hardcoded list, so
+//     adding a kid's profile is all it takes to capture them.
+//   - SWIM_SINCE_DAYS=N limits the Gmail scan to the last N days (the daily
+//     poll sets this so it doesn't re-scan the whole archive every run; omit it
+//     for a full backfill).
+//   - Each meet reports NEAR-MISSES: swimmers who share a family surname (or are
+//     a typo away from a roster name) but didn't exactly match — so a nickname /
+//     misspelling shows up as a line to check instead of a silently dropped kid.
 const fs = require('fs');
 const { execFileSync } = require('child_process');
 const MODE = process.argv[2] === 'live' ? 'live' : 'dry';
 
 const env = fs.readFileSync('/Users/clawdnett/Projects/trime/.env', 'utf8');
-const v = (k) => ((env.match(new RegExp('^' + k + '=(.*)$', 'm')) || [])[1] || '').replace(/^["']|["']$/g, '').trim();
+const v = (k) => ((env.match(new RegExp('^' + k + '=(.*)$', 'm')) || [])[1] || process.env[k] || '').replace(/^["']|["']$/g, '').trim();
 const CID = v('GMAIL_CLIENT_ID'), CS = v('GMAIL_CLIENT_SECRET'), RT = v('GMAIL_REFRESH_TOKEN');
 const LABEL = 'Label_1841246710523545099';
 const PT = '/opt/homebrew/bin/pdftotext', PI = '/opt/homebrew/bin/pdfinfo';
+const SINCE_DAYS = parseInt(process.env.SWIM_SINCE_DAYS || '', 10);
+
+const { createClient } = require('/Users/clawdnett/Projects/trime/node_modules/@supabase/supabase-js');
+const supa = createClient(v('PUBLIC_SUPABASE_URL'), v('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
+
+// Levenshtein distance — used to flag a results name that's a typo away from a
+// roster name (e.g. "Hartnet" vs "Hartnett") as a near-miss worth checking.
+function lev(a, b) {
+  const m = a.length, n = b.length;
+  const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) for (let j = 1; j <= n; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[m][n];
+}
+const normName = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+
+// Roster names that DIDN'T exactly match but look like they should have:
+// same family surname, or a 1–2 char typo away from a roster name.
+function nearMisses(meet, roster) {
+  const rosterNorms = roster.map((p) => normName(p.full_name));
+  const familyLast = new Set(rosterNorms.map((n) => n.split(' ').pop()));
+  const names = new Map(); // norm -> raw "Last, First"
+  for (const ev of meet.events) for (const e of ev.entries) {
+    if (e.kind === 'indiv') names.set(e.name.norm, e.name.raw);
+    else for (const leg of e.legs) names.set(leg.name.norm, leg.name.raw);
+  }
+  const out = [];
+  for (const [norm, raw] of names) {
+    if (rosterNorms.includes(norm)) continue; // exact roster member (already matched)
+    const surname = norm.split(' ').pop();
+    const typo = rosterNorms.find((rn) => lev(rn, norm) <= 2);
+    if (familyLast.has(surname)) out.push(`${raw} — shares family surname "${surname}"`);
+    else if (typo) out.push(`${raw} — 1–2 chars off roster name "${typo}"`);
+  }
+  return out;
+}
 
 const { parseHytekMeet } = require('/tmp/swimsave/swim/hytek.js');
 const { matchRoster } = require('/tmp/swimsave/swim/match.js');
@@ -67,10 +113,18 @@ const fmt = (s) => (s == null ? 'DQ/—' : s >= 60 ? `${Math.floor(s / 60)}:${(s
 
 (async () => {
   AT = await accessToken();
-  // enumerate candidate result emails
+  // load the family roster from the DB (is_family) — same source live ingest uses
+  const { data: rosterRows, error: rErr } = await supa.from('person').select('id, full_name').eq('is_family', true);
+  if (rErr) throw new Error('roster load: ' + rErr.message);
+  const roster = rosterRows || [];
+  console.log(`Roster (${roster.length}): ${roster.map((p) => p.full_name).join(', ')}`);
+
+  // enumerate candidate result emails (optionally only the last SWIM_SINCE_DAYS)
+  const q = 'has:attachment filename:pdf' + (SINCE_DAYS > 0 ? ` newer_than:${SINCE_DAYS}d` : '');
+  if (SINCE_DAYS > 0) console.log(`Scanning the last ${SINCE_DAYS} days only.`);
   let pageToken = '', ids = [];
   do {
-    const res = await api(`messages?labelIds=${LABEL}&q=${encodeURIComponent('has:attachment filename:pdf')}&maxResults=100` + (pageToken ? `&pageToken=${pageToken}` : ''));
+    const res = await api(`messages?labelIds=${LABEL}&q=${encodeURIComponent(q)}&maxResults=100` + (pageToken ? `&pageToken=${pageToken}` : ''));
     (res.messages || []).forEach((m) => ids.push(m.id));
     pageToken = res.nextPageToken || '';
   } while (pageToken);
@@ -88,8 +142,7 @@ const fmt = (s) => (s == null ? 'DQ/—' : s >= 60 ? `${Math.floor(s / 60)}:${(s
   }
   console.log(`Result-PDF candidates: ${jobs.length}  (mode=${MODE})\n`);
 
-  const db = MODE === 'live' ? require('/Users/clawdnett/Projects/trime/node_modules/@supabase/supabase-js').createClient(process.env.PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } }) : null;
-
+  let missTotal = 0;
   for (const job of jobs) {
     try {
       const buf = await download(job.id, job.attachmentId);
@@ -98,23 +151,23 @@ const fmt = (s) => (s == null ? 'DQ/—' : s >= 60 ? `${Math.floor(s / 60)}:${(s
       const entryCount = (m) => m.events.reduce((n, e) => n + e.entries.length, 0);
       const useDecol = entryCount(mDecol) > entryCount(mFull);
       const meet = useDecol ? mDecol : mFull;          // keep the read with more results
-      const text = useDecol ? decol : full;
       if (!meet.date) meet.date = job.emailDate;       // fallback to email date
       if (!meet.meetCode) meet.meetCode = job.filename.replace(/\.pdf$/i, '').replace(/_/g, ' ');
-      const matched = matchRoster(meet, [{ full_name: 'Sierra Hartnett' }, { full_name: 'Aurora Hartnett' }]);
-      const counts = matched.map((s) => `${s.person.full_name.split(' ')[0]}:${s.individual.length}i+${s.relays.length}r`).join(' ');
-      const total = matched.reduce((n, s) => n + s.individual.length + s.relays.length, 0);
-      const flag = total === 0 && /hartnett/i.test(text) ? '  ⚠️ HARTNETT IN TEXT BUT UNMATCHED' : '';
-      console.log(`● ${meet.date}  code=${meet.meetCode}  events=${meet.events.length}  [${counts}]${flag}   (${job.filename})`);
-      if (flag) text.split('\n').filter((l) => /hartnett/i.test(l)).forEach((l) => console.log('     RAW>', JSON.stringify(l)));
+      const matched = matchRoster(meet, roster);
+      const counts = matched.filter((s) => s.individual.length || s.relays.length)
+        .map((s) => `${s.person.full_name.split(' ')[0]}:${s.individual.length}i+${s.relays.length}r`).join(' ') || '(none)';
+      const misses = nearMisses(meet, roster);
+      console.log(`● ${meet.date}  code=${meet.meetCode}  events=${meet.events.length}  [${counts}]   (${job.filename})`);
       for (const s of matched) for (const r of s.individual) console.log(`     ${s.person.full_name.split(' ')[0]}  ${r.event} ${r.ageGroup} ${r.heat}  ${fmt(r.timeSeconds)} ${r.status}`);
       for (const s of matched) for (const rel of s.relays) console.log(`     ${s.person.full_name.split(' ')[0]}  ${rel.event} ${rel.team} ${fmt(rel.timeSeconds)}`);
+      for (const m of misses) { console.log(`     ⚠️ possible miss: ${m}`); missTotal++; }
       if (MODE === 'live') {
-        const sum = await ingestMeet(db, meet, { sourceUrl: null });
+        const sum = await ingestMeet(supa, meet, { sourceUrl: null });
         console.log(`     -> saved: ${sum.saved.map((x) => x.person.split(' ')[0] + ' ' + x.results).join(', ') || '(none)'}`);
       }
     } catch (e) {
       console.log(`✗ ${job.emailDate} ${job.filename}: ${e.message}`);
     }
   }
+  if (missTotal) console.log(`\n⚠️ ${missTotal} near-miss name(s) above — check for a nickname or misspelling, then add/rename the person and re-run.`);
 })().catch((e) => { console.error('FATAL:', e.message); process.exit(1); });

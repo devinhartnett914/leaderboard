@@ -1,8 +1,9 @@
-# Swim results backfill — operational scripts (Phase 2 reference)
+# Swim results — Gmail importer + daily poll
 
-`swim-backfill.cjs` downloads every Glade meet-results PDF from Gmail and imports
-the family's swims. Proven on the full 2024–2026 archive (9 meets, 47 results).
-This is the working reference to productionize **Phase 2** (the daily auto-importer).
+`swim-backfill.cjs` downloads Glade meet-results PDFs from Gmail and imports the
+family's swims into Supabase. Proven on the full 2024–2026 archive (9 meets, 47
+results). `swim-poll.sh` wraps it as the **daily auto-importer (Phase 2)**, run by
+a launchd LaunchAgent.
 
 ## One-time setup (Mac mini)
 1. `.env` must have: `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`
@@ -16,8 +17,14 @@ This is the working reference to productionize **Phase 2** (the daily auto-impor
    ```
 
 ## Run
-- Preview (no DB writes):  `node scripts/swim-backfill.cjs dry`
-- Import:  `PUBLIC_SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… node scripts/swim-backfill.cjs live`
+- **Daily poll** (compiles modules, imports new meets, reports near-misses):
+  `scripts/swim-poll.sh`   — preview with `DRY=1 scripts/swim-poll.sh`
+- Backfill the whole archive (no date window): `node scripts/swim-backfill.cjs live`
+- Preview only (no DB writes): `node scripts/swim-backfill.cjs dry`
+
+Credentials are read from `/Users/clawdnett/Projects/trime/.env` (Supabase URL +
+service-role key, Gmail OAuth) — no need to export them on the command line.
+`SWIM_SINCE_DAYS=N` limits the Gmail scan to the last N days; the poll defaults to 21.
 
 ## How it works
 - Lists the Glade Gmail label `Label_1841246710523545099`, keeps team-sender
@@ -30,8 +37,27 @@ This is the working reference to productionize **Phase 2** (the daily auto-impor
   fix ("Butterfly" → "Butter ly").
 - Deterministic parser (`src/lib/swim/hytek.ts`) → roster match → idempotent ingest.
 
-## To make it Phase 2 (daily auto-importer)
-Wrap in a daily schedule (Netlify scheduled function or Mac-mini cron). After a
-successful import, mark the email processed (add a Gmail label, or store its
-message-id) so the same meet never imports twice. Note: paths here are absolute
-for this Mac mini; parameterize when moving to Netlify.
+## Daily schedule (launchd)
+The poll runs on the **Mac mini** (not Netlify) because it needs `pdftotext`.
+Install / reinstall the LaunchAgent:
+```
+cp scripts/com.trime.swim-poll.plist ~/Library/LaunchAgents/
+launchctl unload ~/Library/LaunchAgents/com.trime.swim-poll.plist 2>/dev/null
+launchctl load -w ~/Library/LaunchAgents/com.trime.swim-poll.plist
+launchctl list | grep swim-poll        # confirm it's registered
+```
+Runs once daily at 07:00 (and catches up on wake if the mini was asleep). Logs to
+`~/Library/Logs/trime-swim-poll.log`. Re-importing an already-saved meet is a
+no-op (ingest is idempotent, keyed on edition+person+event), so no message-id
+tracking is needed.
+
+**If the worktree moves** (e.g. after `feat/scraping` merges to main), update the
+script path in `~/Library/LaunchAgents/com.trime.swim-poll.plist` to the main
+checkout and reload — the wrapper itself is self-locating.
+
+## Near-misses
+Each meet lists swimmers who share a family surname, or are a 1–2 char typo away
+from a roster name, but didn't exactly match — surfacing a nickname/misspelling as
+a line to check rather than a silently dropped kid. Fix it by adding/renaming the
+person in the DB and re-running. (Unrelated swimmers who merely share a *first*
+name — e.g. a different-team "Aurora" — are correctly ignored.)
