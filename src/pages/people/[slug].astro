@@ -54,7 +54,7 @@ const age = currentAge(person.birth_date, person.birth_year);
 const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.length} results`].filter(Boolean).join(' · ');
 ---
 
-<Layout title={person.full_name} subtitle={subtitle} avatarUrl={person.avatar_url}>
+<Layout title={person.full_name} subtitle={subtitle} avatarUrl={person.avatar_url} crumbs={[{ label: 'All Races', href: '/races' }]}>
 	<div class="filters">
 		<div class="fgroup" style="--g: var(--accent)">
 			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Sports</span></span>

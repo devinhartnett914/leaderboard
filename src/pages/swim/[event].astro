@@ -46,9 +46,8 @@ const swimmerCount = tracks.length;
 const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? 'swimmer' : 'swimmers'}`].filter(Boolean).join(' · ');
 ---
 
-<Layout title={title} subtitle={subtitle}>
+<Layout title={title} subtitle={subtitle} crumbs={[{ label: 'All Races', href: '/races' }]}>
 	<p class="lead">
-		<a href="/races">← All results</a>
 		<span class="lead-ic">{ev.icon}</span>
 		Every recorded swim of the <strong>{title}</strong>, fastest-tracked over time.
 	</p>

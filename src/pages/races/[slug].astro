@@ -110,7 +110,7 @@ const format = editionsDesc[0]?.distance_or_format ?? null;
 const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t) ?? t;
 ---
 
-<Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')}>
+<Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')} crumbs={[{ label: 'All Races', href: '/races' }]}>
 	<section class="race-meta">
 		{format && <span class="format-badge">{format}</span>}
 		{disciplines.length > 0 && (

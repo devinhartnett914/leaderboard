@@ -1,12 +1,19 @@
 ---
 import { isSupabaseConfigured } from '../lib/supabase';
 
+interface Crumb {
+	label: string;
+	href: string;
+}
 interface Props {
 	title?: string;
 	subtitle?: string;
 	avatarUrl?: string | null;
+	/* Ancestors above this page, root → nearest parent. The current page is the
+	   <h1>; these render as a "← All Races" trail on its own line above it. */
+	crumbs?: Crumb[];
 }
-const { title = 'Tri•Me', subtitle, avatarUrl } = Astro.props;
+const { title = 'Tri•Me', subtitle, avatarUrl, crumbs } = Astro.props;
 const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `${title} · Tri•Me`;
 ---
 
@@ -50,12 +57,22 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 		}
 
 		<main class="container">
-			{(title !== 'Tri•Me' || subtitle) && (
+			{(title !== 'Tri•Me' || subtitle || (crumbs && crumbs.length > 0)) && (
 				<div class="page-head">
-					{avatarUrl && <img class="page-avatar" src={avatarUrl} alt={title} />}
-					<div class="page-head-text">
-						<h1>{title}</h1>
-						{subtitle && <p class="subtitle">{subtitle}</p>}
+					{crumbs && crumbs.length > 0 && (
+						<nav class="crumbs" aria-label="Breadcrumb">
+							<span class="crumb-arrow" aria-hidden="true">←</span>
+							{crumbs.map((c) => (
+								<a class="crumb" href={c.href}>{c.label}</a>
+							))}
+						</nav>
+					)}
+					<div class="page-head-main">
+						{avatarUrl && <img class="page-avatar" src={avatarUrl} alt={title} />}
+						<div class="page-head-text">
+							<h1>{title}</h1>
+							{subtitle && <p class="subtitle">{subtitle}</p>}
+						</div>
 					</div>
 				</div>
 			)}
@@ -63,11 +80,6 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 		</main>
 
 		<style is:global>
-			/* Subtle cross-document view transition for browsers that support it
-			   (Chromium 126+). Firefox/Safari ignore this rule, so the entrance
-			   fade below covers fallback. No JS, no SPA — pages stay SSR. */
-			@view-transition { navigation: auto; }
-
 			:root {
 				/* palette adapted from the "Monday Swim" app: deep navy + electric cyan + mint */
 				--bg: #0a1628;
@@ -153,10 +165,9 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 			}
 
 			main { padding: 2rem 0 3rem; min-height: 60vh; }
-			/* Tasteful entrance: each page softly settles in. Skipped for users
-			   who prefer reduced motion. Browsers running the @view-transition
-			   above will already cross-fade the document — this animation runs
-			   in parallel and stays subtle enough not to compete. */
+			/* Gentle arrival: each page softly settles in on load. Navigation
+			   itself is instant — there is no page-to-page transition. Skipped
+			   for users who prefer reduced motion. */
 			main { animation: page-enter 180ms ease-out both; }
 			@keyframes page-enter {
 				from { opacity: 0; transform: translateY(4px); }
@@ -166,7 +177,15 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 				main { animation: none; }
 			}
 
-			.page-head { display: flex; align-items: center; gap: 1.4rem; margin-bottom: 1.75rem; }
+			.page-head { margin-bottom: 1.75rem; }
+			/* Breadcrumb on its own line above the photo + title — a stable "you are
+			   here / climb back up" trail. Ancestors only; the current page is the H1. */
+			.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; margin-bottom: 0.8rem; }
+			.crumb-arrow { font-family: var(--font-mono); font-size: 0.85rem; line-height: 1; color: var(--faint); }
+			.crumb { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+			.crumb:not(:last-of-type)::after { content: '/'; color: var(--faint); margin-left: 0.45rem; }
+			.crumb:hover { color: var(--accent); text-decoration: none; }
+			.page-head-main { display: flex; align-items: center; gap: 1.4rem; }
 			.page-avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 3px solid var(--surface-2); box-shadow: var(--shadow), 0 0 0 1px var(--border); }
 			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
 			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
