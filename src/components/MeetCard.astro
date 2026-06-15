@@ -5,7 +5,8 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
-import { formatSwimTime, parseSwimEvent, swimEventSlug, ordinal, swimDivision } from '../lib/format';
+import ResultPlaces from './ResultPlaces.astro';
+import { formatSwimTime, parseSwimEvent, swimEventSlug, swimDivision } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -48,8 +49,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 					</span>
 				</div>
 				<div class="mc-evplace" style={`grid-row:${row}`}>
-					<span class="ev-ord">{e.division_place != null ? ordinal(e.division_place) : '—'}</span>
-					{e.division && <span class="ev-heat">{swimDivision(e.division)}</span>}
+					<ResultPlaces overallPlace={e.overall_place} overallFieldSize={e.overall_field_size} division={e.division} divisionPlace={e.division_place} />
 				</div>
 			</Fragment>
 		);
@@ -72,7 +72,5 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	.ev-t.is-pr { color: var(--gold); }
 	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
 	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
-	.mc-evplace .ev-ord { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; }
-	.mc-evplace .ev-heat { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.1rem; }
 	.mc-head + .mc-evname, .mc-head + .mc-evname + .mc-evtime, .mc-head + .mc-evname + .mc-evtime + .mc-evplace { border-top: none; }
 </style>

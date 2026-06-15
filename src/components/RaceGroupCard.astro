@@ -8,9 +8,10 @@ import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
+import ResultPlaces from './ResultPlaces.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, ordinal, abbrevDivision } from '../lib/format';
+import { formatTime, abbrevDivision } from '../lib/format';
 import { award, podiumPlace, type RaceEntry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -39,7 +40,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 		const aw = award(r);
 		const pr = prCtx.prBadge(r);
 		const dnf = r.status !== 'finished';
-		const place = r.overall_place ?? r.division_place;
 		const row = 2 + i;
 		return (
 			<Fragment>
@@ -57,8 +57,7 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 					</span>
 				</div>
 				<div class="gc-place" style={`grid-row:${row}`}>
-					<span class="gc-ord">{place != null ? ordinal(place) : '—'}</span>
-					{r.division && <span class="gc-div">{abbrevDivision(r.division)}</span>}
+					<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} />
 				</div>
 			</Fragment>
 		);
@@ -77,8 +76,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 	.gc-t.is-pr { color: var(--gold); }
 	.gc-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
 	.gc-place { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.45rem 1.2rem 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
-	.gc-ord { font-family: var(--font-mono); font-size: 0.84rem; font-weight: 600; }
-	.gc-div { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.1rem; }
 	/* first finisher row sits directly under the header — no doubled divider */
 	.gc-head + .gc-who, .gc-head + .gc-who + .gc-time, .gc-head + .gc-who + .gc-time + .gc-place { border-top: none; }
 </style>

@@ -1,0 +1,30 @@
+---
+// THE one way to render a result's standings on the far-right of a race row: an
+// OVERALL field over a DIVISION field, each a mono header above its value. Division is
+// the divisionLabel "age-group · place" standard ("F40-44 · 5th", "9-10•C · 1st"). Every
+// result carries a division; each field is shown only when it has data (no overall, or a
+// non-tri with no age division, drops out cleanly). Used by every race row — tri/run
+// (ResultRow) and swim events (MeetCard) — so the right column reads identically.
+import { placement, divisionLabel } from '../lib/format';
+interface Props {
+	overallPlace?: number | null;
+	overallFieldSize?: number | null;
+	division?: string | null;
+	divisionPlace?: number | null;
+}
+const { overallPlace = null, overallFieldSize = null, division = null, divisionPlace = null } = Astro.props;
+---
+<div class="places">
+	{overallPlace != null && (
+		<div class="pl"><span class="pl-k">Overall</span><span class="pl-v">{placement(overallPlace, overallFieldSize)}</span></div>
+	)}
+	{division && (
+		<div class="pl"><span class="pl-k">Division</span><span class="pl-v">{divisionLabel(division, divisionPlace)}</span></div>
+	)}
+</div>
+
+<style>
+	.places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 0; }
+	.pl-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.pl-v { display: block; font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; white-space: nowrap; }
+</style>

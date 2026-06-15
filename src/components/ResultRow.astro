@@ -7,9 +7,10 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
+import ResultPlaces from './ResultPlaces.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, legPace, legIcon, legColor, placement, abbrevDivision, divisionLabel } from '../lib/format';
+import { formatTime, legPace, legIcon, legColor, abbrevDivision } from '../lib/format';
 import { podiumPlace, type FeedRow, type PrBadge } from '../lib/feed';
 
 interface Props {
@@ -50,8 +51,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		))}
 	</div>
 	<div class="rc-places">
-		<div><span class="rc-k">Overall</span><span class="rc-v">{placement(r.overall_place, r.overall_field_size)}</span></div>
-		<div><span class="rc-k">Division</span><span class="rc-v">{divisionLabel(r.division, r.division_place)}</span></div>
+		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} />
 	</div>
 </article>
 
@@ -73,6 +73,5 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
 	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
-	.rc-places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
-	.rc-places .rc-v { font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; display: block; white-space: nowrap; }
+	.rc-places { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
 </style>
