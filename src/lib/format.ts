@@ -116,7 +116,7 @@ export interface SwimEvent {
 
 const STROKE_META: Record<SwimEvent['strokeKey'], { short: string; icon: string; color: string }> = {
 	free: { short: 'Free', icon: '🏊', color: 'var(--swim)' },
-	back: { short: 'Back', icon: '🔙', color: '#5bd1ff' },
+	back: { short: 'Back', icon: '🦦', color: '#5bd1ff' },
 	breast: { short: 'Breast', icon: '🐸', color: '#3ddc97' },
 	fly: { short: 'Fly', icon: '🦋', color: '#b98bff' },
 	im: { short: 'IM', icon: '🌀', color: '#ffb86b' },

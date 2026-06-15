@@ -6,20 +6,34 @@ import { parseSwimEvent, swimEventSlug } from '../lib/format';
 interface Props {
 	event: string | null | undefined;
 	link?: boolean; // wrap in a link to /swim/[event] (default true)
+	stack?: boolean; // two lines — emoji+distance over the stroke type (recent cards only)
 }
-const { event, link = true } = Astro.props;
+const { event, link = true, stack = false } = Astro.props;
 const ev = parseSwimEvent(event);
 const href = `/swim/${swimEventSlug(event)}`;
 const Tag = link ? 'a' : 'span';
+const type = ev.short.replace(/^\d+\s*/, ''); // "25 Back" → "Back"
 ---
-<Tag class="evchip" href={link ? href : undefined} style={`--c:${ev.color}`}>
-	<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
-</Tag>
+{stack ? (
+	<Tag class="evchip is-stack" href={link ? href : undefined}>
+		<span class="ev-top"><span class="ev-ic">{ev.icon}</span>{ev.distance != null && <span class="ev-lbl">{ev.distance}</span>}</span>
+		<span class="ev-lbl">{type}</span>
+	</Tag>
+) : (
+	<Tag class="evchip" href={link ? href : undefined}>
+		<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
+	</Tag>
+)}
 
 <style>
-	.evchip { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; color: var(--text); }
-	a.evchip:hover { text-decoration: none; color: var(--swim); }
+	/* Styled to match the family-name chip (PersonChip): mono uppercase, muted,
+	   hover → text, no underline — event names read the same as people's names. */
+	.evchip { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; color: var(--muted); }
+	a.evchip:hover { text-decoration: none; color: var(--text); }
 	.ev-ic { font-size: 1rem; line-height: 1; }
-	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--swim) 45%, transparent); text-underline-offset: 3px; }
-	a.evchip:hover .ev-lbl { text-decoration-color: var(--swim); }
+	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	/* stacked: emoji+distance on top, stroke type beneath — same chip styles, just a
+	   line break for vertical balance. Recent cards only. */
+	.evchip.is-stack { flex-direction: column; align-items: center; gap: 0.15rem; }
+	.ev-top { display: inline-flex; align-items: center; gap: 0.4rem; }
 </style>

@@ -22,8 +22,12 @@ import { award, podiumPlace, bestEvent, swimCs, type Entry, type PrContext } fro
 interface Props {
 	entry: Entry;
 	prCtx: PrContext;
+	// Event-chip placement. Production uses the default 'c' (stacked chip, right-aligned
+	// like the division). The other values back the /recent-preview design comparison —
+	// kept so we can revisit the iteration. See that page for the alternatives.
+	variant?: 'current' | 'a' | 'b' | 'c' | 'd';
 }
-const { entry, prCtx } = Astro.props;
+const { entry, prCtx, variant = 'c' } = Astro.props;
 
 // Resolve a common shape regardless of entry type, then render one finish block.
 let person = null as { full_name: string; slug: string | null; avatar_url: string | null } | null;
@@ -120,17 +124,26 @@ const medalSub = medalTier ? swimDivision(division) : null;
 		<CardTopRow person={person} type={typeLabel} distance={distance} />
 		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
-		<div class="rc-finish">
+		<div class="rc-finish" data-ev={variant}>
 			<div class="rc-head">
 				<span class="rc-k">{figureLabel}</span>
-				{eventStr && <EventChip event={eventStr} />}
+				{eventStr && (variant === 'current' || variant === 'b') && (
+					<span class="rc-headev">
+						{variant === 'b' && <span class="rc-sep">·</span>}
+						<EventChip event={eventStr} />
+					</span>
+				)}
 			</div>
 			<div class="rc-row">
 				<span class="rc-finrow">
+					{eventStr && variant === 'a' && <EventChip event={eventStr} />}
+					{eventStr && variant === 'd' && <EventChip event={eventStr} stack />}
 					<ResultMarks medalTier={medalTier} medalSub={medalSub} pr={pr} compact inline />
 					<span class:list={['rc-fig', { 'is-pr': isGold }]}>{figure}</span>
 				</span>
 				{!medalTier && <Division division={division} divisionPlace={divisionPlace} overallPlace={overallPlace} align="end" />}
+				{/* C (production default): the standout event as a stacked chip, right-aligned like the division */}
+				{eventStr && variant === 'c' && <EventChip event={eventStr} stack />}
 			</div>
 		</div>
 	</div>
@@ -162,4 +175,14 @@ const medalSub = medalTier ? swimDivision(division) : null;
 	.rc-finrow { display: inline-flex; align-items: flex-end; gap: 0.5rem; }
 	.rc-fig { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
 	.rc-fig.is-pr { color: var(--gold); }
+
+	/* Event-chip placement variants (production default = 'c'). The others back the
+	   /recent-preview comparison — kept so the design iteration is revisitable. */
+	.rc-headev { display: inline-flex; align-items: baseline; gap: 0.4rem; min-width: 0; }
+	.rc-sep { font-family: var(--font-mono); color: var(--faint); }
+	.rc-finish[data-ev='b'] .rc-head { justify-content: flex-start; gap: 0.4rem; }
+	.rc-finish[data-ev='a'] .rc-finrow { align-items: center; }
+	/* c: stacked chip on the right of the time row — centered to sit level with the time + medal stack */
+	.rc-finish[data-ev='c'] .rc-row { align-items: center; }
+	.rc-finish[data-ev='d'] .rc-finrow { align-items: center; }
 </style>

@@ -1,0 +1,56 @@
+---
+// THROWAWAY preview page — compare event-chip placements on the home recent tiles
+// with real data. Delete this file (and the `variant` prop on RecentCard) once a
+// layout is chosen. Visit /recent-preview.
+import Layout from '../layouts/Layout.astro';
+import RecentCard from '../components/RecentCard.astro';
+import { getAllFamilyResults } from '../lib/queries';
+import { buildEntries, buildPrContext } from '../lib/feed';
+
+const allResults = await getAllFamilyResults();
+const prCtx = buildPrContext(allResults);
+const recentEntries = buildEntries(allResults, { groupRaces: true }).slice(0, 3);
+
+const variants = [
+	{ key: 'current', title: 'Current', note: 'Chip pinned to the top-right corner (what you have now)' },
+	{ key: 'a', title: 'A · Lead the time', note: 'Chip leads the finish row — matches the MeetCard swim-event anatomy' },
+	{ key: 'b', title: 'B · Join the label', note: 'Chip sits next to "Best result" on the top-left' },
+	{ key: 'c', title: 'C · Stacked chip', note: 'Emoji + distance on top, stroke type beneath — a two-line chip (recent cards only) for vertical balance' },
+	{ key: 'd', title: 'D · Stacked, left of time', note: 'Same stacked chip as C, but leading the finish row on the left of the time' },
+] as const;
+---
+
+<Layout title="Recent card — layout preview">
+	<section class="hero">
+		<div class="eyebrow">Throwaway preview</div>
+		<h1>Recent tile<br /><span>event-chip placement</span></h1>
+		<p class="muted">Same three recent results, four placements. Pick the one that feels right and I'll
+			ship it + delete this page. The swim cards are the ones to judge — the tri tile has no event chip.</p>
+	</section>
+
+	{
+		variants.map((v) => (
+			<section class="block">
+				<div class="section-head">
+					<h2>{v.title}</h2>
+					<span class="note">{v.note}</span>
+				</div>
+				<div class="grid cols-3">
+					{recentEntries.map((it) => <RecentCard entry={it} prCtx={prCtx} variant={v.key} />)}
+				</div>
+			</section>
+		))
+	}
+</Layout>
+
+<style>
+	.hero { margin: 1rem 0 2.5rem; }
+	.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
+	.hero h1 { margin: 0 0 1rem; font-family: var(--font-display); font-weight: 400; font-size: clamp(2.5rem, 7vw, 4rem); line-height: 0.9; letter-spacing: 0.02em; }
+	.hero h1 span { color: var(--accent); }
+	.hero p { margin: 0; max-width: 60ch; }
+	.block { margin-bottom: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid var(--border); }
+	.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
+	.note { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+</style>
