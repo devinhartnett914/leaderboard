@@ -2,7 +2,8 @@
 <!-- Daily swim-results poll. Install with:
        cp scripts/com.trime.swim-poll.plist ~/Library/LaunchAgents/
        launchctl load ~/Library/LaunchAgents/com.trime.swim-poll.plist
-     Edit ProgramArguments path if the script moves (e.g. after merging to main).
+     Runs from the main checkout (scripts/ landed on trunk after the swim merge).
+     Edit ProgramArguments path only if the repo itself moves.
      Logs: ~/Library/Logs/trime-swim-poll.log -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -13,7 +14,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/clawdnett/Projects/trime/.claude/worktrees/scraping/scripts/swim-poll.sh</string>
+        <string>/Users/clawdnett/Projects/trime/scripts/swim-poll.sh</string>
     </array>
 
     <!-- Run once a day at 07:00 local. launchd also fires a missed run when the
