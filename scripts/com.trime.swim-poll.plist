@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Daily swim-results poll. Install with:
+       cp scripts/com.trime.swim-poll.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.trime.swim-poll.plist
+     Edit ProgramArguments path if the script moves (e.g. after merging to main).
+     Logs: ~/Library/Logs/trime-swim-poll.log -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.trime.swim-poll</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/clawdnett/Projects/trime/.claude/worktrees/scraping/scripts/swim-poll.sh</string>
+    </array>
+
+    <!-- Run once a day at 07:00 local. launchd also fires a missed run when the
+         Mac next wakes, so a sleeping mini still catches up. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/clawdnett/Library/Logs/trime-swim-poll.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/clawdnett/Library/Logs/trime-swim-poll.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
