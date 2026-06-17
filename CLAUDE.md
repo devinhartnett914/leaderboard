@@ -1,4 +1,4 @@
-# trime — Family Race Results Tracker
+# Leaderboard — Family Race Results Tracker
 
 A site to store the family's race results (triathlons, swim meets, gravel rides, trail/road
 runs) and compare progress year over year for races we repeat annually.

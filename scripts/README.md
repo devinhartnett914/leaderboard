@@ -22,7 +22,7 @@ a launchd LaunchAgent.
 - Backfill the whole archive (no date window): `node scripts/swim-backfill.cjs live`
 - Preview only (no DB writes): `node scripts/swim-backfill.cjs dry`
 
-Credentials are read from `/Users/clawdnett/Projects/trime/.env` (Supabase URL +
+Credentials are read from `/Users/clawdnett/Projects/leaderboard/.env` (Supabase URL +
 service-role key, Gmail OAuth) — no need to export them on the command line.
 `SWIM_SINCE_DAYS=N` limits the Gmail scan to the last N days; the poll defaults to 21.
 
@@ -41,18 +41,18 @@ service-role key, Gmail OAuth) — no need to export them on the command line.
 The poll runs on the **Mac mini** (not Netlify) because it needs `pdftotext`.
 Install / reinstall the LaunchAgent:
 ```
-cp scripts/com.trime.swim-poll.plist ~/Library/LaunchAgents/
-launchctl unload ~/Library/LaunchAgents/com.trime.swim-poll.plist 2>/dev/null
-launchctl load -w ~/Library/LaunchAgents/com.trime.swim-poll.plist
+cp scripts/com.leaderboard.swim-poll.plist ~/Library/LaunchAgents/
+launchctl unload ~/Library/LaunchAgents/com.leaderboard.swim-poll.plist 2>/dev/null
+launchctl load -w ~/Library/LaunchAgents/com.leaderboard.swim-poll.plist
 launchctl list | grep swim-poll        # confirm it's registered
 ```
 Runs once daily at 07:00 (and catches up on wake if the mini was asleep). Logs to
-`~/Library/Logs/trime-swim-poll.log`. Re-importing an already-saved meet is a
+`~/Library/Logs/leaderboard-swim-poll.log`. Re-importing an already-saved meet is a
 no-op (ingest is idempotent, keyed on edition+person+event), so no message-id
 tracking is needed.
 
 **If the worktree moves** (e.g. after `feat/scraping` merges to main), update the
-script path in `~/Library/LaunchAgents/com.trime.swim-poll.plist` to the main
+script path in `~/Library/LaunchAgents/com.leaderboard.swim-poll.plist` to the main
 checkout and reload — the wrapper itself is self-locating.
 
 ## Near-misses

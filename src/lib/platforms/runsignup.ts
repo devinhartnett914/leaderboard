@@ -6,7 +6,7 @@ import { parseDuration } from '../format';
 import type { Sport } from '../types';
 
 const API = 'https://runsignup.com/rest';
-const UA = { 'User-Agent': 'Mozilla/5.0 (trime race tracker)' } as const;
+const UA = { 'User-Agent': 'Mozilla/5.0 (Leaderboard race tracker)' } as const;
 const PAGE_SIZE = 50;
 
 export interface ExtractedSplit {

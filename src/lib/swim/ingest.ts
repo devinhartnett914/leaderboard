@@ -1,4 +1,4 @@
-// Save a parsed HY-TEK swim meet into trime.
+// Save a parsed HY-TEK swim meet into Leaderboard.
 //
 // Model (no schema change vs the existing once-per-year design):
 //   - one `race` per meet matchup (e.g. "AW@GL"), recurring annually

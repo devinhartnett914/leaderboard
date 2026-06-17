@@ -1,20 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Daily swim-results poll. Install with:
-       cp scripts/com.trime.swim-poll.plist ~/Library/LaunchAgents/
-       launchctl load ~/Library/LaunchAgents/com.trime.swim-poll.plist
-     Runs from the main checkout (scripts/ landed on trunk after the swim merge).
-     Edit ProgramArguments path only if the repo itself moves.
-     Logs: ~/Library/Logs/trime-swim-poll.log -->
+       cp scripts/com.leaderboard.swim-poll.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.leaderboard.swim-poll.plist
+     Runs from the main checkout. Edit ProgramArguments path only if the repo moves.
+     Logs: ~/Library/Logs/leaderboard-swim-poll.log -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.trime.swim-poll</string>
+    <string>com.leaderboard.swim-poll</string>
 
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/clawdnett/Projects/trime/scripts/swim-poll.sh</string>
+        <string>/Users/clawdnett/Projects/leaderboard/scripts/swim-poll.sh</string>
     </array>
 
     <!-- Run once a day at 07:00 local. launchd also fires a missed run when the
@@ -28,9 +27,9 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/clawdnett/Library/Logs/trime-swim-poll.log</string>
+    <string>/Users/clawdnett/Library/Logs/leaderboard-swim-poll.log</string>
     <key>StandardErrorPath</key>
-    <string>/Users/clawdnett/Library/Logs/trime-swim-poll.log</string>
+    <string>/Users/clawdnett/Library/Logs/leaderboard-swim-poll.log</string>
 
     <key>RunAtLoad</key>
     <false/>

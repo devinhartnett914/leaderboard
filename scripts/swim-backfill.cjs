@@ -14,14 +14,14 @@ const fs = require('fs');
 const { execFileSync } = require('child_process');
 const MODE = process.argv[2] === 'live' ? 'live' : 'dry';
 
-const env = fs.readFileSync('/Users/clawdnett/Projects/trime/.env', 'utf8');
+const env = fs.readFileSync('/Users/clawdnett/Projects/leaderboard/.env', 'utf8');
 const v = (k) => ((env.match(new RegExp('^' + k + '=(.*)$', 'm')) || [])[1] || process.env[k] || '').replace(/^["']|["']$/g, '').trim();
 const CID = v('GMAIL_CLIENT_ID'), CS = v('GMAIL_CLIENT_SECRET'), RT = v('GMAIL_REFRESH_TOKEN');
 const LABEL = 'Label_1841246710523545099';
 const PT = '/opt/homebrew/bin/pdftotext', PI = '/opt/homebrew/bin/pdfinfo';
 const SINCE_DAYS = parseInt(process.env.SWIM_SINCE_DAYS || '', 10);
 
-const { createClient } = require('/Users/clawdnett/Projects/trime/node_modules/@supabase/supabase-js');
+const { createClient } = require('/Users/clawdnett/Projects/leaderboard/node_modules/@supabase/supabase-js');
 const supa = createClient(v('PUBLIC_SUPABASE_URL'), v('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } });
 
 // Levenshtein distance — used to flag a results name that's a typo away from a

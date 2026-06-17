@@ -1,15 +1,15 @@
-# Deploying trime to Netlify
+# Deploying Leaderboard to Netlify
 
 Everything is built and committed. This is the ~5-minute, one-time setup to put the site on the
 internet. The site is **public to view**; editing is locked behind an admin token.
 
 ## Before you start
-- GitHub repo: `github.com/devinhartnett914/trime` (code is pushed and ready)
+- GitHub repo: `github.com/devinhartnett914/leaderboard` (code is pushed and ready)
 - Supabase project: already set up and seeded with the real data
 
 ## Step 1 — Import the repo into Netlify
 1. Go to https://app.netlify.com → **Add new site** → **Import an existing project**
-2. Choose **GitHub**, authorize if asked, and pick the **`trime`** repository
+2. Choose **GitHub**, authorize if asked, and pick the **`leaderboard`** repository
 3. Netlify auto-detects Astro. Leave the defaults:
    - Build command: `npm run build`
    - The `@astrojs/netlify` adapter handles the server/functions automatically

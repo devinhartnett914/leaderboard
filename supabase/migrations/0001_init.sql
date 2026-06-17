@@ -1,4 +1,4 @@
--- trime initial schema
+-- Leaderboard initial schema
 -- Run this in the Supabase SQL editor (or via the Supabase CLI) to create the database.
 -- Rollback script lives in supabase/rollback/0001_init.down.sql
 

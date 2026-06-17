@@ -5,7 +5,7 @@
 # Self-locating: runs against whichever checkout this script lives in (worktree
 # or main), so it keeps working after feat/scraping merges to main.
 #
-# Scheduled by com.trime.swim-poll.plist (a launchd LaunchAgent). Run by hand any
+# Scheduled by com.leaderboard.swim-poll.plist (a launchd LaunchAgent). Run by hand any
 # time with:  scripts/swim-poll.sh        (or DRY=1 scripts/swim-poll.sh to preview)
 set -euo pipefail
 
