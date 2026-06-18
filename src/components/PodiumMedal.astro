@@ -2,16 +2,15 @@
 // Podium marker: medal glyph (🥇🥈🥉) + a small caption carrying the division/age
 // group. Glyph + caption sizing is kept identical to PrBadge (.mk-glyph / .mk-cap) so
 // the two read as one family of marks when they sit side by side left of a time.
+import { medalEmoji } from '../lib/medals';
 interface Props {
 	tier: number; // 1 | 2 | 3
 	sub?: string | null; // caption beneath the medal: division / age group
 }
 const { tier, sub = null } = Astro.props;
-const MEDAL = ['🥇', '🥈', '🥉'];
-const t = Math.min(Math.max(tier, 1), 3);
 ---
 <span class="podmedal">
-	<span class="mk-glyph">{MEDAL[t - 1]}</span>
+	<span class="mk-glyph">{medalEmoji(tier)}</span>
 	{sub && <span class="mk-cap">{sub}</span>}
 </span>
 

@@ -3,7 +3,8 @@ import Layout from '../../layouts/Layout.astro';
 import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
 import { getPersonBySlug } from '../../lib/queries';
-import { categoryOf, CAT_COLOR, CAT_ICON } from '../../lib/categories';
+import { categoryOf, catColor, catIcon } from '../../lib/categories';
+import { MEDAL_EMOJI, MEDAL_NAME, MEDAL_COLOR } from '../../lib/medals';
 import { currentAge } from '../../lib/format';
 import { buildEntries, buildPrContext, podiumPlace, award, type Entry } from '../../lib/feed';
 
@@ -11,10 +12,6 @@ const { slug } = Astro.params;
 const data = slug ? await getPersonBySlug(slug) : null;
 if (!data) return new Response('Person not found', { status: 404 });
 const { person, results } = data;
-
-const MEDAL = ['🥇', '🥈', '🥉'];
-const MEDAL_LABEL = ['1st', '2nd', '3rd'];
-const MEDAL_COLOR = ['#f0b400', '#b4bfca', '#cf7d44'];
 
 const prCtx = buildPrContext(results);
 const entries = buildEntries(results);
@@ -59,8 +56,8 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		<div class="fgroup" style="--g: var(--accent)">
 			<span class="anchor"><span class="num">{catChips.length}</span><span class="lab">Sports</span></span>
 			{catChips.map(([key, { label, count }]) => (
-				<button class="seg" data-f="cat" data-v={key} style={`--c:${CAT_COLOR[key] ?? 'var(--muted)'}`}>
-					<span class="ic">{CAT_ICON[key] ?? '🏁'}</span>
+				<button class="seg" data-f="cat" data-v={key} style={`--c:${catColor(key)}`}>
+					<span class="ic">{catIcon(key)}</span>
 					<span class="slabel">{label.split(' ').map((w) => <span class="lw">{w}</span>)}</span>
 					<span class="count">{count}</span>
 				</button>
@@ -72,7 +69,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 				<span class="anchor"><span class="num">{medalCounts.reduce((a, b) => a + b, 0)}</span><span class="lab">Podiums</span></span>
 				{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
 					<button class="seg seg-pod" data-f="place" data-v={String(p)} style={`--c:${MEDAL_COLOR[p - 1]}`}>
-						<span class="pod-stack"><span class="ic">{MEDAL[p - 1]}</span><span class="pod-lab">{MEDAL_LABEL[p - 1]}</span></span>
+						<span class="pod-stack"><span class="ic">{MEDAL_EMOJI[p - 1]}</span><span class="pod-lab">{MEDAL_NAME[p - 1]}</span></span>
 						<span class="count">{medalCounts[p - 1]}</span>
 					</button>
 				))}
