@@ -405,9 +405,9 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	/* time cell is the anchor; the medal/PR marks sit just left of it */
 	.sw-time { position: relative; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
 	.ev-timewrap { position: relative; width: max-content; }
-	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; line-height: 1; }
+	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-sm); letter-spacing: var(--ls-tight); line-height: 1; }
 	.ev-t.is-pr { color: var(--gold); }
-	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
+	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-sm); letter-spacing: var(--ls-tight); line-height: 1; color: var(--slower); }
 	.sw-place { display: flex; flex-direction: column; justify-content: center; }
 	.sw-ev.is-dq .evchip { color: var(--muted); }
 </style>

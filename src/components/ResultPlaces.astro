@@ -46,11 +46,11 @@ const overallSub = overallPlace != null ? placement(overallPlace, overallFieldSi
 )}
 
 <style>
-	.places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 0; }
-	.pl-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
-	.pl-v { display: block; font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; white-space: nowrap; }
+	.places { display: flex; flex-direction: column; justify-content: center; gap: var(--sp-3); min-width: 0; }
+	.pl-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
+	.pl-v { display: block; font-family: var(--font-mono); font-size: var(--fs-value); margin-top: 0.1rem; white-space: nowrap; }
 
 	.places.stack { gap: 0.18rem; }
-	.st-main { font-family: var(--font-mono); font-size: 0.84rem; white-space: nowrap; }
-	.st-sub { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em; color: var(--faint); white-space: nowrap; }
+	.st-main { font-family: var(--font-mono); font-size: var(--fs-value); white-space: nowrap; }
+	.st-sub { font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: 0.04em; color: var(--faint); white-space: nowrap; }
 </style>

@@ -62,10 +62,10 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 
 	.rc-race { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
 
-	.rc-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
+	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
 	.rc-timewrap { position: relative; width: max-content; }
-	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: 2rem; line-height: 0.9; letter-spacing: 0.02em; white-space: nowrap; }
+	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-lg); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
 	.rc-time.is-pr { color: var(--gold); }
 
 	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }

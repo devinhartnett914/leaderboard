@@ -31,7 +31,7 @@ const type = ev.short.replace(/^\d+\s*/, ''); // "25 Back" → "Back"
 	.evchip { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; color: var(--muted); }
 	a.evchip:hover { text-decoration: none; color: var(--text); }
 	.ev-ic { font-size: 1rem; line-height: 1; }
-	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-chip); letter-spacing: var(--ls-wide); text-transform: uppercase; white-space: nowrap; }
 	/* stacked: emoji+distance on top, stroke type beneath — same chip styles, just a
 	   line break for vertical balance. Recent cards only. */
 	.evchip.is-stack { flex-direction: column; align-items: center; gap: 0.15rem; }
