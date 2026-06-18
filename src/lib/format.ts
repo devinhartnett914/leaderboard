@@ -167,34 +167,37 @@ export function divisionLabel(div: string | null | undefined, place: number | nu
 }
 
 /**
- * Division inline with the RANK FIRST ("5th · F40-44", "3rd · 8&U•C") — the flipped
- * sibling of `divisionLabel`, used wherever the place should lead the age-group. A
- * non-award heat carries no rank, so it reads simply "Non-Award". "" when no division
- * (callers can `|| '—'` for a labelled row, or treat empty as "drop the field").
- */
-export function divisionRank(div: string | null | undefined, place: number | null | undefined): string {
-	if (/non-?award/i.test(div ?? '')) return 'Non-Award';
-	const g = swimDivision(div);
-	if (!g) return '';
-	return place != null ? `${ordinal(place)} · ${g}` : g;
-}
-
-/**
- * The division as separate parts for a STACKED field (group over rank), the shared
- * source for `Division.astro` and the medal caption. The group runs through
- * `swimDivision` so the swim heat is kept ("8&U•C"). Every result denotes a division:
- * an age-group with its place, else it falls back to the overall standing ("Overall" /
- * "Masters" carry through as the group). Returns `{ group, rank }`; rank null if unknown.
+ * The division as separate parts (group + rank) — the SINGLE source for how a division
+ * resolves, shared by every surface. A non-award heat carries no rank, so it reads simply
+ * "Non-Award". Otherwise: the age-group (with its swim heat kept via `swimDivision`, e.g.
+ * "8&U•C") + its place; failing that, the overall standing ("Overall"); else "—".
+ * `Division.astro` renders these stacked (group over rank); `divisionRank` formats them
+ * inline. Returns `{ group, rank }`; rank null when unknown.
  */
 export function divisionParts(
 	div: string | null | undefined,
 	divPlace: number | null | undefined,
 	overallPlace: number | null | undefined,
 ): { group: string; rank: string | null } {
+	if (/non-?award/i.test(div ?? '')) return { group: 'Non-Award', rank: null };
 	const g = swimDivision(div);
 	if (g) return { group: g, rank: divPlace != null ? ordinal(divPlace) : null };
 	if (overallPlace != null) return { group: 'Overall', rank: ordinal(overallPlace) };
 	return { group: '—', rank: null };
+}
+
+/**
+ * Division inline with the RANK FIRST ("5th · F40-44", "3rd · 8&U•C") — the flipped
+ * sibling of `divisionLabel`, used wherever the place should lead the age-group. Built on
+ * `divisionParts` so the group/rank/non-award rules stay identical to the stacked field.
+ * Non-award reads "Non-Award"; "" when there's no division (callers can `|| '—'` for a
+ * labelled row, or treat empty as "drop the field"). Overall is NOT folded in here — the
+ * standings block shows it as its own subline.
+ */
+export function divisionRank(div: string | null | undefined, place: number | null | undefined): string {
+	const { group, rank } = divisionParts(div, place, null);
+	if (group === '—') return '';
+	return rank ? `${rank} · ${group}` : group;
 }
 
 /** Abbreviate a division/age-group for tight callouts: "8 & Under" → "8&U". */
