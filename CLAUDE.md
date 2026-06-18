@@ -48,10 +48,19 @@ pattern repeats ~2–3×, extract it rather than copy it.
 ### Tokens (defined `:root` in `src/layouts/Layout.astro`)
 - Colors: `--bg/--surface/--surface-2`, `--text/--muted/--faint`, `--accent` (cyan), discipline
   accents `--swim/--bike/--run`, `--gold` (PR), `--faster/--slower` (deltas), `--border/--line-strong`.
+- **Type / spacing / tracking scales** (role-named): `--fs-cap/--fs-label/--fs-chip/--fs-event/`
+  `--fs-value/--fs-time-sm/--fs-time/--fs-time-lg`, `--ls-tight/--ls-wide/--ls-wider`, `--sp-1…6`.
+  Use a token, **don't hardcode a font-size / spacing** — that's what makes "edit once, hits all"
+  work. Add a new step only when a genuinely new size recurs.
 - Category color/icon/label live in `src/lib/categories.ts` (`catColor`/`catIcon`/`categoryOf`) —
   the single source for sport tinting; every card reads from it (don't hardcode sport colors).
+- Podium medals (glyph/name/color) live in `src/lib/medals.ts` (`medalEmoji`/`MEDAL_*`) — the one
+  source for `PodiumMedal` and the podium filter chips.
 - Fonts: `--font-display` (Bebas Neue — headings + times, **all-caps face**), `--font-mono`
   (JetBrains Mono — labels/captions), `--font-body` (Inter Tight). Plus `--radius`, `--shadow`.
+- Global utilities (`is:global`): `.sr-only` (visually-hidden, screen-reader-only labels),
+  `.micro-label` (the mono-uppercase field-label), `.caption` (the tighter mark caption). Reach
+  for these in new components instead of re-declaring the mono-uppercase-tiny block.
 
 ### Shared components (`src/components/`)
 - `RaceTitle.astro` — category icon + race name, vertically centered. The one race title; use
@@ -65,14 +74,43 @@ pattern repeats ~2–3×, extract it rather than copy it.
   the race-page PR best-time/year).
 - `ResultRow.astro` / `MeetCard.astro` / `RaceGroupCard.astro` — the three feed cards (tri·run /
   swim meet / multi-family-member race), all living in the shared `.results` subgrid so finish
-  times line up across every card.
-- `Avatar.astro` — circular photo with an initials fallback.
+  times line up across every card. The **swim-meet detail page** (`/races/[slug]`) reuses the same
+  row anatomy (`EventChip` + `ResultMarks` + `ResultPlaces`) — don't hand-roll a meet grid.
+- `ResultPlaces.astro` — THE standings block: division-first, label-free (`5th · F40-44`), overall
+  demoted to a muted subline, non-award → `Non-Award`. Built on `divisionRank()`. Used by every
+  race row. `EventChip.astro` — the one way to name a swim event (icon + label, linked).
+- `Avatar.astro` — circular photo with an initials fallback. The one avatar everywhere (incl. the
+  home family cards).
+- Division display has ONE core: `divisionParts()` in `src/lib/format.ts` (group + rank + the
+  non-award rule); `divisionRank()` formats it inline, `Division.astro` stacks it. Don't render
+  `division`/`*_place` by hand.
 
 ### Layout patterns (keep consistent across cards)
 - Card top row = the **type · distance** tag, on its own line *above* the race name. On the
   combined feed a `PersonChip` leads that row, pipe-separated from the tag.
-- Finish time is right-aligned with marks to its left; place / division sit at the far right.
-- Run every division string through `abbrevDivision()` before display (`8 & Under` → `8&U`).
+- Finish time is right-aligned with marks to its left; the division-first standing sits at the
+  far right (via `ResultPlaces`). Header captions (Overall/Division/Finish) are dropped visually
+  but kept as `.sr-only` for screen readers.
+- Run every division string through the division helpers (`divisionRank`/`divisionParts`, which
+  call `abbrevDivision`/`swimDivision`) — never format an age-group/heat by hand.
+
+### Adding a new sport / match type (tennis, ski, …)
+The system is designed to absorb new types without touching every card:
+1. Add its `sport` to `src/lib/types.ts` (`SPORT_LABELS`) and a color + icon in
+   `src/lib/categories.ts` (`CAT_COLOR`/`CAT_ICON`). That alone tints it everywhere.
+2. If it's result-shaped like the others (a time + place/division), it flows through the existing
+   feed cards and `ResultPlaces` for free. If it has a fundamentally different shape (sets/games,
+   runs/heats), add a new feed-card component beside the three — but reuse `DateRail`, `CardTopRow`,
+   `RaceTitle`, `ResultMarks`, and the tokens; don't re-invent the shell.
+
+### Cross-app roadmap (planned: a second app shares these components)
+A second app (swim-team meet results + leaderboards) will reuse this design system. The lightweight
+foundation is in place (explicit tokens, pure components, single-source helpers). When the second
+app starts, extract the shared layer (`layouts` tokens + `categories`/`medals`/`format` + core
+components) into a **workspace package** (pnpm/npm workspaces monorepo, or a `packages/ui` shared
+package) consumed by both apps — prefer a workspace over a published npm package initially. Defer
+Tailwind / a design-token toolchain until multiple external consumers actually exist. **This
+extraction is its own owner-approved project — don't start it as part of routine work.**
 
 ### Gotcha
 Astro's dev HMR can serve **stale scoped CSS** after a component edit — verify the *served* output
