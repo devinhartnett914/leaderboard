@@ -1,4 +1,4 @@
-# IA proposals — Tri•Me
+# IA proposals — Leaderboard
 
 Status: **proposal only** (no code touched). For Devin to review/pick before any
 implementation. Pulls on five things observed in the current site:
@@ -42,7 +42,7 @@ Smallest move. Add "Family" to the nav, give every page an active-nav state,
 and add a one-line breadcrumb-style "back-up" link to detail pages.
 
 ```
-[ 🏁 Tri•Me ]      Home   Family   Races   Add results
+[ 🏁 Leaderboard ] Home   Family   Races   Add results
                                    ─────
                                    (active)
 ```
@@ -83,7 +83,7 @@ it to that. `/races/[slug]` is the *race identity*; keep that route, but make
 it clear that it's a thing of its own.
 
 ```
-[ 🏁 Tri•Me ]      Home   Family   Results   Races   Add
+[ 🏁 Leaderboard ] Home   Family   Results   Races   Add
 ```
 
 ```
@@ -131,7 +131,7 @@ so the nav stays minimal. The home becomes the place you live; the rest is
 "all of X".
 
 ```
-[ 🏁 Tri•Me ]      Home   Results   Family   Races   Add
+[ 🏁 Leaderboard ] Home   Results   Family   Races   Add
                    ────
                    (this is the dashboard, not a landing page)
 ```
@@ -213,7 +213,7 @@ Suggested sequence:
   rest of the code already calls it `person`, so `/people` is the lower-friction
   path — but I'd write the nav link as "Family" either way.
 - **How important is the "browse recurring races" page?** If "every year we
-  do the same 12 races" is the *point* of Tri•Me, that index should be in
+  do the same 12 races" is the *point* of Leaderboard, that index should be in
   the nav (Option B). If the recurring page is more of a *destination you
   arrive at after seeing a result*, Option A is fine.
 - **Does the homepage stay landing-y or go dashboardy?** If you'd rather

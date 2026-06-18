@@ -192,7 +192,7 @@ Why:
 
 Option 2 is the cheapest path if Devin wants to move on tonight and
 revisit later. Option 3 is the most ambitious; would not pick it until
-Tri•Me has a charting story for `/people/[slug]` too — building it just
+Leaderboard has a charting story for `/people/[slug]` too — building it just
 for this one page is unbalanced.
 
 ---

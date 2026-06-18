@@ -13,8 +13,8 @@ interface Props {
 	   <h1>; these render as a "← All Races" trail on its own line above it. */
 	crumbs?: Crumb[];
 }
-const { title = 'Tri•Me', subtitle, avatarUrl, crumbs } = Astro.props;
-const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `${title} · Tri•Me`;
+const { title = 'Leaderboard', subtitle, avatarUrl, crumbs } = Astro.props;
+const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results' : `${title} · Leaderboard`;
 ---
 
 <!doctype html>
@@ -35,7 +35,7 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 	<body>
 		<header class="site-header">
 			<nav class="container">
-				<a href="/" class="brand">🏁 Tri•Me</a>
+				<a href="/" class="brand">🏁 Leaderboard</a>
 				<div class="nav-links">
 					<a href="/">Home</a>
 					<a href="/races">Races</a>
@@ -57,7 +57,7 @@ const fullTitle = title === 'Tri•Me' ? 'Tri•Me — family race results' : `$
 		}
 
 		<main class="container">
-			{(title !== 'Tri•Me' || subtitle || (crumbs && crumbs.length > 0)) && (
+			{(title !== 'Leaderboard' || subtitle || (crumbs && crumbs.length > 0)) && (
 				<div class="page-head">
 					{crumbs && crumbs.length > 0 && (
 						<nav class="crumbs" aria-label="Breadcrumb">
