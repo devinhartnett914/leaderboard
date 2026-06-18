@@ -13,8 +13,9 @@ interface Props {
 	entry: MeetEntry;
 	prCtx: PrContext;
 	showPerson?: boolean;
+	placesVariant?: 'current' | 'stack';
 }
-const { entry, prCtx, showPerson = false } = Astro.props;
+const { entry, prCtx, showPerson = false, placesVariant = 'stack' } = Astro.props;
 const events = entry.events;
 const ed = events[0].race_edition;
 const person = events[0].person;
@@ -49,7 +50,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 					</span>
 				</div>
 				<div class="mc-evplace" style={`grid-row:${row}`}>
-					<ResultPlaces overallPlace={e.overall_place} overallFieldSize={e.overall_field_size} division={e.division} divisionPlace={e.division_place} />
+					<ResultPlaces overallPlace={e.overall_place} overallFieldSize={e.overall_field_size} division={e.division} divisionPlace={e.division_place} variant={placesVariant} />
 				</div>
 			</Fragment>
 		);

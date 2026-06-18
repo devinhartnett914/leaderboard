@@ -18,8 +18,9 @@ interface Props {
 	pr: PrBadge | null;
 	aw: { tier: number; sub: string } | null;
 	showPerson?: boolean;
+	placesVariant?: 'current' | 'stack';
 }
-const { r, pr, aw, showPerson = false } = Astro.props;
+const { r, pr, aw, showPerson = false, placesVariant = 'stack' } = Astro.props;
 const ed = r.race_edition;
 const sport = (ed?.race?.sport ?? 'other') as Sport;
 const cat = categoryOf(r);
@@ -35,7 +36,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	<div class="rc-finish">
-		<span class="rc-k">Finish</span>
+		{placesVariant === 'stack' ? <span class="sr-only">Finish </span> : <span class="rc-k">Finish</span>}
 		<span class="rc-timewrap">
 			<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} />
 			<span class:list={['rc-time', { 'is-pr': pr?.gold }]}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
@@ -51,7 +52,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		))}
 	</div>
 	<div class="rc-places">
-		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} />
+		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} variant={placesVariant} />
 	</div>
 </article>
 

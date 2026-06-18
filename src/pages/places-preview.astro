@@ -1,0 +1,76 @@
+---
+// THROWAWAY preview page — compare the right-column standings (Overall / Division) on the
+// real feed cards. "Current" = labelled fields; "New" = division-first ("30th · F40-49")
+// with overall demoted to a small "81st of 165 overall" subline. Delete this file (and the
+// `placesVariant` prop on ResultRow / MeetCard / RaceGroupCard + the `stack` variant on
+// ResultPlaces) once a layout is chosen. Visit /places-preview.
+import Layout from '../layouts/Layout.astro';
+import ResultRow from '../components/ResultRow.astro';
+import MeetCard from '../components/MeetCard.astro';
+import RaceGroupCard from '../components/RaceGroupCard.astro';
+import { getAllFamilyResults } from '../lib/queries';
+import { buildEntries, buildPrContext, award, type Entry } from '../lib/feed';
+
+const results = await getAllFamilyResults();
+const prCtx = buildPrContext(results);
+const entries = buildEntries(results, { groupRaces: true });
+
+// Pick a few entries that actually exercise the standings: a tri/run row with both a
+// division place and an overall, a swim meet, and a multi-family-member race group.
+const hasStandings = (r: { overall_place?: number | null; division?: string | null }) =>
+	r.overall_place != null || !!r.division;
+const firstRow = entries.find((e): e is Extract<Entry, { type: 'card' }> => e.type === 'card' && hasStandings(e.r));
+const firstMeet = entries.find((e) => e.type === 'meet');
+const firstGroup = entries.find((e) => e.type === 'race');
+const samples = [firstRow, firstMeet, firstGroup].filter(Boolean) as Entry[];
+
+const variants = [
+	{ key: 'current', title: 'Current', note: 'Labelled OVERALL / DIVISION fields (what you have now)' },
+	{ key: 'stack', title: 'New · division-first', note: 'No labels · place before category · overall demoted to a subline' },
+] as const;
+---
+
+<Layout title="Standings — layout preview">
+	<section class="hero">
+		<div class="eyebrow">Throwaway preview</div>
+		<h1>Race-card standings<br /><span>division-first</span></h1>
+		<p class="muted">Same real cards, two treatments of the right-hand standings column. <strong>New</strong>:
+			no header labels, the division ranking leads with the place before the category
+			(<code>30th · F40-49</code>), and the overall — when there is one — sits underneath in
+			smaller text ending in "overall" (<code>81st of 165 overall</code>). Tell me which to ship
+			and I'll wire it in everywhere + delete this page.</p>
+	</section>
+
+	{variants.map((v) => (
+		<section class="block">
+			<div class="section-head">
+				<h2>{v.title}</h2>
+				<span class="note">{v.note}</span>
+			</div>
+			<div class="results">
+				{samples.map((it) =>
+					it.type === 'meet' ? (
+						<MeetCard entry={it} prCtx={prCtx} showPerson placesVariant={v.key} />
+					) : it.type === 'race' ? (
+						<RaceGroupCard entry={it} prCtx={prCtx} placesVariant={v.key} />
+					) : (
+						<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson placesVariant={v.key} />
+					),
+				)}
+			</div>
+		</section>
+	))}
+</Layout>
+
+<style>
+	.hero { margin: 1rem 0 2.5rem; }
+	.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
+	.hero h1 { margin: 0 0 1rem; font-family: var(--font-display); font-weight: 400; font-size: clamp(2.5rem, 7vw, 4rem); line-height: 0.9; letter-spacing: 0.02em; }
+	.hero h1 span { color: var(--accent); }
+	.hero p { margin: 0; max-width: 64ch; }
+	.hero code { font-family: var(--font-mono); font-size: 0.85em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 4px; }
+	.block { margin-bottom: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid var(--border); }
+	.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
+	.note { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+</style>

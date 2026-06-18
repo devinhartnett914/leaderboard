@@ -17,8 +17,9 @@ import { award, podiumPlace, type RaceEntry, type PrContext } from '../lib/feed'
 interface Props {
 	entry: RaceEntry;
 	prCtx: PrContext;
+	placesVariant?: 'current' | 'stack';
 }
-const { entry, prCtx } = Astro.props;
+const { entry, prCtx, placesVariant = 'stack' } = Astro.props;
 const results = entry.results;
 const lead = results[0];
 const ed = lead.race_edition;
@@ -57,7 +58,7 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 					</span>
 				</div>
 				<div class="gc-place" style={`grid-row:${row}`}>
-					<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} />
+					<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} variant={placesVariant} />
 				</div>
 			</Fragment>
 		);

@@ -1,30 +1,56 @@
 ---
-// THE one way to render a result's standings on the far-right of a race row: an
-// OVERALL field over a DIVISION field, each a mono header above its value. Division is
-// the divisionLabel "age-group · place" standard ("F40-44 · 5th", "9-10•C · 1st"). Every
-// result carries a division; each field is shown only when it has data (no overall, or a
-// non-tri with no age division, drops out cleanly). Used by every race row — tri/run
-// (ResultRow) and swim events (MeetCard) — so the right column reads identically.
-import { placement, divisionLabel } from '../lib/format';
+// THE one way to render a result's standings on the far-right of a race row. The shipped
+// 'stack' layout is DIVISION-FIRST and label-free: the division rank leads with the place
+// before the age-group ("5th · F40-44"), and the overall — when there is one — trails in a
+// smaller muted subline ("150th of 663"). A non-award heat carries no rank, so it reads just
+// "Non-Award"; with no division at all the overall becomes the lead line. Header labels are
+// kept as `.sr-only` text so screen readers still hear "Division …" / "Overall …" though the
+// layout conveys them visually. Used by every race row — tri/run (ResultRow), swim events
+// (MeetCard), grouped races (RaceGroupCard) — so the right column reads identically. The
+// 'current' variant is the pre-redesign labelled layout, kept for the /places-preview compare.
+import { placement, divisionLabel, divisionRank } from '../lib/format';
 interface Props {
 	overallPlace?: number | null;
 	overallFieldSize?: number | null;
 	division?: string | null;
 	divisionPlace?: number | null;
+	/** 'stack' (default, shipped) = division-first, label-free. 'current' = the old labelled
+	 *  Overall/Division fields, retained for the /places-preview comparison. */
+	variant?: 'current' | 'stack';
 }
-const { overallPlace = null, overallFieldSize = null, division = null, divisionPlace = null } = Astro.props;
+const { overallPlace = null, overallFieldSize = null, division = null, divisionPlace = null, variant = 'stack' } = Astro.props;
+
+const divLead = divisionRank(division, divisionPlace) || null;
+const overallSub = overallPlace != null ? placement(overallPlace, overallFieldSize) : null;
 ---
-<div class="places">
-	{overallPlace != null && (
-		<div class="pl"><span class="pl-k">Overall</span><span class="pl-v">{placement(overallPlace, overallFieldSize)}</span></div>
-	)}
-	{division && (
-		<div class="pl"><span class="pl-k">Division</span><span class="pl-v">{divisionLabel(division, divisionPlace)}</span></div>
-	)}
-</div>
+{variant === 'stack' ? (
+	<div class="places stack">
+		{divLead ? (
+			<Fragment>
+				<div class="st-main"><span class="sr-only">Division </span>{divLead}</div>
+				{overallSub && <div class="st-sub"><span class="sr-only">Overall </span>{overallSub}</div>}
+			</Fragment>
+		) : overallSub && (
+			<div class="st-main"><span class="sr-only">Overall </span>{overallSub}</div>
+		)}
+	</div>
+) : (
+	<div class="places">
+		{overallPlace != null && (
+			<div class="pl"><span class="pl-k">Overall</span><span class="pl-v">{placement(overallPlace, overallFieldSize)}</span></div>
+		)}
+		{division && (
+			<div class="pl"><span class="pl-k">Division</span><span class="pl-v">{divisionLabel(division, divisionPlace)}</span></div>
+		)}
+	</div>
+)}
 
 <style>
 	.places { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-width: 0; }
 	.pl-k { display: block; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); }
 	.pl-v { display: block; font-family: var(--font-mono); font-size: 0.84rem; margin-top: 0.1rem; white-space: nowrap; }
+
+	.places.stack { gap: 0.18rem; }
+	.st-main { font-family: var(--font-mono); font-size: 0.84rem; white-space: nowrap; }
+	.st-sub { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.04em; color: var(--faint); white-space: nowrap; }
 </style>

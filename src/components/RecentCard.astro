@@ -106,7 +106,9 @@ if (entry.type === 'meet') {
 	pr = !!b;
 	isGold = !!b?.gold;
 	figure = r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase();
-	figureLabel = 'Finish';
+	// No caption for a plain finish — the time speaks for itself (matches the label-free
+	// feed cards). "Fastest"/"Best result" stay, since they flag a standout among several.
+	figureLabel = '';
 	division = r.division;
 	divisionPlace = r.division_place;
 	overallPlace = r.overall_place;
@@ -125,15 +127,17 @@ const medalSub = medalTier ? swimDivision(division) : null;
 		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
 		<div class="rc-finish" data-ev={variant}>
-			<div class="rc-head">
-				<span class="rc-k">{figureLabel}</span>
-				{eventStr && (variant === 'current' || variant === 'b') && (
-					<span class="rc-headev">
-						{variant === 'b' && <span class="rc-sep">·</span>}
-						<EventChip event={eventStr} />
-					</span>
-				)}
-			</div>
+			{(figureLabel || (eventStr && (variant === 'current' || variant === 'b'))) && (
+				<div class="rc-head">
+					{figureLabel && <span class="rc-k">{figureLabel}</span>}
+					{eventStr && (variant === 'current' || variant === 'b') && (
+						<span class="rc-headev">
+							{variant === 'b' && <span class="rc-sep">·</span>}
+							<EventChip event={eventStr} />
+						</span>
+					)}
+				</div>
+			)}
 			<div class="rc-row">
 				<span class="rc-finrow">
 					{eventStr && variant === 'a' && <EventChip event={eventStr} />}

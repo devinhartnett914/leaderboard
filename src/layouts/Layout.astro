@@ -35,7 +35,7 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 	<body>
 		<header class="site-header">
 			<nav class="container">
-				<a href="/" class="brand">🏁 Leaderboard</a>
+				<a href="/" class="brand">🥇 Leaderboard</a>
 				<div class="nav-links">
 					<a href="/">Home</a>
 					<a href="/races">Races</a>
@@ -189,6 +189,14 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 			.page-avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 3px solid var(--surface-2); box-shadow: var(--shadow), 0 0 0 1px var(--border); }
 			.page-head h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 3.1rem; letter-spacing: 0.02em; line-height: 0.95; }
 			.subtitle { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+
+			/* Visually-hidden but read by screen readers — for labels the layout
+			   conveys to sighted users by position/size (Finish, Overall, Division)
+			   but that assistive tech would otherwise miss. The standard clip recipe. */
+			.sr-only {
+				position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+				overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+			}
 
 			/* The 5-column container grid every feed card lives in (home,
 			   /races, /people/[slug]). The card-shell below is a subgrid of

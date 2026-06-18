@@ -167,6 +167,19 @@ export function divisionLabel(div: string | null | undefined, place: number | nu
 }
 
 /**
+ * Division inline with the RANK FIRST ("5th · F40-44", "3rd · 8&U•C") — the flipped
+ * sibling of `divisionLabel`, used wherever the place should lead the age-group. A
+ * non-award heat carries no rank, so it reads simply "Non-Award". "" when no division
+ * (callers can `|| '—'` for a labelled row, or treat empty as "drop the field").
+ */
+export function divisionRank(div: string | null | undefined, place: number | null | undefined): string {
+	if (/non-?award/i.test(div ?? '')) return 'Non-Award';
+	const g = swimDivision(div);
+	if (!g) return '';
+	return place != null ? `${ordinal(place)} · ${g}` : g;
+}
+
+/**
  * The division as separate parts for a STACKED field (group over rank), the shared
  * source for `Division.astro` and the medal caption. The group runs through
  * `swimDivision` so the swim heat is kept ("8&U•C"). Every result denotes a division:
