@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
+import ResultPlaces from '../../components/ResultPlaces.astro';
+import EventChip from '../../components/EventChip.astro';
 import Avatar from '../../components/Avatar.astro';
 import PrBadge from '../../components/PrBadge.astro';
 import PrTime from '../../components/PrTime.astro';
@@ -13,7 +15,6 @@ import {
 	formatDelta,
 	deltaDirection,
 	placement,
-	ordinal,
 	isPodium,
 	formatDistance,
 	legPace,
@@ -24,10 +25,9 @@ import {
 	formatSwimTime,
 	parseSwimEvent,
 	swimEventKey,
-	swimEventSlug,
 	abbrevDivision,
 	swimDivision,
-	divisionLabel,
+	divisionRank,
 } from '../../lib/format';
 
 const { slug } = Astro.params;
@@ -48,8 +48,6 @@ const eventOrder = (r: Result) => {
 	return (ev.isRelay ? 1000 : 0) + (STROKE_ORDER[ev.strokeKey] ?? 9) * 100 + (ev.distance ?? 0) / 100;
 };
 const swimCs = (r: Result) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
-const ageGroupOf = (div: string | null | undefined) => (div ?? '').replace(/\s+(A|B|C|D|Non-?Award)\b.*$/i, '').trim() || null;
-const heatOf = (div: string | null | undefined) => (div ?? '').replace(ageGroupOf(div) ?? '', '').trim();
 const swimMeets = swim
 	? [...editions].sort((a, b) => b.year - a.year).map((ed) => {
 			const byPerson = new Map<string, { person: NonNullable<(typeof ed.result)[number]['person']>; events: Result[] }>();
@@ -155,33 +153,28 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 									) : (
 										<span class="sw-name">{s.person.full_name}</span>
 									)}
-									{ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division) && (
-										<span class="sw-group">{abbrevDivision(ageGroupOf(s.events.find((e) => e.status === 'finished')?.division ?? s.events[0].division))}</span>
-									)}
 								</div>
 								<div class="sw-events">
 									{s.events.map((e) => {
-										const ev = parseSwimEvent(e.event);
 										const place = e.division_place;
 										const podium = place != null && isPodium(place) ? place : null;
 										const dq = e.status !== 'finished';
-										const heat = heatOf(e.division);
 										const pr = isSwimPr(e, s.person.id, courseTok(m.ed.distance_or_format));
 										return (
-											<div class={`sw-ev${dq ? ' is-dq' : ''}`} style={`--c:${ev.color}`}>
-												<span class="ev-ic">{ev.icon}</span>
-												<a class="ev-name" href={`/swim/${swimEventSlug(e.event)}`}>{ev.short}</a>
-												<span class="ev-time">
-													<ResultMarks medalTier={podium} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />
-													{dq ? (
-														<span class="ev-dq">{e.status.toUpperCase()}</span>
-													) : (
-														<b class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</b>
-													)}
+											<div class={`sw-ev${dq ? ' is-dq' : ''}`}>
+												<EventChip event={e.event} />
+												<span class="sw-time">
+													<span class="ev-timewrap">
+														<ResultMarks medalTier={podium} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />
+														{dq ? (
+															<span class="ev-dq">{e.status.toUpperCase()}</span>
+														) : (
+															<b class={`ev-t${pr ? ' is-pr' : ''}`}>{formatSwimTime(swimCs(e))}</b>
+														)}
+													</span>
 												</span>
-												<span class="ev-place">
-													<span class="ev-ord">{place != null ? ordinal(place) : '—'}</span>
-													{heat && <span class="ev-heat">{heat}</span>}
+												<span class="sw-place">
+													<ResultPlaces overallPlace={e.overall_place} overallFieldSize={e.overall_field_size} division={e.division} divisionPlace={e.division_place} />
 												</span>
 											</div>
 										);
@@ -269,7 +262,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										<div class="row">
 											<span class="rl">Division</span>
 											<span class="rv">
-												<b>{divisionLabel(c.result?.division, c.result?.division_place)}</b>
+												<b>{divisionRank(c.result?.division, c.result?.division_place) || '—'}</b>
 											</span>
 										</div>
 
@@ -399,27 +392,22 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.swimmers { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }
 	.swimmer { background: linear-gradient(180deg, var(--surface-2), var(--surface) 60px); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
 	.sw-head { display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--swim) 10%, transparent); }
-	.sw-head .sw-group { margin-left: auto; }
 	.sw-name { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; letter-spacing: 0.03em; color: var(--text); }
 	.sw-name:hover { color: var(--swim); text-decoration: none; }
-	.sw-group { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--swim); }
 
-	.sw-events { display: grid; grid-template-columns: 1.5rem minmax(5rem, 1fr) max-content minmax(4rem, max-content); align-items: center; gap: 0.15rem 0.7rem; padding: 0.5rem 1rem 0.7rem; }
-	.sw-ev { display: contents; }
-	.sw-ev > * { padding-top: 0.34rem; padding-bottom: 0.34rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
-	.sw-ev:first-child > * { border-top: none; }
-	.ev-ic { font-size: 1.15rem; line-height: 1; }
-	/* Event name styled like the family-name chip (PersonChip): muted, hover → text,
-	   no underline. Kept in sync with EventChip + MeetCard. */
-	.ev-name { font-family: var(--font-mono); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-	a.ev-name:hover { color: var(--text); text-decoration: none; }
+	/* Per-event rows: real subgrid rows (not display:contents) so the event name,
+	   time, and standing line up across every event and the row separator is one
+	   clean line. Anatomy mirrors the feed MeetCard row: EventChip · time (marks to
+	   its left) · ResultPlaces standing (place-first "8th · 8&U•B"). */
+	.sw-events { display: grid; grid-template-columns: minmax(0, 1fr) max-content max-content; padding: 0.3rem 1rem 0.6rem; }
+	.sw-ev { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center; column-gap: 0.7rem; padding: 0.34rem 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.sw-ev:first-child { border-top: none; }
 	/* time cell is the anchor; the medal/PR marks sit just left of it */
-	.ev-time { position: relative; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
-	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; }
+	.sw-time { position: relative; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+	.ev-timewrap { position: relative; width: max-content; }
+	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; line-height: 1; }
 	.ev-t.is-pr { color: var(--gold); }
 	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
-	.ev-place { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-	.ev-ord { font-family: var(--font-mono); font-size: 0.74rem; font-weight: 600; color: var(--text); }
-	.ev-heat { font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-	.sw-ev.is-dq .ev-name { color: var(--muted); }
+	.sw-place { display: flex; flex-direction: column; justify-content: center; }
+	.sw-ev.is-dq .evchip { color: var(--muted); }
 </style>
