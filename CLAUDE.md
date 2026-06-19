@@ -3,6 +3,12 @@
 A site to store the family's race results (triathlons, swim meets, gravel rides, trail/road
 runs) and compare progress year over year for races we repeat annually.
 
+## Project tracking
+Issues live in **Linear → project "Leaderboard"** (team "Devin Hartnett", key `DEV`). Follow the
+Linear Workflow in the global `~/.claude/CLAUDE.md`: only autonomously work `Todo` issues, finish
+into `Ready for Review` (never `Done`) with notes + a review link, commit per-issue referencing
+`DEV-#`. The `/dispatch` skill works this project's whole Todo queue.
+
 ## What it does
 - **Person pages** — each family member's full race history across all sports, with PRs.
 - **Recurring-race pages** — click a race we do every year and see year-over-year (YoY) finish
