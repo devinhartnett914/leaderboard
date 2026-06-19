@@ -1,0 +1,24 @@
+---
+// A standalone colored category tag — the category icon + label, tinted with its
+// category color (catColor). The one way to badge a race's category (Sprint Tri /
+// Swim Meet / Trail Run) OUTSIDE a feed card. Feed cards tag the category inline via
+// CardMeta (which reads the card's --edge); this is the page-header version, reading
+// catColor directly. Same source of truth (categories.ts), same mono-caps voice.
+import { catColor, catIcon } from '../lib/categories';
+interface Props {
+	catKey: string;
+	label: string;
+	icon?: boolean; // show the category icon (default false)
+}
+const { catKey, label, icon = false } = Astro.props;
+---
+<span class="cat-tag" style={`--c:${catColor(catKey)}`}>
+	{icon && <span class="cat-ic">{catIcon(catKey)}</span>}
+	<span class="cat-lbl">{label}</span>
+</span>
+
+<style>
+	.cat-tag { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--c); }
+	.cat-ic { font-size: 1.1rem; line-height: 1; }
+	.cat-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-event); letter-spacing: var(--ls-wide); text-transform: uppercase; }
+</style>

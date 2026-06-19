@@ -7,9 +7,11 @@ import Avatar from '../../components/Avatar.astro';
 import PrBadge from '../../components/PrBadge.astro';
 import PrTime from '../../components/PrTime.astro';
 import PodiumMedal from '../../components/PodiumMedal.astro';
+import CategoryTag from '../../components/CategoryTag.astro';
 import { getRaceBySlug, getAllFamilyResults } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
-import { SPORT_LABELS, type Result, type Split } from '../../lib/types';
+import { categoryOf } from '../../lib/categories';
+import { type Result, type Split } from '../../lib/types';
 import {
 	formatTime,
 	formatDelta,
@@ -105,10 +107,15 @@ const disciplines = headerSplits
 	.map((s) => ({ label: s.label, icon: legIcon(s.label), dist: formatDistance(s.distance_m, s.distance_unit) }));
 const format = editionsDesc[0]?.distance_or_format ?? null;
 
+// The race's specific category — Sprint/Olympic/Kids Tri (split from the format + name)
+// or the plain sport — tinted like the feed cards. Header tag, not the generic sport label.
+const cat = categoryOf({ race_edition: { distance_or_format: format, race: { sport: race.sport, name: race.name } } });
+
 const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t) ?? t;
 ---
 
-<Layout title={race.name} subtitle={[SPORT_LABELS[race.sport], race.location].filter(Boolean).join(' · ')} crumbs={[{ label: 'All Races', href: '/races' }]}>
+<Layout title={race.name} subtitle={race.location ?? undefined} crumbs={[{ label: 'All Races', href: '/races' }]}>
+	<div class="race-cat"><CategoryTag catKey={cat.key} label={cat.label} icon /></div>
 	<section class="race-meta">
 		{format && <span class="format-badge">{format}</span>}
 		{disciplines.length > 0 && (
@@ -306,6 +313,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 
 <style>
 	/* race header */
+	.race-cat { margin: -0.5rem 0 1rem; }
 	.race-meta { display: flex; align-items: stretch; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
 	.format-badge { display: inline-flex; align-items: center; font-family: var(--font-display); font-size: 1.45rem; letter-spacing: 0.08em; padding: 0 1.25rem; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #032530; box-shadow: var(--shadow); }
 	.disciplines { display: flex; gap: 0.7rem; flex-wrap: wrap; }
