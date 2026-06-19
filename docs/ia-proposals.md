@@ -42,7 +42,7 @@ Smallest move. Add "Family" to the nav, give every page an active-nav state,
 and add a one-line breadcrumb-style "back-up" link to detail pages.
 
 ```
-[ 🏁 Leaderboard ] Home   Family   Races   Add results
+[ 🥇 Leaderboard ] Home   Family   Races   Add results
                                    ─────
                                    (active)
 ```
@@ -83,7 +83,7 @@ it to that. `/races/[slug]` is the *race identity*; keep that route, but make
 it clear that it's a thing of its own.
 
 ```
-[ 🏁 Leaderboard ] Home   Family   Results   Races   Add
+[ 🥇 Leaderboard ] Home   Family   Results   Races   Add
 ```
 
 ```
@@ -131,7 +131,7 @@ so the nav stays minimal. The home becomes the place you live; the rest is
 "all of X".
 
 ```
-[ 🏁 Leaderboard ] Home   Results   Family   Races   Add
+[ 🥇 Leaderboard ] Home   Results   Family   Races   Add
                    ────
                    (this is the dashboard, not a landing page)
 ```
