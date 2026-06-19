@@ -4,7 +4,7 @@ import ResultMarks from '../../components/ResultMarks.astro';
 import PrTime from '../../components/PrTime.astro';
 import DateRail from '../../components/DateRail.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
-import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, ordinal, isPodium, swimDivision } from '../../lib/format';
+import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, divisionRank, isPodium, swimDivision } from '../../lib/format';
 
 const { event } = Astro.params;
 const all = await getAllFamilyResults();
@@ -52,6 +52,7 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 		Every recorded swim of the <strong>{title}</strong>, fastest-tracked over time.
 	</p>
 
+	<div class="tracks-grid">
 	{tracks.map((t) => (
 		<section class="track">
 			<div class="track-head">
@@ -73,7 +74,6 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 							<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
 							<div class="occ-meet">
 								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
-								{r.division && <span class="occ-div">{swimDivision(r.division)}</span>}
 							</div>
 							<div class="occ-time">
 								<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
@@ -87,13 +87,14 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
 								{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
 							</div>
-							<div class="occ-place">{place != null ? ordinal(place) : '—'}</div>
+							<div class="occ-place">{divisionRank(r.division, place) || '—'}</div>
 						</article>
 					);
 				})}
 			</div>
 		</section>
 	))}
+	</div>
 </Layout>
 
 <style>
@@ -102,7 +103,10 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 	.lead-ic { font-size: 1.3rem; }
 	.lead strong { color: var(--text); }
 
-	.track { margin-bottom: 2.6rem; }
+	/* Swimmers side-by-side (2-up on desktop, 1-up when a column can't fit) — each
+	   swimmer's progression sits beside the next instead of stacked down the page. */
+	.tracks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.6rem 1.4rem; align-items: start; }
+	.track { margin-bottom: 0; min-width: 0; }
 	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem; }
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }
@@ -121,7 +125,6 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 	.occ-meet { display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.6rem 1.1rem; min-width: 0; }
 	.occ-name { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; letter-spacing: 0.02em; line-height: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.occ-name:hover { color: var(--swim); text-decoration: none; }
-	.occ-div { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
 
 	.occ-time { position: relative; display: flex; align-items: center; padding: 0.6rem 1.1rem; }
 	.occ-t { font-family: var(--font-display); font-weight: 400; font-size: 1.85rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
