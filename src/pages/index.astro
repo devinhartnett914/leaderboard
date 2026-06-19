@@ -112,6 +112,9 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.race-card { justify-content: space-between; }
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
+	/* Family-card gender·age reads blue, matching the person-page subtitle (the one
+	   "person meta" treatment). The race-card sub (date · location) stays muted. */
+	.person-card .sub { color: var(--accent); }
 
 	/* Recent races are teaser TILES (RecentCard) in the shared cols-3 grid — each a
 	   self-contained card that summarizes one entry, built from the same DateRail /
