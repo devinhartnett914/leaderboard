@@ -117,7 +117,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 <Layout title={race.name} subtitle={race.location ?? undefined} crumbs={[{ label: 'All Races', href: '/races' }]}>
 	<div class="race-cat"><CategoryTag catKey={cat.key} label={cat.label} icon /></div>
 	<section class="race-meta">
-		{format && <span class="format-badge">{format}</span>}
 		{disciplines.length > 0 && (
 			<div class="disciplines">
 				{disciplines.map((d) => (
@@ -315,7 +314,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	/* race header */
 	.race-cat { margin: -0.5rem 0 1rem; }
 	.race-meta { display: flex; align-items: stretch; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
-	.format-badge { display: inline-flex; align-items: center; font-family: var(--font-display); font-size: 1.45rem; letter-spacing: 0.08em; padding: 0 1.25rem; border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #032530; box-shadow: var(--shadow); }
 	.disciplines { display: flex; gap: 0.7rem; flex-wrap: wrap; }
 	.disc { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--c, var(--border)); border-radius: 12px; padding: 0.45rem 1rem; }
 	.disc-icon { font-size: 1.6rem; line-height: 1; color: var(--c, var(--text)); }
