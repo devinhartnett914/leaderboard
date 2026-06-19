@@ -199,7 +199,9 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 				main { animation: none; }
 			}
 
-			.page-head { margin-bottom: 1.75rem; }
+			/* Top gap matches the home hero (which adds 1rem above the main's 2rem pad),
+			   so subpage titles don't butt against the sticky header. */
+			.page-head { margin-top: 1rem; margin-bottom: 1.75rem; }
 			/* Breadcrumb on its own line above the photo + title — a stable "you are
 			   here / climb back up" trail. Ancestors only; the current page is the H1. */
 			.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; margin-bottom: 0.8rem; }
