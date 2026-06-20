@@ -190,16 +190,25 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 			}
 
 			main { padding: 2rem 0 3rem; min-height: 60vh; }
-			/* Gentle arrival: each page softly settles in on load. Navigation
-			   itself is instant — there is no page-to-page transition. Skipped
-			   for users who prefer reduced motion. */
-			main { animation: page-enter 180ms ease-out both; }
-			@keyframes page-enter {
-				from { opacity: 0; transform: translateY(4px); }
+			/* Gentle arrival (DEV-14, variant A — "subtle stagger"): the page's top-level
+			   rows fade + rise 6px on load, 60ms apart, settling top-to-bottom (page-head
+			   first, then each section / feed block). Navigation itself is instant — there's
+			   no page-to-page transition. The cascade is capped at the 7th row so long pages
+			   don't trail off; reduced-motion users get no animation at all. */
+			main > * { animation: page-rise 0.32s ease-out both; }
+			main > *:nth-child(1) { animation-delay: 0s; }
+			main > *:nth-child(2) { animation-delay: 0.06s; }
+			main > *:nth-child(3) { animation-delay: 0.12s; }
+			main > *:nth-child(4) { animation-delay: 0.18s; }
+			main > *:nth-child(5) { animation-delay: 0.24s; }
+			main > *:nth-child(6) { animation-delay: 0.30s; }
+			main > *:nth-child(n+7) { animation-delay: 0.36s; }
+			@keyframes page-rise {
+				from { opacity: 0; transform: translateY(6px); }
 				to { opacity: 1; transform: translateY(0); }
 			}
 			@media (prefers-reduced-motion: reduce) {
-				main { animation: none; }
+				main > * { animation: none; }
 			}
 
 			/* Top gap matches the home hero (which adds 1rem above the main's 2rem pad),
