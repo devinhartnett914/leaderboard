@@ -70,7 +70,11 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 						{avatarUrl && <img class="page-avatar" src={avatarUrl} alt={title} />}
 						<div class="page-head-text">
 							<h1>{title}</h1>
-							{subtitle && <p class="subtitle">{subtitle}</p>}
+							{Astro.slots.has('subtitle') ? (
+								<slot name="subtitle" />
+							) : subtitle ? (
+								<p class="subtitle">{subtitle}</p>
+							) : null}
 						</div>
 					</div>
 				</div>

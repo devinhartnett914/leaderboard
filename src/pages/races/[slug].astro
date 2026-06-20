@@ -10,7 +10,7 @@ import PodiumMedal from '../../components/PodiumMedal.astro';
 import CategoryTag from '../../components/CategoryTag.astro';
 import { getRaceBySlug, getAllFamilyResults } from '../../lib/queries';
 import { familyTracks, recurringRivals, splitLabels } from '../../lib/compare';
-import { categoryOf } from '../../lib/categories';
+import { categoryOf, catColor } from '../../lib/categories';
 import { type Result, type Split } from '../../lib/types';
 import {
 	formatTime,
@@ -114,8 +114,11 @@ const cat = categoryOf({ race_edition: { distance_or_format: format, race: { spo
 const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t) ?? t;
 ---
 
-<Layout title={race.name} subtitle={race.location ?? undefined} crumbs={[{ label: 'All Races', href: '/races' }]}>
-	<div class="race-cat"><CategoryTag catKey={cat.key} label={cat.label} icon /></div>
+<Layout title={race.name} crumbs={[{ label: 'All Races', href: '/races' }]}>
+	<div class="race-sub" slot="subtitle" style={`--c:${catColor(cat.key)}`}>
+		<CategoryTag catKey={cat.key} label={cat.label} icon />
+		{race.location && <span class="race-loc">{race.location}</span>}
+	</div>
 	<section class="race-meta">
 		{disciplines.length > 0 && (
 			<div class="disciplines">
@@ -314,7 +317,12 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 
 <style>
 	/* race header */
-	.race-cat { margin: -0.5rem 0 1rem; }
+	/* Category tag + location share one line directly under the title (the header's
+	   subtitle slot). The location is tinted/sized to match the CategoryTag — same
+	   category color + mono-caps voice — separated by a faint middot. */
+	.race-sub { display: flex; align-items: center; flex-wrap: wrap; gap: 0.55rem; margin-top: 0.5rem; }
+	.race-loc { display: inline-flex; align-items: center; gap: 0.55rem; font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-event); letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--c); }
+	.race-loc::before { content: '·'; color: var(--faint); }
 	.race-meta { display: flex; align-items: stretch; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1.6rem; }
 	.disciplines { display: flex; gap: 0.7rem; flex-wrap: wrap; }
 	.disc { display: flex; align-items: center; gap: 0.7rem; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--c, var(--border)); border-radius: 12px; padding: 0.45rem 1rem; }
