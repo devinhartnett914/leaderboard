@@ -36,7 +36,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 		const row = 2 + i;
 		return (
 			<Fragment>
-				<a class="mc-evname" href={`/swim/${swimEventSlug(e.event)}`} style={`grid-row:${row}; --c:${ev.color}`}>
+				<a class="mc-evname" href={`/swim/${swimEventSlug(e.event)}${person?.slug ? `?who=${encodeURIComponent(person.slug)}` : ''}`} style={`grid-row:${row}; --c:${ev.color}`}>
 					<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
 				</a>
 				<div class="mc-evtime" style={`grid-row:${row}`}>

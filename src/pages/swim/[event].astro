@@ -7,94 +7,93 @@ import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, divisionRank, isPodium, swimDivision } from '../../lib/format';
 
 const { event } = Astro.params;
+const who = Astro.url.searchParams.get('who');
 const all = await getAllFamilyResults();
-const matching = all.filter((r) => (r.race_edition?.race?.sport ?? '') === 'swim_meet' && swimEventSlug(r.event) === event);
-if (matching.length === 0) return new Response('Event not found', { status: 404 });
+const eventRows = all.filter((r) => (r.race_edition?.race?.sport ?? '') === 'swim_meet' && swimEventSlug(r.event) === event);
+if (eventRows.length === 0) return new Response('Event not found', { status: 404 });
 
-const ev = parseSwimEvent(matching[0].event);
-const title = matching[0].event ?? ev.short; // canonical "50m Backstroke"
-const course = (matching[0].race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null;
+const ev = parseSwimEvent(eventRows[0].event);
+const title = eventRows[0].event ?? ev.short; // canonical "50m Backstroke"
+const course = (eventRows[0].race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null;
 
 const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
 const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 
-// Group by swimmer; oldest swimmer first (matches the rest of the site).
-interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
-interface Track { person: NonNullable<FeedResult['person']>; occ: Occ[]; bestCs: number | null; bestYear: number | null }
-const byPerson = new Map<string, FeedResult[]>();
-for (const r of matching) {
-	if (!r.person) continue;
-	(byPerson.get(r.person.id) ?? byPerson.set(r.person.id, []).get(r.person.id)!).push(r);
-}
-const tracks: Track[] = [...byPerson.values()].map((rows) => {
-	const chrono = [...rows].sort((a, b) => sortKey(a).localeCompare(sortKey(b))); // oldest first
-	const finishedCs = chrono.filter((r) => r.status === 'finished').map(swimCs).filter((c): c is number => c != null);
-	const bestCs = finishedCs.length ? Math.min(...finishedCs) : null;
-	let prevCs: number | null = null;
-	const occChrono: Occ[] = chrono.map((r) => {
-		const cs = r.status === 'finished' ? swimCs(r) : null;
-		const deltaCs = cs != null && prevCs != null ? cs - prevCs : null;
-		if (cs != null) prevCs = cs;
-		return { r, cs, deltaCs, isBest: cs != null && cs === bestCs };
-	});
-	const bestRow = bestCs != null ? chrono.find((r) => swimCs(r) === bestCs) : null;
-	const bestYear = bestRow?.race_edition?.year ?? null;
-	return { person: rows[0].person!, occ: occChrono.reverse(), bestCs, bestYear }; // newest first for display
-}).sort((a, b) => (a.person.birth_year ?? 0) - (b.person.birth_year ?? 0));
+// Per-swimmer discipline page (DEV-13): the page is scoped to the ONE swimmer you came
+// from (?who=<slug>, set on every event link). With no ?who — e.g. a bare/shared URL —
+// default to the oldest family swimmer for this event, so the page is always a single
+// swimmer (never the old side-by-side view) and never 404s a valid event.
+const wanted = who ?? [...eventRows]
+	.filter((r) => r.person?.slug)
+	.sort((a, b) => (a.person!.birth_year ?? 0) - (b.person!.birth_year ?? 0))[0]?.person?.slug ?? null;
+const matching = wanted ? eventRows.filter((r) => r.person?.slug === wanted) : [];
+if (matching.length === 0) return new Response('Event not found for this swimmer', { status: 404 });
+const person = matching[0].person!;
 
-const swimmerCount = tracks.length;
-const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? 'swimmer' : 'swimmers'}`].filter(Boolean).join(' · ');
+// This swimmer's progression in this event, fastest-tracked. Each occurrence shows the
+// delta vs the previous swim; the all-time best is starred (PR) and tinted gold.
+interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
+const chrono = [...matching].sort((a, b) => sortKey(a).localeCompare(sortKey(b))); // oldest first
+const finishedCs = chrono.filter((r) => r.status === 'finished').map(swimCs).filter((c): c is number => c != null);
+const bestCs = finishedCs.length ? Math.min(...finishedCs) : null;
+let prevCs: number | null = null;
+const occ: Occ[] = chrono.map((r) => {
+	const cs = r.status === 'finished' ? swimCs(r) : null;
+	const deltaCs = cs != null && prevCs != null ? cs - prevCs : null;
+	if (cs != null) prevCs = cs;
+	return { r, cs, deltaCs, isBest: cs != null && cs === bestCs };
+}).reverse(); // newest first for display
+const bestRow = bestCs != null ? chrono.find((r) => swimCs(r) === bestCs) : null;
+const bestYear = bestRow?.race_edition?.year ?? null;
+
+const subtitle = ['Swim Meet', course].filter(Boolean).join(' · ');
 ---
 
-<Layout title={title} subtitle={subtitle} crumbs={[{ label: 'All Races', href: '/races' }]}>
+<Layout title={title} subtitle={subtitle} crumbs={[{ label: person.full_name, href: person.slug ? `/people/${person.slug}` : '/races' }]}>
 	<p class="lead">
 		<span class="lead-ic">{ev.icon}</span>
-		Every recorded swim of the <strong>{title}</strong>, fastest-tracked over time.
+		Every recorded <strong>{title}</strong> for {person.full_name}, fastest-tracked over time.
 	</p>
 
-	<div class="tracks-grid">
-	{tracks.map((t) => (
-		<section class="track">
-			<div class="track-head">
-				<h2>{t.person.slug ? <a href={`/people/${t.person.slug}`}>{t.person.full_name}</a> : t.person.full_name}</h2>
-				{t.bestCs != null && <PrTime time={formatSwimTime(t.bestCs)} caption={t.bestYear ? String(t.bestYear) : null} />}
-				<span class="track-count">{t.occ.length} {t.occ.length === 1 ? 'swim' : 'swims'}</span>
-			</div>
+	<section class="track">
+		<div class="track-head">
+			<h2>{person.slug ? <a href={`/people/${person.slug}`}>{person.full_name}</a> : person.full_name}</h2>
+			{bestCs != null && <PrTime time={formatSwimTime(bestCs)} caption={bestYear ? String(bestYear) : null} />}
+			<span class="track-count">{occ.length} {occ.length === 1 ? 'swim' : 'swims'}</span>
+		</div>
 
-			<div class="occ-list">
-				{t.occ.map((o) => {
-					const r = o.r;
-					const ed = r.race_edition;
-					const place = r.division_place;
-					const podium = isPodium(place);
-					const dq = r.status !== 'finished';
-					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
-					return (
-						<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
-							<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
-							<div class="occ-meet">
-								{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
-							</div>
-							<div class="occ-time">
-								<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
-								{dq ? (
-									<span class="occ-dq">{r.status.toUpperCase()}</span>
-								) : (
-									<span class={`occ-t${o.isBest ? ' is-best' : ''}`}>{formatSwimTime(o.cs)}</span>
-								)}
-							</div>
-							<div class="occ-delta">
-								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
-								{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
-							</div>
-							<div class="occ-place">{divisionRank(r.division, place) || '—'}</div>
-						</article>
-					);
-				})}
-			</div>
-		</section>
-	))}
-	</div>
+		<div class="occ-list">
+			{occ.map((o) => {
+				const r = o.r;
+				const ed = r.race_edition;
+				const place = r.division_place;
+				const podium = isPodium(place);
+				const dq = r.status !== 'finished';
+				const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
+				return (
+					<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
+						<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
+						<div class="occ-meet">
+							{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
+						</div>
+						<div class="occ-time">
+							<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
+							{dq ? (
+								<span class="occ-dq">{r.status.toUpperCase()}</span>
+							) : (
+								<span class={`occ-t${o.isBest ? ' is-best' : ''}`}>{formatSwimTime(o.cs)}</span>
+							)}
+						</div>
+						<div class="occ-delta">
+							{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
+							{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
+						</div>
+						<div class="occ-place">{divisionRank(r.division, place) || '—'}</div>
+					</article>
+				);
+			})}
+		</div>
+	</section>
 </Layout>
 
 <style>
@@ -103,10 +102,9 @@ const subtitle = ['Swim Meet', course, `${swimmerCount} ${swimmerCount === 1 ? '
 	.lead-ic { font-size: 1.3rem; }
 	.lead strong { color: var(--text); }
 
-	/* Swimmers side-by-side (2-up on desktop, 1-up when a column can't fit) — each
-	   swimmer's progression sits beside the next instead of stacked down the page. */
-	.tracks-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.6rem 1.4rem; align-items: start; }
-	.track { margin-bottom: 0; min-width: 0; }
+	/* One swimmer per page (DEV-13): scoped to the person you came from, so this is a
+	   single progression block, not a grid of swimmers. */
+	.track { min-width: 0; }
 	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem; }
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }

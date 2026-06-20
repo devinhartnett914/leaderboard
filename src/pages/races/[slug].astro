@@ -173,7 +173,7 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										const pr = isSwimPr(e, s.person.id, courseTok(m.ed.distance_or_format));
 										return (
 											<div class={`sw-ev${dq ? ' is-dq' : ''}`}>
-												<EventChip event={e.event} />
+												<EventChip event={e.event} personSlug={s.person.slug} />
 												<span class="sw-time">
 													<span class="ev-timewrap">
 														<ResultMarks medalTier={podium} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />

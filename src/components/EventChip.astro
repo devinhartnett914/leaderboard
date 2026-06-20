@@ -7,10 +7,11 @@ interface Props {
 	event: string | null | undefined;
 	link?: boolean; // wrap in a link to /swim/[event] (default true)
 	stack?: boolean; // two lines — emoji+distance over the stroke type (recent cards only)
+	personSlug?: string | null; // scope the /swim/[event] page to this swimmer (?who=)
 }
-const { event, link = true, stack = false } = Astro.props;
+const { event, link = true, stack = false, personSlug = null } = Astro.props;
 const ev = parseSwimEvent(event);
-const href = `/swim/${swimEventSlug(event)}`;
+const href = `/swim/${swimEventSlug(event)}${personSlug ? `?who=${encodeURIComponent(personSlug)}` : ''}`;
 const Tag = link ? 'a' : 'span';
 const type = ev.short.replace(/^\d+\s*/, ''); // "25 Back" → "Back"
 ---

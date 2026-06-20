@@ -133,21 +133,21 @@ const medalSub = medalTier ? swimDivision(division) : null;
 					{eventStr && (variant === 'current' || variant === 'b') && (
 						<span class="rc-headev">
 							{variant === 'b' && <span class="rc-sep">·</span>}
-							<EventChip event={eventStr} />
+							<EventChip event={eventStr} personSlug={person?.slug} />
 						</span>
 					)}
 				</div>
 			)}
 			<div class="rc-row">
 				<span class="rc-finrow">
-					{eventStr && variant === 'a' && <EventChip event={eventStr} />}
-					{eventStr && variant === 'd' && <EventChip event={eventStr} stack />}
+					{eventStr && variant === 'a' && <EventChip event={eventStr} personSlug={person?.slug} />}
+					{eventStr && variant === 'd' && <EventChip event={eventStr} stack personSlug={person?.slug} />}
 					<ResultMarks medalTier={medalTier} medalSub={medalSub} pr={pr} compact inline />
 					<span class:list={['rc-fig', { 'is-pr': isGold }]}>{figure}</span>
 				</span>
 				{!medalTier && <Division division={division} divisionPlace={divisionPlace} overallPlace={overallPlace} align="end" />}
 				{/* C (production default): the standout event as a stacked chip, right-aligned like the division */}
-				{eventStr && variant === 'c' && <EventChip event={eventStr} stack />}
+				{eventStr && variant === 'c' && <EventChip event={eventStr} stack personSlug={person?.slug} />}
 			</div>
 		</div>
 	</div>
