@@ -70,11 +70,12 @@ for (const o of occ) {
 		{bestCs != null && <PrTime time={formatSwimTime(bestCs)} caption={bestYear ? String(bestYear) : null} />}
 	</header>
 
-	{/* One swimmer's progression, grouped by year (newest first), in the SAME shared
-	   `.results` grid every feed row uses — so the meet name, finish time, and standing
-	   land in the same columns as a tri/run row (time mid-row, not pinned to the edge).
-	   The per-swim delta fills the "legs" slot between the time and the standing. */}
-	<div class="results">
+	{/* One swimmer's progression, grouped by year (newest first). Swim rows carry no
+	   leg-splits to fill the middle the way a tri/run row does, so instead of the shared
+	   feed grid (which would leave a big empty gap and clump the data on the right) the
+	   row uses its OWN proportional grid — date · meet · time · delta · standing spread
+	   evenly across the width. */}
+	<div class="occ-list">
 		{byYear.map((grp) => (
 			<Fragment>
 				<div class="year-header"><span>{grp.year ?? '—'}</span></div>
@@ -87,27 +88,24 @@ for (const o of occ) {
 					const pr = o.isBest && !dq;
 					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
 					return (
-						<article class:list={['ocard', 'feed-card', { 'has-marks': podium || pr }]} style="--edge: var(--swim)">
+						<article class:list={['ocard', { 'is-pr': o.isBest }]} style="--edge: var(--swim)">
 							<DateRail date={ed?.date} year={ed?.year} />
 							<div class="oc-meet">
-								<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} nameRem={1.25} />
+								<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} nameRem={1.2} />
 							</div>
-							<div class="oc-finish">
-								<span class="sr-only">Finish </span>
-								<span class="oc-timewrap">
-									<ResultMarks medalTier={podium} medalSub={swimDivision(r.division)} pr={pr} compact />
-									{dq ? (
-										<span class="oc-t is-dq">{r.status.toUpperCase()}</span>
-									) : (
-										<span class:list={['oc-t', { 'is-pr': o.isBest }]}>{formatSwimTime(o.cs)}</span>
-									)}
-								</span>
+							<div class="oc-time">
+								<ResultMarks medalTier={podium} medalSub={swimDivision(r.division)} pr={pr} compact inline />
+								{dq ? (
+									<span class="oc-t is-dq">{r.status.toUpperCase()}</span>
+								) : (
+									<span class:list={['oc-t', { 'is-pr': o.isBest }]}>{formatSwimTime(o.cs)}</span>
+								)}
 							</div>
 							<div class="oc-delta">
 								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
 								{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
 							</div>
-							<div class="oc-places">
+							<div class="oc-place">
 								<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} />
 							</div>
 						</article>
@@ -125,23 +123,30 @@ for (const o of occ) {
 	   with the all-time best (PrTime) beside it. */
 	.disc-head { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.4rem; }
 
-	/* Rows live in the shared `.results` subgrid (Layout.astro): date rail · meet name ·
-	   finish · [delta] · standing — column-for-column with ResultRow / MeetCard, so a swim
-	   discipline row reads identically to every other row on the site. */
-	.oc-meet { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
-	.ocard.has-marks .oc-meet { padding-right: 76px; }
+	/* Own proportional grid (not the shared 5-col feed grid): the flexible space is spread
+	   across ALL columns so the data distributes evenly instead of clumping on the right.
+	   date · meet · time · delta · standing. */
+	.occ-list { display: grid; grid-template-columns: 86px minmax(0, 2.3fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 1.2fr); row-gap: 0.7rem; }
+	.ocard {
+		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-left: 3px solid var(--edge);
+		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.ocard.is-pr { border-color: color-mix(in srgb, var(--gold) 45%, var(--border)); }
 
-	.oc-finish { position: relative; display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; }
-	.oc-timewrap { position: relative; width: max-content; }
-	.oc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-lg); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
+	.oc-meet { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
+
+	.oc-time { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.5rem; min-width: 0; }
+	.oc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
 	.oc-t.is-pr { color: var(--gold); }
 	.oc-t.is-dq { color: var(--slower); }
 
-	.oc-delta { display: flex; align-items: center; padding: 0.85rem 1.1rem; }
-	.delta { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+	.oc-delta { display: flex; align-items: center; padding: 0.85rem 0.5rem; }
+	.delta { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
 	.delta.faster { color: var(--faster); }
 	.delta.slower { color: var(--slower); }
 	.delta.same { color: var(--faint); }
 
-	.oc-places { display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.2rem 0.85rem 1.1rem; }
+	.oc-place { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
 </style>
