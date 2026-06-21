@@ -3,8 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import ResultPlaces from '../../components/ResultPlaces.astro';
 import RaceTitle from '../../components/RaceTitle.astro';
-import PersonChip from '../../components/PersonChip.astro';
-import PrTime from '../../components/PrTime.astro';
+import StatChips from '../../components/StatChips.astro';
 import DateRail from '../../components/DateRail.astro';
 import CategoryTag from '../../components/CategoryTag.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
@@ -17,7 +16,7 @@ const eventRows = all.filter((r) => (r.race_edition?.race?.sport ?? '') === 'swi
 if (eventRows.length === 0) return new Response('Event not found', { status: 404 });
 
 const ev = parseSwimEvent(eventRows[0].event);
-const title = eventRows[0].event ?? ev.short; // canonical "50m Backstroke"
+const eventLabel = eventRows[0].event ?? ev.short; // canonical "50m Backstroke" (stroke + distance)
 
 const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
 const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
@@ -48,6 +47,15 @@ const occ: Occ[] = chrono.map((r) => {
 const bestRow = bestCs != null ? chrono.find((r) => swimCs(r) === bestCs) : null;
 const bestYear = bestRow?.race_edition?.year ?? null;
 
+// Stat chips (DEV-13): this swimmer's podium medals in this event + their PR. Medals are
+// counted off the same division place the rows badge, so the tally matches the marks below.
+const medalCounts = [0, 0, 0];
+for (const o of occ) {
+	const place = o.r.division_place;
+	if (o.r.status === 'finished' && isPodium(place) && place! >= 1) medalCounts[place! - 1]++;
+}
+const prStat = bestCs != null ? { time: formatSwimTime(bestCs), year: bestYear ? String(bestYear) : null } : null;
+
 // Group the (newest-first) occurrences into year sections, newest year first (DEV-13).
 interface YearGroup { year: number | null; items: Occ[] }
 const byYear: YearGroup[] = [];
@@ -60,15 +68,17 @@ for (const o of occ) {
 ---
 
 <Layout
-	title={title}
-	crumbs={[{ label: 'All Races', href: '/races' }, { label: person.full_name, href: person.slug ? `/people/${person.slug}` : '/races' }]}
+	title={person.full_name}
+	avatarUrl={person.avatar_url}
+	crumbs={[{ label: 'All Races', href: '/races' }]}
 >
-	<div class="sub-tag" slot="subtitle"><CategoryTag catKey="swim_meet" label="Swim Meet" icon /></div>
+	{/* Header mirrors the person page (DEV-13): avatar + NAME, with the stroke + distance
+	   as the swim-tinted sub-tag underneath. The person breadcrumb is gone (the name is
+	   now the H1 — it would be duplicative). */}
+	<div class="sub-tag" slot="subtitle"><CategoryTag catKey="swim_meet" label={eventLabel} icon /></div>
 
-	<header class="disc-head">
-		<PersonChip person={person} avatar={38} nameRem={1.05} />
-		{bestCs != null && <PrTime time={formatSwimTime(bestCs)} caption={bestYear ? String(bestYear) : null} />}
-	</header>
+	{/* Medals + PR for this swimmer in this event, in the person-page filter-chip style. */}
+	<StatChips medalCounts={medalCounts} pr={prStat} />
 
 	{/* One swimmer's progression, grouped by year (newest first). Swim rows carry no
 	   leg-splits to fill the middle the way a tri/run row does, so instead of the shared
@@ -119,10 +129,6 @@ for (const o of occ) {
 <style>
 	.sub-tag { margin-top: 0.5rem; }
 
-	/* Swimmer identity for this discipline page — the shared PersonChip (avatar + name),
-	   with the all-time best (PrTime) beside it. */
-	.disc-head { display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.4rem; }
-
 	/* Own proportional grid (not the shared 5-col feed grid): the flexible space is spread
 	   across ALL columns so the data distributes evenly instead of clumping on the right.
 	   date · meet · time · delta · standing. */
@@ -138,7 +144,9 @@ for (const o of occ) {
 	.oc-meet { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
 
 	.oc-time { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.5rem; min-width: 0; }
-	.oc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
+	/* finish time at the primary-finish size (--fs-time-lg), matching a single-race
+	   (tri/run) row so the number reads at the same weight across the site. */
+	.oc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-lg); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
 	.oc-t.is-pr { color: var(--gold); }
 	.oc-t.is-dq { color: var(--slower); }
 

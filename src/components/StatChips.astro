@@ -1,0 +1,74 @@
+---
+// Read-only "stat chips" — podium-medal tallies + the personal record — in the rounded
+// anchor+segment style of the person-page filters (.fgroup/.anchor/.seg). Presentational
+// only (no filtering); use where you want to SHOW an athlete's medals + PR for a scope
+// (e.g. the swim discipline page, scoped to one swimmer + event). Mirrors the person-page
+// filter visual so the two pages read the same. Medal glyph/name/color come from medals.ts
+// (the one source), so podium chips never drift from the medal marks on the rows.
+import { MEDAL_EMOJI, MEDAL_NAME, MEDAL_COLOR } from '../lib/medals';
+
+interface Props {
+	medalCounts?: number[]; // [gold, silver, bronze] tallies for this scope
+	pr?: { time: string; year?: string | null } | null; // the personal record to surface
+}
+const { medalCounts = [0, 0, 0], pr = null } = Astro.props;
+const totalMedals = medalCounts.reduce((a, b) => a + b, 0);
+const hasMedals = totalMedals > 0;
+---
+{(hasMedals || pr) && (
+	<div class="stat-chips">
+		{hasMedals && (
+			<div class="fgroup" style="--g: var(--gold)">
+				<span class="anchor"><span class="num">{totalMedals}</span><span class="lab">Podiums</span></span>
+				{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
+					<span class="seg seg-pod" style={`--c:${MEDAL_COLOR[p - 1]}`}>
+						<span class="pod-stack"><span class="ic">{MEDAL_EMOJI[p - 1]}</span><span class="pod-lab">{MEDAL_NAME[p - 1]}</span></span>
+						<span class="count">{medalCounts[p - 1]}</span>
+					</span>
+				))}
+			</div>
+		)}
+
+		{pr && (
+			<div class="fgroup fpr" style="--g: var(--gold)">
+				<span class="pr-stack"><span class="pr-mark">⭐</span><span class="pr-lab">PR</span></span>
+				<span class="pr-readout">
+					<span class="pr-time">{pr.time}</span>
+					{pr.year && <span class="pr-year">{pr.year}</span>}
+				</span>
+			</div>
+		)}
+	</div>
+)}
+
+<style>
+	.stat-chips { display: flex; align-items: stretch; flex-wrap: wrap; gap: 0.7rem; margin-bottom: 1.9rem; }
+
+	/* one rounded box per group: tinted anchor + divided segments — same shell as the
+	   person-page filters so the two read identically. */
+	.fgroup { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+
+	.anchor { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; line-height: 0.82; padding: 0.55rem 1rem; background: color-mix(in srgb, var(--g, var(--accent)) 15%, var(--surface)); border-right: 1px solid var(--border); }
+	.anchor .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--g, var(--accent)); }
+	.anchor .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 0.32rem; }
+
+	/* each breakdown segment, divided from its neighbor (read-only — no hover/active) */
+	.seg { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.75rem; border-right: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
+	.seg:last-child { border-right: none; }
+	.seg .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--c, var(--accent)); }
+
+	/* podium segments stack the medal icon over its rank */
+	.seg-pod .pod-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; }
+	.seg-pod .ic { font-size: 1.2rem; line-height: 1; }
+	.seg-pod .pod-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+	/* the PR readout chip — gold-tinted like the person-page "PRs" chiclet, but surfacing
+	   the record itself: ⭐ over "PR", then the best time + its year. */
+	.fpr { align-items: center; gap: 0.6rem; padding: 0.4rem 0.95rem; background: color-mix(in srgb, var(--gold) 14%, var(--surface)); border-color: var(--gold); }
+	.fpr .pr-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.12rem; line-height: 1; }
+	.fpr .pr-mark { font-size: 1.2rem; }
+	.fpr .pr-lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+	.fpr .pr-readout { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 0.9; }
+	.fpr .pr-time { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; color: var(--gold); }
+	.fpr .pr-year { font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 0.18rem; }
+</style>
