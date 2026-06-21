@@ -99,14 +99,16 @@ for (const o of occ) {
 					const pr = o.isBest && !dq;
 					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
 					return (
-						<article class:list={['ocard', { 'is-pr': o.isBest }]} style="--edge: var(--swim)">
+						<article class:list={['ocard', { 'is-pr': o.isBest, 'is-marked': !!podium || pr }]} style="--edge: var(--swim)">
 							<DateRail date={ed?.date} year={ed?.year} />
 							<div class="oc-meet">
-								<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} nameRem={1.2} />
+								<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 							</div>
 							<div class="oc-time">
-								<ResultMarks medalTier={podium} medalSub={swimDivision(r.division)} pr={pr} compact inline />
-								<FinishTime time={dq ? '' : formatSwimTime(o.cs)} status={r.status} pr={o.isBest && !dq} />
+								<span class="oc-timewrap">
+									<ResultMarks medalTier={podium} medalSub={swimDivision(r.division)} pr={pr} compact />
+									<FinishTime time={dq ? '' : formatSwimTime(o.cs)} status={r.status} pr={o.isBest && !dq} />
+								</span>
 							</div>
 							<div class="oc-delta">
 								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
@@ -139,9 +141,15 @@ for (const o of occ) {
 	.ocard.is-pr { border-color: color-mix(in srgb, var(--gold) 45%, var(--border)); }
 
 	.oc-meet { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
+	/* marked rows reserve room so the medal/PR (which hangs to the left of the time)
+	   doesn't run under the meet name — same idea as the feed's .has-marks padding. */
+	.ocard.is-marked .oc-meet { padding-right: 3.4rem; }
 
-	.oc-time { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.5rem; min-width: 0; }
-	/* finish time renders through the shared <FinishTime/> — the one site-wide size/weight. */
+	/* Times line up across rows the same way the feed does: the time sits at a fixed left
+	   edge and the medal/PR marks hang to its left (absolute), so a row WITH a medal/PR no
+	   longer shoves the time over. Finish time renders through the shared <FinishTime/>. */
+	.oc-time { display: flex; align-items: center; padding: 0.85rem 0.5rem; min-width: 0; }
+	.oc-timewrap { position: relative; width: max-content; }
 
 	.oc-delta { display: flex; align-items: center; padding: 0.85rem 0.5rem; }
 	.delta { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
