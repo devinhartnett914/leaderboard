@@ -9,6 +9,7 @@ import PersonChip from './PersonChip.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
 import ResultPlaces from './ResultPlaces.astro';
+import FinishTime from './FinishTime.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, abbrevDivision } from '../lib/format';
@@ -50,11 +51,7 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 				<div class="gc-time" style={`grid-row:${row}`}>
 					<span class="gc-timewrap">
 						<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} compact />
-						{dnf ? (
-							<span class="gc-dq">{r.status.toUpperCase()}</span>
-						) : (
-							<span class:list={['gc-t', { 'is-pr': pr?.gold }]}>{formatTime(r.finish_time_seconds)}</span>
-						)}
+						<FinishTime time={dnf ? '' : formatTime(r.finish_time_seconds)} status={r.status} pr={!!pr?.gold} />
 					</span>
 				</div>
 				<div class="gc-place" style={`grid-row:${row}`}>
@@ -73,9 +70,6 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.4rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.gc-time { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.gc-timewrap { position: relative; width: max-content; }
-	.gc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); letter-spacing: var(--ls-tight); line-height: 1; white-space: nowrap; }
-	.gc-t.is-pr { color: var(--gold); }
-	.gc-dq { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); letter-spacing: var(--ls-tight); line-height: 1; color: var(--slower); }
 	.gc-place { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.45rem 1.2rem 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	/* first finisher row sits directly under the header — no doubled divider */
 	.gc-head + .gc-who, .gc-head + .gc-who + .gc-time, .gc-head + .gc-who + .gc-time + .gc-place { border-top: none; }

@@ -2,6 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import ResultPlaces from '../../components/ResultPlaces.astro';
+import FinishTime from '../../components/FinishTime.astro';
 import RaceTitle from '../../components/RaceTitle.astro';
 import StatChips from '../../components/StatChips.astro';
 import DateRail from '../../components/DateRail.astro';
@@ -105,11 +106,7 @@ for (const o of occ) {
 							</div>
 							<div class="oc-time">
 								<ResultMarks medalTier={podium} medalSub={swimDivision(r.division)} pr={pr} compact inline />
-								{dq ? (
-									<span class="oc-t is-dq">{r.status.toUpperCase()}</span>
-								) : (
-									<span class:list={['oc-t', { 'is-pr': o.isBest }]}>{formatSwimTime(o.cs)}</span>
-								)}
+								<FinishTime time={dq ? '' : formatSwimTime(o.cs)} status={r.status} pr={o.isBest && !dq} />
 							</div>
 							<div class="oc-delta">
 								{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
@@ -144,11 +141,7 @@ for (const o of occ) {
 	.oc-meet { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
 
 	.oc-time { display: flex; align-items: center; gap: 0.5rem; padding: 0.85rem 0.5rem; min-width: 0; }
-	/* finish time at the primary-finish size (--fs-time-lg), matching a single-race
-	   (tri/run) row so the number reads at the same weight across the site. */
-	.oc-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-lg); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
-	.oc-t.is-pr { color: var(--gold); }
-	.oc-t.is-dq { color: var(--slower); }
+	/* finish time renders through the shared <FinishTime/> — the one site-wide size/weight. */
 
 	.oc-delta { display: flex; align-items: center; padding: 0.85rem 0.5rem; }
 	.delta { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }

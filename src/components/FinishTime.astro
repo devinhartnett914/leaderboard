@@ -1,0 +1,30 @@
+---
+// The one finish-time glyph. Every race row — the three feed cards (ResultRow,
+// MeetCard, RaceGroupCard), the swim-meet detail rows, and the swim progression
+// rows — renders its time through this so the number reads at ONE size/weight
+// across the whole site (no more 1.4 / 1.5 / 2rem drift between cards).
+// Presentational: pass a preformatted time string; the component owns the size
+// and the PR (gold) and DNF/DQ (slower) states.
+interface Props {
+	time?: string; // preformatted finish time (h:mm:ss or m:ss.cs); ignored when not finished
+	status?: string; // result status — anything but 'finished' renders as the status label
+	pr?: boolean; // personal record → gold
+}
+const { time = '', status = 'finished', pr = false } = Astro.props;
+const dq = status !== 'finished';
+---
+<span class:list={['ftime', { 'is-pr': pr && !dq, 'is-dq': dq }]}>{dq ? status.toUpperCase() : time}</span>
+
+<style>
+	/* --fs-time-lg is the standard finish-time size for the whole site. */
+	.ftime {
+		font-family: var(--font-display);
+		font-weight: 400;
+		font-size: var(--fs-time-lg);
+		line-height: 0.9;
+		letter-spacing: var(--ls-tight);
+		white-space: nowrap;
+	}
+	.ftime.is-pr { color: var(--gold); }
+	.ftime.is-dq { color: var(--slower); }
+</style>

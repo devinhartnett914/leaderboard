@@ -8,6 +8,7 @@ import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
 import ResultPlaces from './ResultPlaces.astro';
+import FinishTime from './FinishTime.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, legPace, legIcon, legColor, abbrevDivision } from '../lib/format';
@@ -39,7 +40,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 		{placesVariant === 'stack' ? <span class="sr-only">Finish </span> : <span class="rc-k">Finish</span>}
 		<span class="rc-timewrap">
 			<ResultMarks medalTier={aw ? aw.tier : null} medalSub={aw ? abbrevDivision(aw.sub) : null} pr={!!pr} />
-			<span class:list={['rc-time', { 'is-pr': pr?.gold }]}>{r.status === 'finished' ? formatTime(r.finish_time_seconds) : r.status.toUpperCase()}</span>
+			<FinishTime time={r.status === 'finished' ? formatTime(r.finish_time_seconds) : ''} status={r.status} pr={!!pr?.gold} />
 		</span>
 	</div>
 	<div class="rc-legs">
@@ -65,8 +66,6 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
 	.rc-finish { display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0.85rem 1.1rem; }
 	.rc-timewrap { position: relative; width: max-content; }
-	.rc-time { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time-lg); line-height: 0.9; letter-spacing: var(--ls-tight); white-space: nowrap; }
-	.rc-time.is-pr { color: var(--gold); }
 
 	.rc-legs { display: flex; gap: 0.95rem; align-items: center; padding: 0.85rem 1.1rem; }
 	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }

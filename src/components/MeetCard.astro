@@ -6,6 +6,7 @@ import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
 import ResultPlaces from './ResultPlaces.astro';
+import FinishTime from './FinishTime.astro';
 import { formatSwimTime, parseSwimEvent, swimEventSlug, swimDivision } from '../lib/format';
 import { podiumPlace, swimCs, type MeetEntry, type PrContext } from '../lib/feed';
 
@@ -42,11 +43,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 				<div class="mc-evtime" style={`grid-row:${row}`}>
 					<span class="ev-timewrap">
 						<ResultMarks medalTier={place} medalSub={swimDivision(e.division)} pr={pr && !dq} compact />
-						{dq ? (
-							<span class="ev-dq">{e.status.toUpperCase()}</span>
-						) : (
-							<span class:list={['ev-t', { 'is-pr': pr }]}>{formatSwimTime(swimCs(e))}</span>
-						)}
+						<FinishTime time={dq ? '' : formatSwimTime(swimCs(e))} status={e.status} pr={pr} />
 					</span>
 				</div>
 				<div class="mc-evplace" style={`grid-row:${row}`}>
@@ -69,9 +66,6 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 	.mc-evname .ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-event); letter-spacing: var(--ls-wide); text-transform: uppercase; white-space: nowrap; }
 	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.ev-timewrap { position: relative; width: max-content; }
-	.ev-t { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); letter-spacing: var(--ls-tight); line-height: 1; white-space: nowrap; }
-	.ev-t.is-pr { color: var(--gold); }
-	.ev-dq { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-time); letter-spacing: var(--ls-tight); line-height: 1; color: var(--slower); }
 	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-head + .mc-evname, .mc-head + .mc-evname + .mc-evtime, .mc-head + .mc-evname + .mc-evtime + .mc-evplace { border-top: none; }
 </style>
