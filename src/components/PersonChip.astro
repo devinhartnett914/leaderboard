@@ -7,14 +7,15 @@ interface Props {
 	person: { full_name: string; slug: string | null; avatar_url: string | null } | null | undefined;
 	avatar?: number; // avatar diameter px
 	nameRem?: number; // name font size in rem
-	link?: boolean; // render as a link to the person page (false when nested inside another link)
+	link?: boolean; // render as a link (false when nested inside another link)
+	href?: string | null; // override the link target (defaults to the person's page)
 }
-const { person, avatar = 20, nameRem = 0.62, link = true } = Astro.props;
+const { person, avatar = 20, nameRem = 0.62, link = true, href = null } = Astro.props;
 const name = person?.full_name ?? '—';
-const href = link && person?.slug ? `/people/${person.slug}` : null;
-const Tag = href ? 'a' : 'span';
+const target = link ? (href ?? (person?.slug ? `/people/${person.slug}` : null)) : null;
+const Tag = target ? 'a' : 'span';
 ---
-<Tag class="pchip" href={href ?? undefined} style={`--nm:${nameRem}rem`}>
+<Tag class="pchip" href={target ?? undefined} style={`--nm:${nameRem}rem`}>
 	<Avatar src={person?.avatar_url} name={name} size={avatar} />
 	<span class="pc-name">{name}</span>
 </Tag>

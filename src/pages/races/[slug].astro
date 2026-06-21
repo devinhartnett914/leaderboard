@@ -44,6 +44,14 @@ const swim = race.sport === 'swim_meet';
 const tracks = swim ? [] : familyTracks(editions);
 const rivalries = swim ? [] : recurringRivals(editions);
 
+// DEV-18: clicking a racer's name in a multi-racer (RaceGroupCard) feed lands here
+// scoped to that one person — their progress in THIS race over time, the same idea
+// as a swim discipline page (/swim/[event]?who=). No ?who → the full all-racers view.
+const who = Astro.url.searchParams.get('who');
+const focusTrack = who ? tracks.find((t) => t.person.slug === who) ?? null : null;
+const tracksToShow = focusTrack ? [focusTrack] : tracks;
+const rivalriesToShow = focusTrack ? rivalries.filter((rv) => rv.family.id === focusTrack.person.id) : rivalries;
+
 // ---- Swim meet view: each edition (meet) grouped by family swimmer ----------
 const STROKE_ORDER: Record<string, number> = { free: 0, back: 1, breast: 2, fly: 3, im: 4, other: 5 };
 const eventOrder = (r: Result) => {
@@ -200,7 +208,11 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 		!swim && (tracks.length === 0 ? (
 			<div class="empty">No family results recorded for this race yet.</div>
 		) : (
-			tracks.map((track) => {
+			<Fragment>
+			{focusTrack && (
+				<p class="scope-note">Showing <strong>{focusTrack.person.full_name}</strong>’s progress in this race · <a href={`/races/${race.slug}`}>All racers</a></p>
+			)}
+			{tracksToShow.map((track) => {
 				const cols = [...track.cells].reverse(); // newest first
 				const labels = splitLabels(track);
 				const rows = 5 + labels.length; // head, finish, splits, overall, division, foot
@@ -287,17 +299,18 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 						</div>
 					</section>
 				);
-			})
+			})}
+			</Fragment>
 		))
 	}
 
 	{
-		rivalries.length > 0 && (
+		rivalriesToShow.length > 0 && (
 			<section class="rivalry">
 				<h2>Familiar faces</h2>
 				<p class="muted small">Competitors you keep lining up against in the same division.</p>
 				<div class="grid cols-2">
-					{rivalries.map((rv) =>
+					{rivalriesToShow.map((rv) =>
 						rv.rivals.map((rival) => (
 							<div class="card rival-card">
 								<div class="rival-line"><strong>{rv.family.full_name}</strong><span class="muted"> vs </span><strong>{rival.competitor.full_name}</strong></div>
@@ -328,6 +341,11 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.disc-name { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); }
 	.disc-dist { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.02em; }
 	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
+
+	/* DEV-18: "you're viewing one racer's progress in this race" + a way back to all. */
+	.scope-note { font-size: 0.9rem; color: var(--muted); margin: -0.5rem 0 1.6rem; }
+	.scope-note strong { color: var(--text); font-weight: 600; }
+	.scope-note a { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
 
 	.track { margin-bottom: 2.75rem; }
 	/* a clear per-person section header: avatar + name + a divider line */

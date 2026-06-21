@@ -46,7 +46,7 @@ const anyPr = results.some((r) => prCtx.prBadge(r));
 		return (
 			<Fragment>
 				<div class="gc-who" style={`grid-row:${row}`}>
-					<PersonChip person={r.person} avatar={20} nameRem={0.72} />
+					<PersonChip person={r.person} avatar={20} nameRem={0.72} href={ed?.race?.slug && r.person?.slug ? `/races/${ed.race.slug}?who=${encodeURIComponent(r.person.slug)}` : null} />
 				</div>
 				<div class="gc-time" style={`grid-row:${row}`}>
 					<span class="gc-timewrap">
