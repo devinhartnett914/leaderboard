@@ -3,6 +3,7 @@ import Layout from '../../layouts/Layout.astro';
 import ResultMarks from '../../components/ResultMarks.astro';
 import PrTime from '../../components/PrTime.astro';
 import DateRail from '../../components/DateRail.astro';
+import CategoryTag from '../../components/CategoryTag.astro';
 import { getAllFamilyResults, type FeedResult } from '../../lib/queries';
 import { formatSwimTime, formatSwimDelta, deltaDirection, parseSwimEvent, swimEventSlug, divisionRank, isPodium, swimDivision } from '../../lib/format';
 
@@ -14,15 +15,13 @@ if (eventRows.length === 0) return new Response('Event not found', { status: 404
 
 const ev = parseSwimEvent(eventRows[0].event);
 const title = eventRows[0].event ?? ev.short; // canonical "50m Backstroke"
-const course = (eventRows[0].race_edition?.distance_or_format ?? '').split(/\s+/)[0] || null;
 
 const swimCs = (r: FeedResult) => r.finish_time_cs ?? (r.finish_time_seconds != null ? r.finish_time_seconds * 100 : null);
 const sortKey = (r: FeedResult) => r.race_edition?.date ?? `${r.race_edition?.year ?? 0}-00-00`;
 
-// Per-swimmer discipline page (DEV-13): the page is scoped to the ONE swimmer you came
-// from (?who=<slug>, set on every event link). With no ?who — e.g. a bare/shared URL —
-// default to the oldest family swimmer for this event, so the page is always a single
-// swimmer (never the old side-by-side view) and never 404s a valid event.
+// Per-swimmer discipline page (DEV-13): scoped to the ONE swimmer you came from
+// (?who=<slug>, set on every event link). With no ?who — a bare/shared URL — default to
+// the oldest family swimmer for this event, so the page is always a single swimmer.
 const wanted = who ?? [...eventRows]
 	.filter((r) => r.person?.slug)
 	.sort((a, b) => (a.person!.birth_year ?? 0) - (b.person!.birth_year ?? 0))[0]?.person?.slug ?? null;
@@ -30,8 +29,8 @@ const matching = wanted ? eventRows.filter((r) => r.person?.slug === wanted) : [
 if (matching.length === 0) return new Response('Event not found for this swimmer', { status: 404 });
 const person = matching[0].person!;
 
-// This swimmer's progression in this event, fastest-tracked. Each occurrence shows the
-// delta vs the previous swim; the all-time best is starred (PR) and tinted gold.
+// This swimmer's progression in this event. Each occurrence shows the delta vs the
+// previous swim; the all-time best is starred (PR) and tinted gold.
 interface Occ { r: FeedResult; cs: number | null; deltaCs: number | null; isBest: boolean }
 const chrono = [...matching].sort((a, b) => sortKey(a).localeCompare(sortKey(b))); // oldest first
 const finishedCs = chrono.filter((r) => r.status === 'finished').map(swimCs).filter((c): c is number => c != null);
@@ -46,14 +45,22 @@ const occ: Occ[] = chrono.map((r) => {
 const bestRow = bestCs != null ? chrono.find((r) => swimCs(r) === bestCs) : null;
 const bestYear = bestRow?.race_edition?.year ?? null;
 
-const subtitle = ['Swim Meet', course].filter(Boolean).join(' · ');
+// Group the (newest-first) occurrences into year sections, newest year first (DEV-13).
+interface YearGroup { year: number | null; items: Occ[] }
+const byYear: YearGroup[] = [];
+for (const o of occ) {
+	const y = o.r.race_edition?.year ?? (Number((o.r.race_edition?.date ?? '').slice(0, 4)) || null);
+	let g = byYear[byYear.length - 1];
+	if (!g || g.year !== y) { g = { year: y, items: [] }; byYear.push(g); }
+	g.items.push(o);
+}
 ---
 
-<Layout title={title} subtitle={subtitle} crumbs={[{ label: person.full_name, href: person.slug ? `/people/${person.slug}` : '/races' }]}>
-	<p class="lead">
-		<span class="lead-ic">{ev.icon}</span>
-		Every recorded <strong>{title}</strong> for {person.full_name}, fastest-tracked over time.
-	</p>
+<Layout
+	title={title}
+	crumbs={[{ label: 'All Races', href: '/races' }, { label: person.full_name, href: person.slug ? `/people/${person.slug}` : '/races' }]}
+>
+	<div class="sub-tag" slot="subtitle"><CategoryTag catKey="swim_meet" label="Swim Meet" icon /></div>
 
 	<section class="track">
 		<div class="track-head">
@@ -63,56 +70,58 @@ const subtitle = ['Swim Meet', course].filter(Boolean).join(' · ');
 		</div>
 
 		<div class="occ-list">
-			{occ.map((o) => {
-				const r = o.r;
-				const ed = r.race_edition;
-				const place = r.division_place;
-				const podium = isPodium(place);
-				const dq = r.status !== 'finished';
-				const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
-				return (
-					<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
-						<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
-						<div class="occ-meet">
-							{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
-						</div>
-						<div class="occ-time">
-							<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
-							{dq ? (
-								<span class="occ-dq">{r.status.toUpperCase()}</span>
-							) : (
-								<span class={`occ-t${o.isBest ? ' is-best' : ''}`}>{formatSwimTime(o.cs)}</span>
-							)}
-						</div>
-						<div class="occ-delta">
-							{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
-							{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
-						</div>
-						<div class="occ-place">{divisionRank(r.division, place) || '—'}</div>
-					</article>
-				);
-			})}
+			{byYear.map((grp) => (
+				<Fragment>
+					<div class="year-header"><span>{grp.year ?? '—'}</span></div>
+					{grp.items.map((o) => {
+						const r = o.r;
+						const ed = r.race_edition;
+						const place = r.division_place;
+						const podium = isPodium(place);
+						const dq = r.status !== 'finished';
+						const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
+						return (
+							<article class={`occ${o.isBest ? ' is-best' : ''}`} style={`--c:${ev.color}`}>
+								<DateRail date={ed?.date} year={ed?.year} color={ev.color} />
+								<div class="occ-meet">
+									{ed?.race ? <a class="occ-name" href={`/races/${ed.race.slug}`}>{ed.race.name}</a> : <span class="occ-name">Swim meet</span>}
+								</div>
+								<div class="occ-time">
+									<span class="occ-timewrap">
+										<ResultMarks medalTier={podium ? place : null} medalSub={swimDivision(r.division)} pr={o.isBest && !dq} compact />
+										{dq ? (
+											<span class="occ-dq">{r.status.toUpperCase()}</span>
+										) : (
+											<span class={`occ-t${o.isBest ? ' is-best' : ''}`}>{formatSwimTime(o.cs)}</span>
+										)}
+									</span>
+									{o.deltaCs != null && o.deltaCs !== 0 && <span class={`delta ${dir}`}>{formatSwimDelta(o.deltaCs, 0)}</span>}
+									{o.deltaCs === 0 && <span class="delta same">±0.00</span>}
+								</div>
+								<div class="occ-place">{divisionRank(r.division, place) || '—'}</div>
+							</article>
+						);
+					})}
+				</Fragment>
+			))}
 		</div>
 	</section>
 </Layout>
 
 <style>
-	.lead { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; margin: 0 0 2rem; color: var(--muted); font-size: 0.95rem; }
-	.lead a { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
-	.lead-ic { font-size: 1.3rem; }
-	.lead strong { color: var(--text); }
+	.sub-tag { margin-top: 0.5rem; }
 
-	/* One swimmer per page (DEV-13): scoped to the person you came from, so this is a
-	   single progression block, not a grid of swimmers. */
 	.track { min-width: 0; }
-	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1rem; }
+	.track-head { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 0.4rem; }
 	.track-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.8rem; letter-spacing: 0.04em; }
 	.track-head h2 a { color: var(--text); }
 	.track-head h2 a:hover { color: var(--swim); text-decoration: none; }
-	.track-count { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+	.track-count { font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--faint); }
 
-	/* one grid per swimmer so every time lines up in its column */
-	.occ-list { display: grid; grid-template-columns: 86px minmax(140px, 1fr) max-content max-content max-content; row-gap: 0.6rem; }
+	/* One swimmer's progression, grouped by year (newest first). Rows mirror the feed
+	   .results anatomy: date rail · meet name · right-aligned time (+ delta) · standing,
+	   so a swim row reads the same as a tri/run row. */
+	.occ-list { display: grid; grid-template-columns: 86px minmax(0, 1fr) max-content max-content; row-gap: 0.6rem; }
 	.occ {
 		grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: stretch;
 		background: linear-gradient(180deg, var(--surface-2), var(--surface) 80px);
@@ -120,20 +129,19 @@ const subtitle = ['Swim Meet', course].filter(Boolean).join(' · ');
 	}
 	.occ.is-best { border-color: color-mix(in srgb, var(--gold) 50%, var(--border)); box-shadow: var(--shadow), 0 0 0 1px color-mix(in srgb, var(--gold) 40%, transparent); }
 
-	.occ-meet { display: flex; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.6rem 1.1rem; min-width: 0; }
-	.occ-name { font-family: var(--font-display); font-weight: 400; font-size: 1.35rem; letter-spacing: 0.02em; line-height: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.occ-meet { display: flex; flex-direction: column; justify-content: center; padding: 0.6rem 1.1rem; min-width: 0; }
+	.occ-name { font-family: var(--font-display); font-weight: 400; font-size: 1.2rem; letter-spacing: 0.02em; line-height: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.occ-name:hover { color: var(--swim); text-decoration: none; }
 
-	.occ-time { position: relative; display: flex; align-items: center; padding: 0.6rem 1.1rem; }
-	.occ-t { font-family: var(--font-display); font-weight: 400; font-size: 1.85rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
+	.occ-time { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 0.15rem; padding: 0.6rem 1.1rem; }
+	.occ-timewrap { position: relative; width: max-content; display: flex; align-items: center; }
+	.occ-t { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; line-height: 1; white-space: nowrap; }
 	.occ-t.is-best { color: var(--gold); }
-	.occ-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.85rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
-
-	.occ-delta { display: flex; align-items: center; justify-content: flex-end; padding: 0.6rem 0.9rem; }
-	.delta { font-family: var(--font-mono); font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+	.occ-dq { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; letter-spacing: 0.02em; line-height: 1; color: var(--slower); }
+	.delta { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
 	.delta.faster { color: var(--faster); }
 	.delta.slower { color: var(--slower); }
 	.delta.same { color: var(--faint); }
 
-	.occ-place { display: flex; align-items: center; justify-content: flex-end; padding: 0.6rem 1.2rem 0.6rem 0.6rem; font-family: var(--font-mono); font-size: 0.86rem; font-weight: 600; }
+	.occ-place { display: flex; align-items: center; justify-content: flex-end; padding: 0.6rem 1.2rem 0.6rem 0.6rem; font-family: var(--font-mono); font-size: var(--fs-value); font-weight: 600; white-space: nowrap; }
 </style>
