@@ -16,11 +16,11 @@ const dq = status !== 'finished';
 <span class:list={['ftime', { 'is-pr': pr && !dq, 'is-dq': dq }]}>{dq ? status.toUpperCase() : time}</span>
 
 <style>
-	/* --fs-time-lg is the standard finish-time size for the whole site. */
+	/* --fs-time (1.5rem) is the one finish-time size for the whole site. */
 	.ftime {
 		font-family: var(--font-display);
 		font-weight: 400;
-		font-size: var(--fs-time-lg);
+		font-size: var(--fs-time);
 		line-height: 0.9;
 		letter-spacing: var(--ls-tight);
 		white-space: nowrap;
