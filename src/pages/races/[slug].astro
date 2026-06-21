@@ -209,9 +209,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 			<div class="empty">No family results recorded for this race yet.</div>
 		) : (
 			<Fragment>
-			{focusTrack && (
-				<p class="scope-note">Showing <strong>{focusTrack.person.full_name}</strong>’s progress in this race · <a href={`/races/${race.slug}`}>All racers</a></p>
-			)}
 			{tracksToShow.map((track) => {
 				const cols = [...track.cells].reverse(); // newest first
 				const labels = splitLabels(track);
@@ -341,11 +338,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.disc-name { font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--faint); }
 	.disc-dist { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: 0.02em; }
 	.race-desc { margin: -0.5rem 0 1.5rem; max-width: 60ch; }
-
-	/* DEV-18: "you're viewing one racer's progress in this race" + a way back to all. */
-	.scope-note { font-size: 0.9rem; color: var(--muted); margin: -0.5rem 0 1.6rem; }
-	.scope-note strong { color: var(--text); font-weight: 600; }
-	.scope-note a { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
 
 	.track { margin-bottom: 2.75rem; }
 	/* a clear per-person section header: avatar + name + a divider line */
