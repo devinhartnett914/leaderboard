@@ -2,10 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 import RecentCard from '../components/RecentCard.astro';
 import Avatar from '../components/Avatar.astro';
+import UpcomingRaces from '../components/UpcomingRaces.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
-import { SPORT_LABELS } from '../lib/types';
 import { buildEntries, buildPrContext } from '../lib/feed';
-import { currentAge, formatFullDate } from '../lib/format';
+import { currentAge } from '../lib/format';
 
 const [family, allResults, upcoming] = await Promise.all([
 	getFamilyMembers(),
@@ -57,26 +57,7 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 		}
 	</section>
 
-	<section class="block">
-		<div class="section-head"><h2>Upcoming</h2></div>
-		{
-			upcoming.length === 0 ? (
-				<div class="empty">No upcoming races on the calendar yet — they'll appear here once one's added.</div>
-			) : (
-				<div class="grid cols-2">
-					{upcoming.map((e) => (
-						<a class="card race-card" href={e.race ? `/races/${e.race.slug}` : '#'}>
-							<div>
-								<div class="name">{e.race?.name ?? 'Race'}</div>
-								<div class="sub">{[formatFullDate(e.date), e.race?.location].filter(Boolean).join(' · ') || 'Upcoming'}</div>
-							</div>
-							{e.race && <span class="pill">{SPORT_LABELS[e.race.sport]}</span>}
-						</a>
-					))}
-				</div>
-			)
-		}
-	</section>
+	<UpcomingRaces races={upcoming} open collapsible={false} />
 
 	<section class="block">
 		<div class="section-head">
@@ -107,9 +88,8 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
 	.all-link { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
 
-	.person-card, .race-card { display: flex; align-items: center; gap: 0.9rem; color: var(--text); transition: border-color 0.15s, transform 0.15s; }
-	.person-card:hover, .race-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
-	.race-card { justify-content: space-between; }
+	.person-card { display: flex; align-items: center; gap: 0.9rem; color: var(--text); transition: border-color 0.15s, transform 0.15s; }
+	.person-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 	/* Family-card gender·age reads blue, matching the person-page subtitle (the one

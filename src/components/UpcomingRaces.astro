@@ -1,0 +1,116 @@
+---
+// The one "Upcoming races" module — shown on Home, All Races, and a person's page.
+// Upcoming races are race_editions dated today-or-later with no results yet, so the
+// cards are informational (no detail page) until results land.
+//   • Home: an always-open section (collapsible={false}).
+//   • Listing pages: a collapsed <details> that expands — and a link to #<id>
+//     (e.g. Home → /races#upcoming) opens it and scrolls to it.
+import { SPORT_LABELS } from '../lib/types';
+import { formatFullDate } from '../lib/format';
+import type { UpcomingRace } from '../lib/queries';
+
+interface Props {
+	races: UpcomingRace[];
+	open?: boolean; // start expanded (Home = true)
+	collapsible?: boolean; // render as a <details> toggle (listing pages = true)
+	id?: string; // anchor id, so a link to #id can open + scroll to it
+	emptyText?: string;
+}
+const {
+	races,
+	open = false,
+	collapsible = true,
+	id = 'upcoming',
+	emptyText = "No upcoming races on the calendar yet — they'll appear here once one's added.",
+} = Astro.props;
+---
+
+{collapsible ? (
+	<details class="up" id={id} open={open}>
+		<summary class="up-sum">
+			<span class="up-title">Upcoming</span>
+			{races.length > 0 && <span class="up-count">{races.length}</span>}
+			<span class="up-chev" aria-hidden="true">▾</span>
+		</summary>
+		<div class="up-body">
+			{races.length === 0 ? (
+				<p class="up-empty">{emptyText}</p>
+			) : (
+				<div class="grid cols-2">
+					{races.map((e) => (
+						<div class="card up-card">
+							<div class="up-info">
+								<div class="up-name">{e.race?.name ?? 'Race'}</div>
+								<div class="up-sub">{[formatFullDate(e.date), e.race?.location].filter(Boolean).join(' · ') || 'Upcoming'}</div>
+							</div>
+							{e.race && <span class="pill">{SPORT_LABELS[e.race.sport]}</span>}
+						</div>
+					))}
+				</div>
+			)}
+		</div>
+	</details>
+) : (
+	<section class="up-open" id={id}>
+		<div class="up-headrow">
+			<h2>Upcoming</h2>
+			<a href="/races#upcoming" class="all-link">On all races →</a>
+		</div>
+		{races.length === 0 ? (
+			<p class="up-empty">{emptyText}</p>
+		) : (
+			<div class="grid cols-2">
+				{races.map((e) => (
+					<div class="card up-card">
+						<div class="up-info">
+							<div class="up-name">{e.race?.name ?? 'Race'}</div>
+							<div class="up-sub">{[formatFullDate(e.date), e.race?.location].filter(Boolean).join(' · ') || 'Upcoming'}</div>
+						</div>
+						{e.race && <span class="pill">{SPORT_LABELS[e.race.sport]}</span>}
+					</div>
+				))}
+			</div>
+		)}
+	</section>
+)}
+
+<style>
+	/* Collapsible variant (listing pages) */
+	.up { border: 1px solid var(--border); border-radius: 14px; background: var(--surface); margin-bottom: 1.9rem; overflow: hidden; box-shadow: var(--shadow); }
+	.up-sum { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.1rem; cursor: pointer; list-style: none; }
+	.up-sum::-webkit-details-marker { display: none; }
+	.up-title { font-family: var(--font-display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.04em; }
+	.up-count { font-family: var(--font-mono); font-size: 0.66rem; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 0.12rem 0.5rem; }
+	.up-chev { margin-left: auto; color: var(--muted); transition: transform 0.18s; }
+	.up[open] .up-chev { transform: rotate(180deg); }
+	.up-body { padding: 0 1.1rem 1.1rem; }
+
+	/* Open variant (home) — matches the rhythm of the other home sections */
+	.up-open { margin-bottom: 2.75rem; }
+	.up-headrow { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1rem; }
+	.up-headrow h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
+	.all-link { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+	/* Cards — informational (no detail page yet), so a div, not a link */
+	.up-card { display: flex; align-items: center; justify-content: space-between; gap: 0.9rem; }
+	.up-info { min-width: 0; }
+	.up-name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
+	.up-sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
+	.up-empty { color: var(--muted); font-size: 0.95rem; }
+</style>
+
+<script>
+	// A link to #<id> (e.g. Home's "On all races →" → /races#upcoming) opens the
+	// collapsed Upcoming section and scrolls to it.
+	const openFromHash = () => {
+		const hashId = decodeURIComponent(location.hash.slice(1));
+		if (!hashId) return;
+		const el = document.getElementById(hashId);
+		if (el instanceof HTMLDetailsElement) {
+			el.open = true;
+			el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	};
+	openFromHash();
+	window.addEventListener('hashchange', openFromHash);
+</script>

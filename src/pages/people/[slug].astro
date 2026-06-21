@@ -2,7 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
-import { getPersonBySlug } from '../../lib/queries';
+import UpcomingRaces from '../../components/UpcomingRaces.astro';
+import { getPersonBySlug, getUpcomingRaces } from '../../lib/queries';
 import { categoryOf, catColor, catIcon } from '../../lib/categories';
 import { MEDAL_EMOJI, MEDAL_NAME, MEDAL_COLOR } from '../../lib/medals';
 import { currentAge } from '../../lib/format';
@@ -12,6 +13,11 @@ const { slug } = Astro.params;
 const data = slug ? await getPersonBySlug(slug) : null;
 if (!data) return new Response('Person not found', { status: 404 });
 const { person, results } = data;
+
+// DEV-19: this person's upcoming races — the upcoming editions in the sport(s) they
+// compete in (Sierra & Aurora swim → the Glade Dolphins meets show on their pages).
+const mySports = new Set(results.map((r) => r.race_edition?.race?.sport).filter(Boolean));
+const personUpcoming = (await getUpcomingRaces()).filter((u) => u.race && mySports.has(u.race.sport));
 
 const prCtx = buildPrContext(results);
 const entries = buildEntries(results);
@@ -85,6 +91,8 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 			</label>
 		)}
 	</div>
+
+	{personUpcoming.length > 0 && <UpcomingRaces races={personUpcoming} id="upcoming" />}
 
 	{
 		items.length === 0 ? (

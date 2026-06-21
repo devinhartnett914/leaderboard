@@ -4,11 +4,13 @@ import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
 import RaceGroupCard from '../../components/RaceGroupCard.astro';
 import Avatar from '../../components/Avatar.astro';
-import { getAllFamilyResults } from '../../lib/queries';
+import UpcomingRaces from '../../components/UpcomingRaces.astro';
+import { getAllFamilyResults, getUpcomingRaces } from '../../lib/queries';
 import type { Person } from '../../lib/types';
 import { buildEntries, buildPrContext, award, type Entry } from '../../lib/feed';
 
 const results = await getAllFamilyResults();
+const upcoming = await getUpcomingRaces();
 const prCtx = buildPrContext(results);
 // group a single edition run by 2+ family members into one shared card
 const entries = buildEntries(results, { groupRaces: true });
@@ -46,6 +48,8 @@ const subtitle = `${results.length} results across the family`;
 			</a>
 		))}
 	</div>
+
+	<UpcomingRaces races={upcoming} id="upcoming" />
 
 	{
 		items.length === 0 ? (
