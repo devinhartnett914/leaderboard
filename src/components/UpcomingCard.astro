@@ -1,0 +1,51 @@
+---
+// Home-page teaser TILE for one upcoming race — the forward-looking sibling of
+// RecentCard. Same tile shell (DateRail on the left, body on the right; gradient +
+// category edge accent) and the same DateRail / CardTopRow / RaceTitle pieces, so the
+// "Upcoming" tiles read identically to the "Recent races" tiles beside them. No result
+// yet, so the finish block is replaced by an "Upcoming" flag + the full date · location.
+import DateRail from './DateRail.astro';
+import CardTopRow from './CardTopRow.astro';
+import RaceTitle from './RaceTitle.astro';
+import { categoryOf, catColor } from '../lib/categories';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import { formatFullDate } from '../lib/format';
+import type { UpcomingRace } from '../lib/queries';
+
+interface Props { race: UpcomingRace }
+const { race: ed } = Astro.props;
+const sport = (ed.race?.sport ?? 'other') as Sport;
+const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_format, race: { sport, name: ed.race?.name } } });
+const edge = catColor(cat.key);
+const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
+const distance = ed.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed.distance_or_format : null;
+const when = [formatFullDate(ed.date), ed.race?.location].filter(Boolean).join(' · ');
+---
+<article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
+	<DateRail date={ed.date} year={ed.year} />
+	<div class="ut-body">
+		<CardTopRow type={typeLabel} distance={distance} />
+		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+		<div class="ut-foot">
+			<span class="ut-flag">Upcoming</span>
+			{when && <span class="ut-when">{when}</span>}
+		</div>
+	</div>
+</article>
+
+<style>
+	/* tile shell mirrors RecentCard's `.recent` (DateRail + body, category edge accent,
+	   shared gradient/radius) so the Upcoming tiles sit flush beside the Recent ones. */
+	.up-tile {
+		display: grid; grid-template-columns: 86px 1fr; align-items: stretch; color: var(--text);
+		background: linear-gradient(180deg, var(--surface-2), var(--surface) 90px);
+		border: 1px solid var(--border); border-left: 3px solid var(--edge);
+		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+	}
+	.ut-body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.85rem 1rem; min-width: 0; }
+	/* the "finish block" slot — pinned to the bottom (margin-top:auto) so the flag lines
+	   up across tiles, same as RecentCard's finish block. */
+	.ut-foot { display: flex; flex-direction: column; gap: 0.3rem; margin-top: auto; padding-top: 0.5rem; }
+	.ut-flag { align-self: flex-start; font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--edge); border: 1px solid color-mix(in srgb, var(--edge) 45%, var(--border)); background: color-mix(in srgb, var(--edge) 9%, transparent); border-radius: 999px; padding: 0.22rem 0.65rem; }
+	.ut-when { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+</style>

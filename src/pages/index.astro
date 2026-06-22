@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import RecentCard from '../components/RecentCard.astro';
+import UpcomingCard from '../components/UpcomingCard.astro';
 import Avatar from '../components/Avatar.astro';
-import UpcomingRaces from '../components/UpcomingRaces.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
 import { buildEntries, buildPrContext } from '../lib/feed';
 import { currentAge } from '../lib/format';
@@ -16,6 +16,8 @@ const prCtx = buildPrContext(allResults);
 // the same grouping as /races — so a swim event lands inside its meet card
 // and a multi-family-member race collapses into one shared row in both places.
 const recentEntries = buildEntries(allResults, { groupRaces: true }).slice(0, 3);
+// the soonest 3 upcoming races (getUpcomingRaces is ascending — nearest first)
+const upcomingSoon = upcoming.slice(0, 3);
 
 // Show the family oldest → youngest (earliest birth date first).
 const birthKey = (p: (typeof family)[number]) =>
@@ -57,7 +59,17 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 		}
 	</section>
 
-	<UpcomingRaces races={upcoming} open collapsible={false} />
+	{upcomingSoon.length > 0 && (
+		<section class="block">
+			<div class="section-head">
+				<h2>Upcoming</h2>
+				<a href="/races#upcoming" class="all-link">All races →</a>
+			</div>
+			<div class="grid cols-3">
+				{upcomingSoon.map((u) => <UpcomingCard race={u} />)}
+			</div>
+		</section>
+	)}
 
 	<section class="block">
 		<div class="section-head">

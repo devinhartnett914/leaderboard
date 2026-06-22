@@ -4,8 +4,8 @@ import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
 import RaceGroupCard from '../../components/RaceGroupCard.astro';
 import Avatar from '../../components/Avatar.astro';
-import UpcomingRaces from '../../components/UpcomingRaces.astro';
-import { getAllFamilyResults, getUpcomingRaces } from '../../lib/queries';
+import UpcomingRow from '../../components/UpcomingRow.astro';
+import { getAllFamilyResults, getUpcomingRaces, type UpcomingRace } from '../../lib/queries';
 import type { Person } from '../../lib/types';
 import { buildEntries, buildPrContext, award, type Entry } from '../../lib/feed';
 
@@ -25,15 +25,26 @@ for (const r of results) {
 }
 const people = [...personCounts.values()].sort((a, b) => (a.person.birth_year ?? 0) - (b.person.birth_year ?? 0));
 
-// year headers interleaved into the date-sorted entries
-type Item = { type: 'year'; year: number | null } | Entry;
+// Upcoming races (future-dated, no results yet) lead the feed as rows under their own
+// year — newest-first like the rest, so e.g. the 2026 Glade meets sit at the top of the
+// 2026 group. Every upcoming date is in the future and every result date is in the past,
+// so prepending them (date-descending) keeps the whole feed chronological. (DEV-19)
+type UpcomingItem = { type: 'upcoming'; date: string; race: UpcomingRace };
+const upcomingItems: UpcomingItem[] = [...upcoming]
+	.reverse()
+	.map((u) => ({ type: 'upcoming', date: u.date ?? `${u.year}-12-31`, race: u }));
+
+// year headers interleaved into the date-sorted feed (upcoming first, then results)
+type Item = { type: 'year'; year: number | null } | UpcomingItem | Entry;
 const items: Item[] = [];
 let lastYear: number | null | undefined = undefined;
-for (const e of entries) {
+for (const e of [...upcomingItems, ...entries]) {
 	const y = Number(e.date.slice(0, 4)) || null;
 	if (y !== lastYear) { items.push({ type: 'year', year: y }); lastYear = y; }
 	items.push(e);
 }
+// the #upcoming deep-link (Home → /races#upcoming) scrolls to the first upcoming row
+const firstUpcoming = items.find((it): it is UpcomingItem => it.type === 'upcoming');
 
 const subtitle = `${results.length} results across the family`;
 ---
@@ -49,8 +60,6 @@ const subtitle = `${results.length} results across the family`;
 		))}
 	</div>
 
-	<UpcomingRaces races={upcoming} id="upcoming" />
-
 	{
 		items.length === 0 ? (
 			<div class="empty">No results recorded yet.</div>
@@ -59,6 +68,8 @@ const subtitle = `${results.length} results across the family`;
 				{items.map((it) =>
 					it.type === 'year' ? (
 						<div class="year-header"><span>{it.year ?? '—'}</span></div>
+					) : it.type === 'upcoming' ? (
+						<UpcomingRow race={it.race} anchorId={it === firstUpcoming ? 'upcoming' : null} />
 					) : it.type === 'meet' ? (
 						<MeetCard entry={it} prCtx={prCtx} showPerson />
 					) : it.type === 'race' ? (

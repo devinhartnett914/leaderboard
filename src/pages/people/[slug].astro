@@ -2,8 +2,8 @@
 import Layout from '../../layouts/Layout.astro';
 import ResultRow from '../../components/ResultRow.astro';
 import MeetCard from '../../components/MeetCard.astro';
-import UpcomingRaces from '../../components/UpcomingRaces.astro';
-import { getPersonBySlug, getUpcomingRaces } from '../../lib/queries';
+import UpcomingRow from '../../components/UpcomingRow.astro';
+import { getPersonBySlug, getUpcomingRaces, type UpcomingRace } from '../../lib/queries';
 import { categoryOf, catColor, catIcon } from '../../lib/categories';
 import { MEDAL_EMOJI, MEDAL_NAME, MEDAL_COLOR } from '../../lib/medals';
 import { currentAge } from '../../lib/format';
@@ -43,15 +43,25 @@ for (const e of entries) {
 }
 const catChips = [...catCounts.entries()].sort((a, b) => b[1].count - a[1].count);
 
-// interleave year headers into the date-sorted entries
-type Item = { type: 'year'; year: number | null } | Entry;
+// Upcoming races lead the feed as rows under their own year (DEV-19) — future dates, so
+// prepending them date-descending keeps the whole feed chronological (every upcoming date
+// is after every past result), and the 2026 Glade meets sit at the top of the 2026 group.
+type UpcomingItem = { type: 'upcoming'; date: string; race: UpcomingRace };
+const upcomingItems: UpcomingItem[] = [...personUpcoming]
+	.reverse()
+	.map((u) => ({ type: 'upcoming', date: u.date ?? `${u.year}-12-31`, race: u }));
+
+// interleave year headers into the date-sorted feed (upcoming first, then results)
+type Item = { type: 'year'; year: number | null } | UpcomingItem | Entry;
 const items: Item[] = [];
 let lastYear: number | null | undefined = undefined;
-for (const e of entries) {
+for (const e of [...upcomingItems, ...entries]) {
 	const y = Number(e.date.slice(0, 4)) || null;
 	if (y !== lastYear) { items.push({ type: 'year', year: y }); lastYear = y; }
 	items.push(e);
 }
+// the #upcoming deep-link (Home → /people/[slug]#upcoming) scrolls to the first upcoming row
+const firstUpcoming = items.find((it): it is UpcomingItem => it.type === 'upcoming');
 
 const age = currentAge(person.birth_date, person.birth_year);
 const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.length} results`].filter(Boolean).join(' · ');
@@ -92,8 +102,6 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 		)}
 	</div>
 
-	{personUpcoming.length > 0 && <UpcomingRaces races={personUpcoming} id="upcoming" />}
-
 	{
 		items.length === 0 ? (
 			<div class="empty">No results recorded yet for {person.full_name}.</div>
@@ -102,6 +110,8 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 				{items.map((it) =>
 					it.type === 'year' ? (
 						<div class="year-header" data-year={String(it.year ?? '')}><span>{it.year ?? '—'}</span></div>
+					) : it.type === 'upcoming' ? (
+						<UpcomingRow race={it.race} anchorId={it === firstUpcoming ? 'upcoming' : null} />
 					) : it.type === 'meet' ? (
 						<MeetCard entry={it} prCtx={prCtx} />
 					) : (
@@ -155,7 +165,9 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 </style>
 
 <script>
-	const cards = [...document.querySelectorAll<HTMLElement>('.rcard, .mcard')];
+	// includes upcoming rows (.ucard): they carry data-cat/data-year but no place/PR, so
+	// a sport filter keeps the matching upcoming races and the place/PR filters drop them.
+	const cards = [...document.querySelectorAll<HTMLElement>('.rcard, .mcard, .ucard')];
 	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
 	const chips = [...document.querySelectorAll<HTMLElement>('[data-f]')];
 	const prOnlyEl = document.querySelector<HTMLInputElement>('#pr-only');

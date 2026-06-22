@@ -1,0 +1,45 @@
+---
+// One UPCOMING race as a feed row, living in the shared `.results` subgrid so it lines
+// up with every other row on /races and /people. Same anatomy as ResultRow — date rail
+// (category-tinted) + the type·distance tag + RaceTitle — but there's no result yet, so
+// the right side carries an "Upcoming" flag instead of a finish time / standing. No
+// detail link (upcoming editions don't get a page until results land).
+import DateRail from './DateRail.astro';
+import CardTopRow from './CardTopRow.astro';
+import RaceTitle from './RaceTitle.astro';
+import { categoryOf, catColor } from '../lib/categories';
+import { SPORT_LABELS, type Sport } from '../lib/types';
+import type { UpcomingRace } from '../lib/queries';
+
+interface Props {
+	race: UpcomingRace;
+	anchorId?: string | null; // so a deep-link (Home → /races#upcoming) can scroll to it
+}
+const { race: ed, anchorId = null } = Astro.props;
+const sport = (ed.race?.sport ?? 'other') as Sport;
+// same category resolution every card uses (triathlon splits into sprint/olympic/kids)
+const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_format, race: { sport, name: ed.race?.name } } });
+const edge = catColor(cat.key);
+const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
+const showDist = ed.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
+---
+<article class="ucard feed-card" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
+	<DateRail date={ed.date} year={ed.year} />
+	<div class="uc-body">
+		<CardTopRow type={typeLabel} distance={showDist ? ed.distance_or_format : null} />
+		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+	</div>
+	<div class="uc-meta">
+		<span class="uc-flag">Upcoming</span>
+	</div>
+</article>
+
+<style>
+	/* single-row card; body in the name column, the flag right-aligned where a finish
+	   time would sit, so the row reads like the rest of the feed. */
+	.ucard { grid-template-rows: auto; }
+	.uc-body { grid-column: 2; display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
+	.uc-meta { grid-column: 3 / -1; display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.2rem; }
+	/* tinted "Upcoming" pill in the category color — the row's color-coding cue */
+	.uc-flag { font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--edge); border: 1px solid color-mix(in srgb, var(--edge) 45%, var(--border)); background: color-mix(in srgb, var(--edge) 9%, transparent); border-radius: 999px; padding: 0.22rem 0.65rem; white-space: nowrap; }
+</style>
