@@ -76,8 +76,12 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 	.rc-timewrap { position: relative; width: max-content; }
 
 	.rc-legs { grid-column: 4; grid-row: 2; display: flex; gap: 0.95rem; align-items: flex-start; padding: 0 1.1rem 0.85rem; }
-	.rc-leg { display: flex; flex-direction: column; align-items: center; min-width: 54px; }
-	.leg-ic { font-size: 1.15rem; line-height: 1.3; }
+	/* the leg TIME is the anchor: it sits on the same top line as the finish time and
+	   the standing (all three cells are top-aligned). The discipline icon floats just
+	   ABOVE the time (out of flow, in the tag band) and the pace sits below — so a row
+	   of splits reads time-first, in line with place/division instead of dropped a row. */
+	.rc-leg { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 54px; }
+	.leg-ic { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 0.12rem; font-size: 1.05rem; line-height: 1; }
 	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
 	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
