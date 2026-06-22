@@ -152,7 +152,9 @@ for (const o of occ) {
 	.oc-timewrap { position: relative; width: max-content; }
 
 	.oc-delta { display: flex; align-items: center; padding: 0.85rem 0.5rem; }
-	.delta { font-family: var(--font-mono); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+	/* delta reads at the same size as the place/division (ResultPlaces' .st-main = --fs-value),
+	   so the progression number sits level with the standing instead of looking shrunken. */
+	.delta { font-family: var(--font-mono); font-size: var(--fs-value); font-weight: 700; white-space: nowrap; }
 	.delta.faster { color: var(--faster); }
 	.delta.slower { color: var(--slower); }
 	.delta.same { color: var(--faint); }
