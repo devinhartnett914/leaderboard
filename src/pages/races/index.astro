@@ -45,6 +45,8 @@ for (const e of [...upcomingItems, ...entries]) {
 }
 // the #upcoming deep-link (Home → /races#upcoming) scrolls to the first upcoming row
 const firstUpcoming = items.find((it): it is UpcomingItem => it.type === 'upcoming');
+// which year(s) carry upcoming rows — that year's header gets the Show/Hide toggle
+const upcomingYears = new Set(upcomingItems.map((u) => Number(u.date.slice(0, 4))).filter(Boolean));
 
 const subtitle = `${results.length} results across the family`;
 ---
@@ -64,10 +66,18 @@ const subtitle = `${results.length} results across the family`;
 		items.length === 0 ? (
 			<div class="empty">No results recorded yet.</div>
 		) : (
-			<div class="results">
+			<div class:list={['results', { 'up-collapsed': upcomingItems.length > 0 }]}>
 				{items.map((it) =>
 					it.type === 'year' ? (
-						<div class="year-header"><span>{it.year ?? '—'}</span></div>
+						it.year != null && upcomingYears.has(it.year) ? (
+							<div class="year-header has-upcoming" data-year={String(it.year)}>
+								<span>{it.year}</span>
+								<span class="yh-rule" />
+								<button type="button" class="up-toggle" aria-expanded="false">Show Upcoming Races</button>
+							</div>
+						) : (
+							<div class="year-header" data-year={String(it.year ?? '')}><span>{it.year ?? '—'}</span></div>
+						)
 					) : it.type === 'upcoming' ? (
 						<UpcomingRow race={it.race} anchorId={it === firstUpcoming ? 'upcoming' : null} />
 					) : it.type === 'meet' ? (

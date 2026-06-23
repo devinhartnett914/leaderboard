@@ -73,11 +73,17 @@ export async function getRecentResults(limit = 3): Promise<FeedResult[]> {
 
 export interface UpcomingRace extends RaceEdition {
 	race: Race | null;
+	// Family members this upcoming meet is attributed to. A result-less upcoming
+	// edition has no `result` row to link a person, so attribution is by sport: the
+	// family members who compete in this edition's sport (e.g. the swimmers → the Glade
+	// meets). One name renders as that person; 2+ render as "Multiple Racers".
+	racers: Person[];
 }
 
 /**
- * Race editions dated today or later. Empty until future editions exist — the
- * UI shows a placeholder, and this is where the "what's next" logic will grow.
+ * Race editions dated today or later, each tagged with the family members it's
+ * attributed to (by sport — see `UpcomingRace.racers`). Once an edition's date passes
+ * it drops out here and reappears in the results feed when its results are ingested.
  */
 export async function getUpcomingRaces(limit = 8): Promise<UpcomingRace[]> {
 	if (!supabase) return [];
@@ -89,7 +95,29 @@ export async function getUpcomingRaces(limit = 8): Promise<UpcomingRace[]> {
 		.order('date', { ascending: true })
 		.limit(limit);
 	if (error) throw error;
-	return (data ?? []) as UpcomingRace[];
+	const editions = (data ?? []) as UpcomingRace[];
+
+	// Build sport → family members from existing family results, then attribute each
+	// upcoming edition to the family members who compete in its sport.
+	const { data: famRows, error: fErr } = await supabase
+		.from('result')
+		.select('person(*), race_edition(race(sport))')
+		.eq('context', 'family');
+	if (fErr) throw fErr;
+	const bySport = new Map<string, Map<string, Person>>();
+	for (const row of (famRows ?? []) as Array<{ person: Person | null; race_edition: { race: { sport: string | null } | null } | null }>) {
+		const sport = row.race_edition?.race?.sport;
+		const person = row.person;
+		if (!sport || !person?.is_family) continue;
+		const m = bySport.get(sport) ?? new Map<string, Person>();
+		m.set(person.id, person);
+		bySport.set(sport, m);
+	}
+	for (const ed of editions) {
+		const sport = ed.race?.sport;
+		ed.racers = sport ? [...(bySport.get(sport)?.values() ?? [])] : [];
+	}
+	return editions;
 }
 
 /** A family member + every result they have, newest edition first. */

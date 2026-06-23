@@ -257,6 +257,22 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 			.year-header span { font-family: var(--font-display); font-weight: 400; font-size: 2rem; letter-spacing: 0.04em; color: var(--accent); }
 			.year-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
+			/* The year that carries upcoming rows gets a "Show Upcoming Races" toggle on
+			   the right; its own hairline (.yh-rule) replaces the default ::after so the
+			   rule sits between the year and the toggle. */
+			.year-header.has-upcoming::after { display: none; }
+			.year-header .yh-rule { flex: 1; height: 1px; background: var(--border); }
+			.year-header .up-toggle {
+				flex-shrink: 0; font-family: var(--font-mono); font-size: var(--fs-chip);
+				letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--muted);
+				background: transparent; border: 1px solid var(--border); border-radius: 999px;
+				padding: 0.3rem 0.85rem; cursor: pointer;
+				transition: color 0.12s, border-color 0.12s, background 0.12s;
+			}
+			.year-header .up-toggle:hover { color: var(--text); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+			/* upcoming rows are collapsed by default; the toggle (or a #upcoming deep-link) reveals them */
+			.results.up-collapsed .is-upcoming { display: none; }
+
 			/* Shared shell for the three feed cards (ResultRow / MeetCard /
 			   RaceGroupCard) — full-width subgrid box with the category edge
 			   accent on the left. The card sets `--edge` on itself and the
@@ -321,5 +337,30 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 				border-radius: var(--radius);
 			}
 		</style>
+
+		<script>
+			// Upcoming-races collapse on the year line (/races, /people/[slug]). Rows are
+			// collapsed by default; the toggle flips Show/Hide, and arriving via #upcoming
+			// (the Home "All races →" link) opens the section and scrolls to it.
+			for (const toggle of document.querySelectorAll<HTMLButtonElement>('.up-toggle')) {
+				const results = toggle.closest<HTMLElement>('.results');
+				if (!results) continue;
+				toggle.addEventListener('click', () => {
+					const collapsed = results.classList.toggle('up-collapsed');
+					toggle.setAttribute('aria-expanded', String(!collapsed));
+					toggle.textContent = collapsed ? 'Show Upcoming Races' : 'Hide';
+				});
+			}
+			if (location.hash === '#upcoming') {
+				const anchor = document.getElementById('upcoming');
+				const results = anchor?.closest<HTMLElement>('.results');
+				if (results) {
+					results.classList.remove('up-collapsed');
+					const toggle = results.querySelector<HTMLButtonElement>('.up-toggle');
+					if (toggle) { toggle.setAttribute('aria-expanded', 'true'); toggle.textContent = 'Hide'; }
+					anchor?.scrollIntoView({ block: 'start' });
+				}
+			}
+		</script>
 	</body>
 </html>

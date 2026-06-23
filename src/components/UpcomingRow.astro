@@ -2,11 +2,13 @@
 // One UPCOMING race as a feed row, living in the shared `.results` subgrid so it lines
 // up with every other row on /races and /people. Same anatomy as ResultRow — date rail
 // (category-tinted) + the type·distance tag + RaceTitle — but there's no result yet, so
-// the right side carries an "Upcoming" flag instead of a finish time / standing. No
-// detail link (upcoming editions don't get a page until results land).
+// the right side carries who's racing it (one name, or "Multiple Racers") instead of a
+// finish time / standing. No detail link (upcoming editions don't get a page until
+// results land). `.is-upcoming` lets the year-line toggle collapse/expand these rows.
 import DateRail from './DateRail.astro';
 import CardTopRow from './CardTopRow.astro';
 import RaceTitle from './RaceTitle.astro';
+import PersonChip from './PersonChip.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import type { UpcomingRace } from '../lib/queries';
@@ -22,24 +24,29 @@ const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_form
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const showDist = ed.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
+const racers = ed.racers ?? [];
 ---
-<article class="ucard feed-card" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
+<article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="uc-body">
 		<CardTopRow type={typeLabel} distance={showDist ? ed.distance_or_format : null} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 	</div>
 	<div class="uc-meta">
-		<span class="uc-flag">Upcoming</span>
+		{racers.length === 1
+			? <PersonChip person={racers[0]} avatar={24} nameRem={0.7} />
+			: racers.length > 1
+				? <span class="uc-racers">Multiple Racers</span>
+				: null}
 	</div>
 </article>
 
 <style>
-	/* single-row card; body in the name column, the flag right-aligned where a finish
+	/* single-row card; body in the name column, the racer(s) right-aligned where a finish
 	   time would sit, so the row reads like the rest of the feed. */
 	.ucard { grid-template-rows: auto; }
 	.uc-body { grid-column: 2; display: flex; flex-direction: column; justify-content: center; padding: 0.85rem 1.1rem; min-width: 0; }
 	.uc-meta { grid-column: 3 / -1; display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.2rem; }
-	/* tinted "Upcoming" pill in the category color — the row's color-coding cue */
-	.uc-flag { font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--edge); border: 1px solid color-mix(in srgb, var(--edge) 45%, var(--border)); background: color-mix(in srgb, var(--edge) 9%, transparent); border-radius: 999px; padding: 0.22rem 0.65rem; white-space: nowrap; }
+	/* "Multiple Racers" reads like a PersonChip name (mono uppercase) when there's no single racer to chip */
+	.uc-racers { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-chip); letter-spacing: var(--ls-wide); text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 </style>
