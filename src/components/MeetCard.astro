@@ -4,8 +4,7 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
-import PersonChip from './PersonChip.astro';
-import CardMeta from './CardMeta.astro';
+import CardSubMeta from './CardSubMeta.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
 import { formatSwimTime, parseSwimEvent, swimEventSlug, swimDivision } from '../lib/format';
@@ -23,13 +22,14 @@ const ed = events[0].race_edition;
 const person = events[0].person;
 const year = Number(entry.date.slice(0, 4)) || ed?.year || '';
 const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
+// On the combined feed the meet carries its person → show them on the meta line below the name.
+const racers = showPerson && person ? [person] : [];
 ---
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
-		{showPerson && person && <PersonChip person={person} avatar={20} nameRem={0.62} />}
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardMeta type="Swim Meet" catKey="swim_meet" />
+		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);

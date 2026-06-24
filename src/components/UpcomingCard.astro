@@ -1,12 +1,11 @@
 ---
 // Home-page teaser TILE for one upcoming race — the forward-looking sibling of
-// RecentCard. Who's racing (RacerBadge: one chip, or avatars + "N Racers") sits ABOVE
-// the name like every other card; the location sits right under the title, and the
-// category tag sits below that. The date lives on the DateRail, so it isn't repeated.
+// RecentCard. Race name on top; the location sits right under the title; then the
+// category tag + who's racing (RacerBadge: one chip, or avatars + "N Racers") share the
+// meta line below it (via CardSubMeta). The date lives on the DateRail, so it isn't repeated.
 import DateRail from './DateRail.astro';
-import CardMeta from './CardMeta.astro';
+import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
-import RacerBadge from './RacerBadge.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import type { UpcomingRace } from '../lib/queries';
@@ -23,10 +22,9 @@ const racers = ed.racers ?? [];
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="ut-body">
-		<RacerBadge racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 		{ed.race?.location && <span class="ut-loc">{ed.race.location}</span>}
-		<CardMeta type={typeLabel} catKey={cat.key} distance={distance} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} racers={racers} />
 	</div>
 </article>
 

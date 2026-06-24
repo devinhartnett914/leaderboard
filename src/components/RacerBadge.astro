@@ -6,8 +6,10 @@
 // it, so the count stands in.
 import Avatar from './Avatar.astro';
 import PersonChip from './PersonChip.astro';
-import type { Person } from '../lib/types';
-interface Props { racers: Person[]; }
+// Only the three display fields are needed, so any person-shaped object works — a full
+// `Person` (upcoming racers) or a feed result's lighter `person` both satisfy this.
+type Racer = { full_name: string; slug: string | null; avatar_url: string | null };
+interface Props { racers: Racer[]; }
 const { racers } = Astro.props;
 ---
 {racers.length === 1 ? (

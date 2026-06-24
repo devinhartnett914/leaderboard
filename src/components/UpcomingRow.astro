@@ -1,14 +1,13 @@
 ---
 // One UPCOMING race as a feed row, living in the shared `.results` subgrid so it lines
-// up with every other row on /races and /people. Who's racing (RacerBadge: one chip, or
-// avatars + "N Racers") sits ABOVE the name like every other card; the category tag sits
-// below it; and the location sits on the right where a finish time would be. No detail
-// link (upcoming editions don't get a page until results land). `.is-upcoming` lets the
-// year-line toggle collapse/expand these rows.
+// up with every other row on /races and /people. The race name leads; the category tag +
+// who's racing (RacerBadge: one chip, or avatars + "N Racers") share the meta line below
+// it (via CardSubMeta); and the location sits on the right where a finish time would be.
+// No detail link (upcoming editions don't get a page until results land). `.is-upcoming`
+// lets the year-line toggle collapse/expand these rows.
 import DateRail from './DateRail.astro';
-import CardMeta from './CardMeta.astro';
+import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
-import RacerBadge from './RacerBadge.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import type { UpcomingRace } from '../lib/queries';
@@ -29,9 +28,8 @@ const racers = ed.racers ?? [];
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="uc-body">
-		<RacerBadge racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
-		<CardMeta type={typeLabel} catKey={cat.key} distance={showDist ? ed.distance_or_format : null} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={showDist ? ed.distance_or_format : null} racers={racers} />
 	</div>
 	<div class="uc-meta">
 		{ed.race?.location && <span class="uc-loc">{ed.race.location}</span>}
