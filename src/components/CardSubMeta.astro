@@ -29,7 +29,8 @@ const { type, catKey = null, distance = null, event = null, racers = [] } = Astr
 </div>
 
 <style>
-	/* category tag + racer on one line, tight under the title — a small gap, no big space */
-	.submeta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex-wrap: wrap; }
+	/* category tag + racer on ONE line, tight under the title — a small gap, no big space.
+	   nowrap so the type stays next to the racer (the race name ellipsizes instead, per DEV-19). */
+	.submeta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex-wrap: nowrap; }
 	.sm-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
 </style>

@@ -37,7 +37,9 @@ const racers = ed.racers ?? [];
 		border: 1px solid var(--border); border-left: 3px solid var(--edge);
 		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.ut-body { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; padding: 0.85rem 1rem; min-width: 0; }
+	/* stretch (not flex-start) so the race name is width-constrained to the tile and
+	   ellipsizes when long (DEV-19); location + meta are left-aligned text either way. */
+	.ut-body { display: flex; flex-direction: column; align-items: stretch; gap: 0.3rem; padding: 0.85rem 1rem; min-width: 0; }
 	/* location right under the title, in the standard body font (not mono caps) */
 	.ut-loc { font-family: var(--font-body); font-size: 0.82rem; color: var(--muted); }
 </style>
