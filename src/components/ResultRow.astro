@@ -33,7 +33,7 @@ const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key ===
 <article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-top">
-		<CardTopRow person={showPerson ? r.person : null} type={typeLabel} distance={showDist ? ed?.distance_or_format : null} event={r.event} />
+		<CardTopRow person={showPerson ? r.person : null} type={typeLabel} catKey={cat.key} distance={showDist ? ed?.distance_or_format : null} event={r.event} />
 	</div>
 	<div class="rc-name">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />

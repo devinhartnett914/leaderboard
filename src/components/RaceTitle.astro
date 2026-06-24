@@ -1,28 +1,26 @@
 ---
-// Category icon + race name, vertically centered. The standard race title used on
-// every card (feed rows, swim & grouped cards, homepage recent) so the icon ↔
-// display-font alignment is tuned in exactly one place.
-import { catIcon, catColor } from '../lib/categories';
+// The race name, vertically centered. The standard race title used on every card
+// (feed rows, swim & grouped cards, homepage recent). The category ICON does NOT live
+// here — it rides with the race TYPE (CardMeta on feed cards, CategoryTag on page
+// headers), so the icon placement is consistent site-wide and the name stands alone.
+// `catKey` is kept only to tint the name's hover in the category color.
+import { catColor } from '../lib/categories';
 interface Props {
 	catKey: string;
 	name: string;
 	href?: string | null;
-	nameRem?: number; // race-name font size in rem; icon scales from it
+	nameRem?: number; // race-name font size in rem
 }
 const { catKey, name, href = null, nameRem = 1.5 } = Astro.props;
 const color = catColor(catKey);
 const Tag = href ? 'a' : 'span';
 ---
 <div class="race-title" style={`--nm:${nameRem}rem; --ic:${color}`}>
-	<span class="rt-ic">{catIcon(catKey)}</span>
 	<Tag class="rt-name" href={href ?? undefined}>{name}</Tag>
 </div>
 
 <style>
-	.race-title { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
-	/* icon scales to ~0.8× the name; nudged up a hair to optically center against the
-	   high-sitting Bebas Neue caps */
-	.rt-ic { flex-shrink: 0; display: inline-flex; align-items: center; font-size: calc(var(--nm) * 0.8); line-height: 1; color: var(--ic); transform: translateY(-0.04em); }
+	.race-title { display: flex; align-items: center; min-width: 0; }
 	.rt-name { font-family: var(--font-display); font-weight: 400; font-size: var(--nm); letter-spacing: 0.03em; line-height: 1; color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	a.rt-name:hover { color: var(--ic); text-decoration: none; }
 </style>
