@@ -9,10 +9,10 @@ export interface Category {
 }
 
 // One color per category — used for the row edge/tint, the category icon, AND the
-// filter chips, so they always match. Triathlons = purple, swims = light blue,
-// road = orange, trail = green.
+// filter chips, so they always match. Triathlons = orange (bike accent), swims =
+// light blue, road = peach-orange, trail = green.
 export const CAT_COLOR: Record<string, string> = {
-	sprint: '#a78bfa', olympic: '#a78bfa', triathlon: '#a78bfa', kids_tri: '#a78bfa',
+	sprint: '#ff7a5c', olympic: '#ff7a5c', triathlon: '#ff7a5c', kids_tri: '#ff7a5c',
 	trail_run: '#29e3a4', road_run: '#ffb86b', swim_meet: '#00d4ff', open_water: '#3dd7ff', gravel: '#ffb86b', other: '#8fa5c4',
 };
 export const CAT_ICON: Record<string, string> = {

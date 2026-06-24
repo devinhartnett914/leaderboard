@@ -4,7 +4,8 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
-import CardTopRow from './CardTopRow.astro';
+import PersonChip from './PersonChip.astro';
+import CardMeta from './CardMeta.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
 import { formatSwimTime, parseSwimEvent, swimEventSlug, swimDivision } from '../lib/format';
@@ -26,8 +27,9 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
-		<CardTopRow person={showPerson ? person : null} type="Swim Meet" catKey="swim_meet" />
+		{showPerson && person && <PersonChip person={person} avatar={20} nameRem={0.62} />}
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		<CardMeta type="Swim Meet" catKey="swim_meet" />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
@@ -56,7 +58,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 
 <style>
 
-	.mc-head { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
+	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 
 	/* Event name styled like the family-name chip (PersonChip): muted, hover → text,
 	   no underline. Kept in sync with EventChip + the race YoY swim view. */

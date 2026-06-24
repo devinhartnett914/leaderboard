@@ -10,7 +10,8 @@
 //     place) with its event name and division.
 import RaceTitle from './RaceTitle.astro';
 import ResultMarks from './ResultMarks.astro';
-import CardTopRow from './CardTopRow.astro';
+import PersonChip from './PersonChip.astro';
+import CardMeta from './CardMeta.astro';
 import DateRail from './DateRail.astro';
 import Division from './Division.astro';
 import EventChip from './EventChip.astro';
@@ -123,8 +124,9 @@ const medalSub = medalTier ? swimDivision(division) : null;
 <article class:list={['recent', { 'has-marks': hasMarks }]} data-cat={catKey} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-body">
-		<CardTopRow person={person} type={typeLabel} catKey={catKey} distance={distance} />
+		{person && <PersonChip person={person} avatar={20} nameRem={0.62} />}
 		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		<CardMeta type={typeLabel} catKey={catKey} distance={distance} />
 		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
 		<div class="rc-finish" data-ev={variant}>
 			{(figureLabel || (eventStr && (variant === 'current' || variant === 'b'))) && (
