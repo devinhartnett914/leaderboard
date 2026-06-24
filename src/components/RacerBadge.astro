@@ -1,0 +1,35 @@
+---
+// Who's racing an upcoming meet, shown ABOVE the race name like the person chip on
+// every other card. One racer → their PersonChip (avatar + name). Two or more →
+// each racer's avatar in a row, then the count ("2 Racers"). Attribution is by sport
+// (see UpcomingRace.racers); there's no single name to show when several family race
+// it, so the count stands in.
+import Avatar from './Avatar.astro';
+import PersonChip from './PersonChip.astro';
+import type { Person } from '../lib/types';
+interface Props { racers: Person[]; }
+const { racers } = Astro.props;
+---
+{racers.length === 1 ? (
+	<PersonChip person={racers[0]} avatar={20} nameRem={0.62} />
+) : racers.length > 1 ? (
+	<span class="racer-badge">
+		<span class="rb-avatars">
+			{racers.map((p) => (
+				<a class="rb-av" href={p.slug ? `/people/${p.slug}` : undefined} title={p.full_name}>
+					<Avatar src={p.avatar_url} name={p.full_name} size={20} />
+				</a>
+			))}
+		</span>
+		<span class="rb-count">{racers.length} Racers</span>
+	</span>
+) : null}
+
+<style>
+	.racer-badge { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; }
+	/* avatars overlap slightly, like a stacked roster */
+	.rb-avatars { display: inline-flex; align-items: center; }
+	.rb-av { display: inline-flex; border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); }
+	.rb-av + .rb-av { margin-left: -0.4rem; }
+	.rb-count { font-family: var(--font-mono); font-weight: 700; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+</style>

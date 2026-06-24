@@ -76,7 +76,7 @@ export interface UpcomingRace extends RaceEdition {
 	// Family members this upcoming meet is attributed to. A result-less upcoming
 	// edition has no `result` row to link a person, so attribution is by sport: the
 	// family members who compete in this edition's sport (e.g. the swimmers → the Glade
-	// meets). One name renders as that person; 2+ render as "Multiple Racers".
+	// meets). One name renders as that person; 2+ render as avatars + "N Racers".
 	racers: Person[];
 }
 

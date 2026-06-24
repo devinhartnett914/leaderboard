@@ -1,14 +1,12 @@
 ---
 // Home-page teaser TILE for one upcoming race — the forward-looking sibling of
-// RecentCard. Same tile shell (DateRail on the left, body on the right; gradient +
-// category edge accent) and the same DateRail / CardTopRow / RaceTitle pieces, so the
-// "Upcoming" tiles read identically to the "Recent races" tiles beside them. There's no
-// result yet, so the finish block is replaced by who's racing it (one name, or
-// "Multiple Racers") — the date lives on the DateRail, so it isn't repeated here.
+// RecentCard. Who's racing (RacerBadge: one chip, or avatars + "N Racers") sits ABOVE
+// the name like every other card; the location sits right under the title, and the
+// category tag sits below that. The date lives on the DateRail, so it isn't repeated.
 import DateRail from './DateRail.astro';
-import CardTopRow from './CardTopRow.astro';
+import CardMeta from './CardMeta.astro';
 import RaceTitle from './RaceTitle.astro';
-import PersonChip from './PersonChip.astro';
+import RacerBadge from './RacerBadge.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import type { UpcomingRace } from '../lib/queries';
@@ -25,16 +23,10 @@ const racers = ed.racers ?? [];
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="ut-body">
-		<CardTopRow type={typeLabel} catKey={cat.key} distance={distance} />
+		<RacerBadge racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
-		<div class="ut-foot">
-			{racers.length === 1
-				? <PersonChip person={racers[0]} avatar={22} nameRem={0.66} />
-				: racers.length > 1
-					? <span class="ut-racers">Multiple Racers</span>
-					: null}
-			{ed.race?.location && <span class="ut-loc">{ed.race.location}</span>}
-		</div>
+		{ed.race?.location && <span class="ut-loc">{ed.race.location}</span>}
+		<CardMeta type={typeLabel} catKey={cat.key} distance={distance} />
 	</div>
 </article>
 
@@ -47,11 +39,7 @@ const racers = ed.racers ?? [];
 		border: 1px solid var(--border); border-left: 3px solid var(--edge);
 		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	.ut-body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.85rem 1rem; min-width: 0; }
-	/* the "finish block" slot — pinned to the bottom (margin-top:auto) so the racer line
-	   lines up across tiles, same as RecentCard's finish block. */
-	.ut-foot { display: flex; flex-direction: column; gap: 0.3rem; margin-top: auto; padding-top: 0.5rem; }
-	/* "Multiple Racers" reads like a PersonChip name (mono uppercase) when there's no single racer to chip */
-	.ut-racers { font-family: var(--font-mono); font-weight: 700; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-	.ut-loc { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
+	.ut-body { display: flex; flex-direction: column; align-items: flex-start; gap: 0.3rem; padding: 0.85rem 1rem; min-width: 0; }
+	/* location right under the title, in the standard body font (not mono caps) */
+	.ut-loc { font-family: var(--font-body); font-size: 0.82rem; color: var(--muted); }
 </style>
