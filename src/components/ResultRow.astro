@@ -63,20 +63,21 @@ const racers = showPerson && r.person ? [r.person] : [];
 </article>
 
 <style>
-	/* Two rows: the race name + finish time + legs + standing together on the TOP row (so
-	   the finish lines up with the NAME), then the type · category tag + racer below the
-	   name. The data columns sit on the name row, so a row with no racer still aligns its
-	   finish to the name. */
+	/* Left column stacks: the race name on top (row 1), the type · category tag + racer
+	   directly below it (row 2). The data columns (finish · legs · standing) SPAN both rows
+	   and sit vertically centered, so dropping the type+racer under the name doesn't shift
+	   or top-load them, and the split icons (which float above each time) keep their
+	   headroom. A row with no racer still centers its finish the same way. */
 	.rcard { grid-template-rows: auto auto; }
 
 	.rc-name { grid-column: 2; grid-row: 1; display: flex; align-items: flex-start; padding: 0.8rem 1.1rem 0; min-width: 0; }
 	.rcard.has-marks .rc-name { padding-right: 76px; }
 
-	.rc-finish { grid-column: 3; grid-row: 1; position: relative; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.2rem; padding: 0.8rem 1.1rem 0; }
+	.rc-finish { grid-column: 3; grid-row: 1 / -1; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0 1.1rem; }
 	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
 	.rc-timewrap { position: relative; width: max-content; }
 
-	.rc-legs { grid-column: 4; grid-row: 1; display: flex; gap: 0.95rem; align-items: flex-start; padding: 0.8rem 1.1rem 0; }
+	.rc-legs { grid-column: 4; grid-row: 1 / -1; display: flex; gap: 0.95rem; align-items: center; padding: 0 1.1rem; }
 	/* the leg TIME is the anchor: it sits on the same top line as the finish time and
 	   the standing (all three cells are top-aligned). The discipline icon floats just
 	   ABOVE the time and the pace sits below — so a row of splits reads time-first, in
@@ -86,7 +87,7 @@ const racers = showPerson && r.person ? [r.person] : [];
 	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
 	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
-	.rc-places { grid-column: 5; grid-row: 1; display: flex; flex-direction: column; justify-content: flex-start; padding: 0.8rem 1.2rem 0 1.1rem; }
+	.rc-places { grid-column: 5; grid-row: 1 / -1; display: flex; flex-direction: column; justify-content: center; padding: 0 1.2rem 0 1.1rem; }
 
 	/* the type · category tag + racer, directly below the race name (DEV-19 / DEV-20) */
 	.rc-meta { grid-column: 2; grid-row: 2; padding: 0.15rem 1.1rem 0.85rem; min-width: 0; }
