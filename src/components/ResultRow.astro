@@ -1,8 +1,8 @@
 ---
 // One tri/run result row, shared by the person page and the all-races feed. Lives in
-// the parent `.results` subgrid. New anatomy: the person (combined feed only) sits on
-// top, then the race name + finish time + legs + standing share ONE row (so the finish
-// time lines up with the race NAME), and the type · category tag sits BELOW the name.
+// the parent `.results` subgrid. Anatomy: the type · category tag + racer sit in a band
+// ABOVE the race name (the card standard), then the race name + finish time + legs +
+// standing share ONE row below (so the finish time lines up with the race NAME).
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
@@ -29,12 +29,15 @@ const legs = (r.split ?? []).filter((s) => !/^t\d/i.test(s.label));
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const showDist = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
-// On the combined feed the result carries its person → show them on the meta line below the
+// On the combined feed the result carries its person → show them on the meta band above the
 // name; on a person's own page there's no person to show.
 const racers = showPerson && r.person ? [r.person] : [];
 ---
 <article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
+	<div class="rc-meta">
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={showDist ? ed?.distance_or_format : null} event={r.event} racers={racers} />
+	</div>
 	<div class="rc-name">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
@@ -57,38 +60,33 @@ const racers = showPerson && r.person ? [r.person] : [];
 	<div class="rc-places">
 		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} variant={placesVariant} />
 	</div>
-	<div class="rc-meta">
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={showDist ? ed?.distance_or_format : null} event={r.event} racers={racers} />
-	</div>
 </article>
 
 <style>
-	/* Left column stacks: the race name on top (row 1), the type · category tag + racer
-	   directly below it (row 2). The data columns (finish · legs · standing) SPAN both rows
-	   and sit vertically centered, so dropping the type+racer under the name doesn't shift
-	   or top-load them, and the split icons (which float above each time) keep their
-	   headroom. A row with no racer still centers its finish the same way. */
+	/* The type · category tag + racer is a band spanning the top (row 1); the race name +
+	   finish time + legs + standing then sit together on ONE row below (row 2), so the
+	   finish lines up with the NAME and the split icons (which float above each time) have
+	   the band above for headroom. */
 	.rcard { grid-template-rows: auto auto; }
 
-	.rc-name { grid-column: 2; grid-row: 1; display: flex; align-items: flex-start; padding: 0.8rem 1.1rem 0; min-width: 0; }
+	.rc-meta { grid-column: 2 / -1; grid-row: 1; padding: 0.8rem 1.1rem 0; min-width: 0; }
+
+	.rc-name { grid-column: 2; grid-row: 2; display: flex; align-items: flex-start; padding: 0 1.1rem 0.85rem; min-width: 0; }
 	.rcard.has-marks .rc-name { padding-right: 76px; }
 
-	.rc-finish { grid-column: 3; grid-row: 1 / -1; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0 1.1rem; }
+	.rc-finish { grid-column: 3; grid-row: 2; position: relative; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.2rem; padding: 0 1.1rem 0.85rem; }
 	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
 	.rc-timewrap { position: relative; width: max-content; }
 
-	.rc-legs { grid-column: 4; grid-row: 1 / -1; display: flex; gap: 0.95rem; align-items: center; padding: 0 1.1rem; }
+	.rc-legs { grid-column: 4; grid-row: 2; display: flex; gap: 0.95rem; align-items: flex-start; padding: 0 1.1rem 0.85rem; }
 	/* the leg TIME is the anchor: it sits on the same top line as the finish time and
 	   the standing (all three cells are top-aligned). The discipline icon floats just
-	   ABOVE the time and the pace sits below — so a row of splits reads time-first, in
-	   line with place/division instead of dropped a row. */
+	   ABOVE the time (into the meta band) and the pace sits below — so a row of splits
+	   reads time-first, in line with place/division instead of dropped a row. */
 	.rc-leg { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 54px; }
 	.leg-ic { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 0.12rem; font-size: 1.05rem; line-height: 1; }
 	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
 	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
-	.rc-places { grid-column: 5; grid-row: 1 / -1; display: flex; flex-direction: column; justify-content: center; padding: 0 1.2rem 0 1.1rem; }
-
-	/* the type · category tag + racer, directly below the race name (DEV-19 / DEV-20) */
-	.rc-meta { grid-column: 2; grid-row: 2; padding: 0.15rem 1.1rem 0.85rem; min-width: 0; }
+	.rc-places { grid-column: 5; grid-row: 2; display: flex; flex-direction: column; justify-content: flex-start; padding: 0 1.2rem 0.85rem 1.1rem; }
 </style>

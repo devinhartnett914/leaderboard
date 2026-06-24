@@ -28,8 +28,8 @@ const racers = showPerson && person ? [person] : [];
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
-		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
+		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);

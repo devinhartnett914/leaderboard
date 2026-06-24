@@ -31,7 +31,8 @@ const { entry, prCtx, variant = 'c' } = Astro.props;
 
 // Resolve a common shape regardless of entry type, then render one finish block.
 let person = null as { full_name: string; slug: string | null; avatar_url: string | null } | null;
-let extraPeople = 0;
+// who's racing → the meta band's RacerBadge (1 → chip, 2+ → avatars + "N Racers")
+let racers = [] as { full_name: string; slug: string | null; avatar_url: string | null }[];
 let ed;
 let catKey = 'other';
 let edge = 'var(--border)';
@@ -50,6 +51,7 @@ let eventStr: string | null = null; // which event the best result was (swim mee
 if (entry.type === 'meet') {
 	const events = entry.events;
 	person = events[0].person ?? null;
+	racers = person ? [person] : [];
 	ed = events[0].race_edition;
 	catKey = 'swim_meet';
 	edge = 'var(--swim)';
@@ -72,7 +74,8 @@ if (entry.type === 'meet') {
 	const results = entry.results;
 	const lead = results[0];
 	person = lead.person ?? null;
-	extraPeople = results.length - 1;
+	// all family who ran this race → 2+ shows the avatars + "N Racers" badge
+	racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof p> => p != null);
 	ed = lead.race_edition;
 	const cat = categoryOf(lead);
 	const sport = (ed?.race?.sport ?? 'other') as Sport;
@@ -93,6 +96,7 @@ if (entry.type === 'meet') {
 } else {
 	const r = entry.r;
 	person = r.person ?? null;
+	racers = person ? [person] : [];
 	ed = r.race_edition;
 	const cat = categoryOf(r);
 	const sport = (ed?.race?.sport ?? 'other') as Sport;
@@ -123,9 +127,8 @@ const medalSub = medalTier ? swimDivision(division) : null;
 <article class:list={['recent', { 'has-marks': hasMarks }]} data-cat={catKey} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-body">
+		<CardSubMeta type={typeLabel} catKey={catKey} distance={distance} racers={racers} />
 		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={catKey} distance={distance} racers={person ? [person] : []} />
-		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
 		<div class="rc-finish" data-ev={variant}>
 			{(figureLabel || (eventStr && (variant === 'current' || variant === 'b'))) && (
 				<div class="rc-head">

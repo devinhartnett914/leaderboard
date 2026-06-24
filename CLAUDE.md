@@ -92,8 +92,12 @@ pattern repeats ~2–3×, extract it rather than copy it.
   `division`/`*_place` by hand.
 
 ### Layout patterns (keep consistent across cards)
-- Card top row = the **type · distance** tag, on its own line *above* the race name. On the
-  combined feed a `PersonChip` leads that row, pipe-separated from the tag.
+- **Card standard: type & racers ABOVE the race name.** The `CardSubMeta` band (one line, above
+  the title on every card) carries the **type · distance** tag *and* who's racing, pipe-separated.
+  Racers render via `RacerBadge`: one → a `PersonChip` (avatar + name), 2+ → stacked avatars + an
+  "N Racers" count. This badge is used on **every** race with multiple family members (the grouped
+  feed card, recent tiles, upcoming) — not just Upcoming. (Type-above-name scales better on narrow
+  / mobile widths than stacking it below.)
 - Finish time is right-aligned with marks to its left; the division-first standing sits at the
   far right (via `ResultPlaces`). Header captions (Overall/Division/Finish) are dropped visually
   but kept as `.sr-only` for screen readers.

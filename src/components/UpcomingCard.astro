@@ -1,8 +1,8 @@
 ---
 // Home-page teaser TILE for one upcoming race — the forward-looking sibling of
-// RecentCard. Race name on top; the location sits right under the title; then the
-// category tag + who's racing (RacerBadge: one chip, or avatars + "N Racers") share the
-// meta line below it (via CardSubMeta). The date lives on the DateRail, so it isn't repeated.
+// RecentCard. The category tag + who's racing (RacerBadge: one chip, or avatars + "N
+// Racers") share the meta line ABOVE the race name (via CardSubMeta, the card standard);
+// the location sits right under the title. The date lives on the DateRail, so it isn't repeated.
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
@@ -22,9 +22,9 @@ const racers = ed.racers ?? [];
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="ut-body">
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 		{ed.race?.location && <span class="ut-loc">{ed.race.location}</span>}
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} racers={racers} />
 	</div>
 </article>
 
