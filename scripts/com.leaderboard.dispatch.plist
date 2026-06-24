@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Daily unattended dispatch + release. Install with:
+       cp scripts/com.leaderboard.dispatch.plist ~/Library/LaunchAgents/
+       launchctl load ~/Library/LaunchAgents/com.leaderboard.dispatch.plist
+     Runs from the checkout this script lives in. Logs: ~/Library/Logs/leaderboard-dispatch.log
+     Replaces the old claude.ai cloud routine (which couldn't see the local Linear MCP). -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.leaderboard.dispatch</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/clawdnett/Projects/leaderboard/scripts/dispatch-cron.sh</string>
+    </array>
+
+    <!-- claude needs HOME (to find ~/.claude creds + the linear MCP config) and a real PATH. -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/clawdnett</string>
+        <key>PATH</key>
+        <string>/Users/clawdnett/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    </dict>
+
+    <!-- Once a day at 06:07 local. launchd fires a missed run when the mini next wakes,
+         so a sleeping machine still catches up. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>7</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/clawdnett/Library/Logs/leaderboard-dispatch.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/clawdnett/Library/Logs/leaderboard-dispatch.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
