@@ -9,10 +9,11 @@ import CardMeta from './CardMeta.astro';
 interface Props {
 	person?: { full_name: string; slug: string | null; avatar_url: string | null } | null;
 	type: string;
+	catKey?: string | null;
 	distance?: string | null;
 	event?: string | null;
 }
-const { person = null, type, distance = null, event = null } = Astro.props;
+const { person = null, type, catKey = null, distance = null, event = null } = Astro.props;
 ---
 <div class="ctrow">
 	{person && (
@@ -21,7 +22,7 @@ const { person = null, type, distance = null, event = null } = Astro.props;
 			<span class="ct-pipe" aria-hidden="true">|</span>
 		</Fragment>
 	)}
-	<CardMeta type={type} distance={distance} event={event} />
+	<CardMeta type={type} catKey={catKey} distance={distance} event={event} />
 </div>
 
 <style>

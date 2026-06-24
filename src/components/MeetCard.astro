@@ -25,7 +25,7 @@ const places = [...new Set(events.map(podiumPlace).filter((p): p is number => p 
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
-		<CardTopRow person={showPerson ? person : null} type="Swim Meet" />
+		<CardTopRow person={showPerson ? person : null} type="Swim Meet" catKey="swim_meet" />
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 	</div>
 	{events.map((e, i) => {

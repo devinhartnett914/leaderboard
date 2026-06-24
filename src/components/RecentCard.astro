@@ -123,7 +123,7 @@ const medalSub = medalTier ? swimDivision(division) : null;
 <article class:list={['recent', { 'has-marks': hasMarks }]} data-cat={catKey} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-body">
-		<CardTopRow person={person} type={typeLabel} distance={distance} />
+		<CardTopRow person={person} type={typeLabel} catKey={catKey} distance={distance} />
 		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 		{extraPeople > 0 && <span class="rc-more">+{extraPeople} more family</span>}
 		<div class="rc-finish" data-ev={variant}>
