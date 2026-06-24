@@ -25,7 +25,7 @@ const racers = ed.racers ?? [];
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="ut-body">
-		<CardTopRow type={typeLabel} distance={distance} />
+		<CardTopRow type={typeLabel} catKey={cat.key} distance={distance} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 		<div class="ut-foot">
 			{racers.length === 1

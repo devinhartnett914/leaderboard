@@ -29,7 +29,7 @@ const racers = ed.racers ?? [];
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="uc-body">
-		<CardTopRow type={typeLabel} distance={showDist ? ed.distance_or_format : null} />
+		<CardTopRow type={typeLabel} catKey={cat.key} distance={showDist ? ed.distance_or_format : null} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 	</div>
 	<div class="uc-meta">
