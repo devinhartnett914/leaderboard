@@ -19,6 +19,7 @@ const { catKey, label, icon = false } = Astro.props;
 
 <style>
 	.cat-tag { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--c); }
-	.cat-ic { font-size: 1.1rem; line-height: 1; }
+	/* native color emoji (not tinted by the category --c) so e.g. the Sprint ⚡ stays orange */
+	.cat-ic { font-size: 1.1rem; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', emoji; }
 	.cat-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-event); letter-spacing: var(--ls-wide); text-transform: uppercase; }
 </style>

@@ -25,8 +25,10 @@ const { type, catKey = null, distance = null, event = null } = Astro.props;
 	/* mono-uppercase strip — inherits the card's --edge color so the icon, type
 	   tag, distance, and (optional) swim event read in one consistent voice. */
 	.cardmeta { flex-shrink: 0; display: inline-flex; align-items: baseline; gap: 0.35rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-	/* icon centered against the small caps, sized up so the glyph reads clearly */
-	.cm-ic { align-self: center; flex-shrink: 0; font-size: 0.95rem; line-height: 1; color: var(--edge); }
+	/* icon centered against the small caps, sized up so the glyph reads clearly. It is a
+	   native COLOR emoji (the emoji font stack keeps it from falling back to a tinted mono
+	   glyph), so it is NOT colored by --edge — e.g. the Sprint ⚡ stays orange on a purple tri. */
+	.cm-ic { align-self: center; flex-shrink: 0; font-size: 0.95rem; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', emoji; }
 	.cm-type, .cm-dist { color: var(--edge); }
 	.cm-ev { color: var(--faint); }
 </style>
