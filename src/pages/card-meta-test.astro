@@ -29,7 +29,7 @@ const picks = [single, group, meet].filter((e): e is NonNullable<typeof e> => !!
 
 const cases = [
 	{ tc: false, label: 'Row labels ALL-CAPS — current' },
-	{ tc: true, label: 'Row labels Title Case (names + swim events) — type tags stay caps' },
+	{ tc: true, label: 'Names + swim events Title Case — only type/distance tags stay caps' },
 ];
 const positions = [
 	{ below: false, label: 'Type · racer ABOVE the name' },
@@ -73,13 +73,15 @@ const positions = [
 		padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
 	}
 
-	/* Title-case sections affect ONLY the multi-race ROW labels — the swim event names
-	   (mc-evname) and the finisher names (PersonChip .plain). The race type/distance tag,
-	   the race name, the meta-band racer, and the "N Racers" count all STAY uppercase. The
-	   row labels are already stored title case, so we just drop the uppercase transform.
-	   !important to beat the components' own scoped rules (test page only). */
-	.case.tc :global(.mc-evname),
-	.case.tc :global(.pchip.plain) { text-transform: none !important; }
+	/* Title-case sections: in a multi-row card, ALL the person names (the meet's header
+	   racer + the finisher names) and the swim event names go title case. Only the race
+	   type/distance TAG and the race name title stay uppercase (the race name is the all-caps
+	   display font regardless). The text is already stored title case, so we just drop the
+	   uppercase transform. !important to beat the components' own scoped rules (test page only). */
+	.case.tc :global(.mc-head .pchip),
+	.case.tc :global(.gc-head .pchip),
+	.case.tc :global(.pchip.plain),
+	.case.tc :global(.mc-evname .ev-lbl) { text-transform: none !important; }
 
 	/* stack on narrow screens so the cards never get crushed */
 	@media (max-width: 1000px) {
