@@ -20,8 +20,9 @@ interface Props {
 	aw: { tier: number; sub: string } | null;
 	showPerson?: boolean;
 	placesVariant?: 'current' | 'stack';
+	metaBelow?: boolean; // test variant: type · racer drops BELOW the race name
 }
-const { r, pr, aw, showPerson = false, placesVariant = 'stack' } = Astro.props;
+const { r, pr, aw, showPerson = false, placesVariant = 'stack', metaBelow = false } = Astro.props;
 const ed = r.race_edition;
 const sport = (ed?.race?.sport ?? 'other') as Sport;
 const cat = categoryOf(r);
@@ -35,7 +36,7 @@ const distLabel = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDista
 // name; on a person's own page there's no person to show.
 const racers = showPerson && r.person ? [r.person] : [];
 ---
-<article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
+<article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr, 'meta-below': metaBelow }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-meta">
 		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} racers={racers} />
@@ -91,4 +92,14 @@ const racers = showPerson && r.person ? [r.person] : [];
 	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
 
 	.rc-places { grid-column: 5; grid-row: 2; display: flex; flex-direction: column; justify-content: flex-start; padding: 0 1.2rem 0.85rem 1.1rem; }
+
+	/* ---- meta-below variant (the test layout) ----------------------------------------
+	   type · racer drops BELOW the race name; the data columns (finish · legs · standing)
+	   then SPAN both rows and center, so they keep their place instead of shifting/top-
+	   loading, and the split icons keep headroom. Extra bottom space sits under the meta. */
+	.rcard.meta-below .rc-name { grid-row: 1; padding: 0.85rem 1.1rem 0; }
+	.rcard.meta-below .rc-meta { grid-column: 2; grid-row: 2; padding: 0.25rem 1.1rem 1rem; }
+	.rcard.meta-below .rc-finish { grid-row: 1 / -1; justify-content: center; padding: 0 1.1rem; }
+	.rcard.meta-below .rc-legs { grid-row: 1 / -1; align-items: center; padding: 0 1.1rem; }
+	.rcard.meta-below .rc-places { grid-row: 1 / -1; justify-content: center; padding: 0 1.2rem 0 1.1rem; }
 </style>

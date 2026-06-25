@@ -1,0 +1,71 @@
+---
+// TEST / COMPARISON PAGE (not linked in nav). Side-by-side preview of the two card
+// anatomies so we can pick where the type · racer line lives:
+//   left  = ABOVE the race name (current production)
+//   right = BELOW the race name (proposed) — via each card's `metaBelow` prop, which keeps
+//           the single-row data centered (not top-loaded) and adds breathing room under the
+//           meta so it doesn't crowd the combined-race finisher / event rows.
+// Shows the three feed-card shapes that matter: a single result with splits (tri), a
+// combined multi-family race, and a swim meet. Delete once the layout is decided.
+import Layout from '../layouts/Layout.astro';
+import ResultRow from '../components/ResultRow.astro';
+import MeetCard from '../components/MeetCard.astro';
+import RaceGroupCard from '../components/RaceGroupCard.astro';
+import { getAllFamilyResults } from '../lib/queries';
+import { buildEntries, buildPrContext, award } from '../lib/feed';
+
+const results = await getAllFamilyResults();
+const prCtx = buildPrContext(results);
+const entries = buildEntries(results, { groupRaces: true });
+
+// one of each shape: a single result with leg splits (tri) tests the data-alignment case;
+// a combined race + a swim meet test the "don't crowd the sub-rows" spacing case.
+const single = entries.find((e) => e.type === 'card' && (e.r.split?.length ?? 0) > 0)
+	?? entries.find((e) => e.type === 'card');
+const group = entries.find((e) => e.type === 'race');
+const meet = entries.find((e) => e.type === 'meet');
+const picks = [single, group, meet].filter((e): e is NonNullable<typeof e> => !!e);
+const cols = [
+	{ below: false, label: 'Type & racer ABOVE the name — current' },
+	{ below: true, label: 'Type & racer BELOW the name — proposed' },
+];
+---
+<Layout title="Card layout test" subtitle="Where should the type · racer line go?">
+	<div class="compare">
+		{cols.map(({ below, label }) => (
+			<section class="col">
+				<h2 class="col-h">{label}</h2>
+				<div class="results">
+					{picks.map((it) =>
+						it.type === 'meet' ? (
+							<MeetCard entry={it} prCtx={prCtx} showPerson metaBelow={below} />
+						) : it.type === 'race' ? (
+							<RaceGroupCard entry={it} prCtx={prCtx} metaBelow={below} />
+						) : (
+							<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson metaBelow={below} />
+						),
+					)}
+				</div>
+			</section>
+		))}
+	</div>
+</Layout>
+
+<style>
+	/* break out of the 1040px content column so each side has room for a full feed card.
+	   calc(50% - 47vw) shifts the 94vw-wide block's left edge back to ~3vw from the viewport
+	   edge — the reliable full-bleed centering (no transform). */
+	.compare {
+		width: 94vw; margin-left: calc(50% - 47vw);
+		display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start;
+	}
+	.col-h {
+		font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wide);
+		text-transform: uppercase; color: var(--muted); margin: 0 0 1.1rem;
+		padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
+	}
+	/* stack on narrow screens so the cards never get crushed */
+	@media (max-width: 1000px) {
+		.compare { width: 100%; margin-left: 0; transform: none; grid-template-columns: 1fr; gap: 2rem; }
+	}
+</style>

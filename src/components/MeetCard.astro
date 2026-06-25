@@ -15,8 +15,9 @@ interface Props {
 	prCtx: PrContext;
 	showPerson?: boolean;
 	placesVariant?: 'current' | 'stack';
+	metaBelow?: boolean; // test variant: type · racer drops BELOW the race name
 }
-const { entry, prCtx, showPerson = false, placesVariant = 'stack' } = Astro.props;
+const { entry, prCtx, showPerson = false, placesVariant = 'stack', metaBelow = false } = Astro.props;
 const events = entry.events;
 const ed = events[0].race_edition;
 const person = events[0].person;
@@ -27,9 +28,18 @@ const racers = showPerson && person ? [person] : [];
 ---
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class="mc-head">
-		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
-		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+	<div class:list={['mc-head', { 'meta-below': metaBelow }]}>
+		{metaBelow ? (
+			<Fragment>
+				<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+				<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
+			</Fragment>
+		) : (
+			<Fragment>
+				<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
+				<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+			</Fragment>
+		)}
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
@@ -59,6 +69,8 @@ const racers = showPerson && person ? [person] : [];
 <style>
 
 	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
+	/* meta-below: extra room under the type · racer line so it doesn't crowd the event rows */
+	.mc-head.meta-below { gap: 0.3rem; padding-bottom: 1.05rem; }
 
 	/* Event name reads in the RANK's text treatment (plain light mono, fs-value, no caps /
 	   no wide tracking) so the eye scans cleanly across the row to the time + standing;
