@@ -37,26 +37,32 @@ const positions = [
 ];
 ---
 <Layout title="Card layout test" subtitle="Type · racer placement + casing of the discipline & names">
-	{cases.map(({ tc, label: caseLabel }) => (
+	{cases.map(({ tc, label: caseLabel }, ci) => (
 		<section class:list={['case', { tc }]}>
 			<h2 class="case-h">{caseLabel}</h2>
 			<div class="compare">
-				{positions.map(({ below, label }) => (
-					<div class="col">
-						<h3 class="col-h">{label}</h3>
-						<div class="results">
-							{picks.map((it) =>
-								it.type === 'meet' ? (
-									<MeetCard entry={it} prCtx={prCtx} showPerson metaBelow={below} />
-								) : it.type === 'race' ? (
-									<RaceGroupCard entry={it} prCtx={prCtx} metaBelow={below} />
-								) : (
-									<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson metaBelow={below} />
-								),
-							)}
+				{positions.map(({ below, label }, pi) => {
+					const n = ci * positions.length + pi + 1;
+					return (
+						<div class="col">
+							<h3 class="col-h">
+								<span class="opt-n">Option {n}</span>
+								<span class="opt-d">{label} · table rows {tc ? 'Title Case' : 'ALL-CAPS'}</span>
+							</h3>
+							<div class="results">
+								{picks.map((it) =>
+									it.type === 'meet' ? (
+										<MeetCard entry={it} prCtx={prCtx} showPerson metaBelow={below} />
+									) : it.type === 'race' ? (
+										<RaceGroupCard entry={it} prCtx={prCtx} metaBelow={below} />
+									) : (
+										<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson metaBelow={below} />
+									),
+								)}
+							</div>
 						</div>
-					</div>
-				))}
+					);
+				})}
 			</div>
 		</section>
 	))}
@@ -68,10 +74,11 @@ const positions = [
 	.case-h { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 1.2rem; }
 	.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
 	.col-h {
-		font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wide);
-		text-transform: uppercase; color: var(--muted); margin: 0 0 1.1rem;
+		display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; margin: 0 0 1.1rem;
 		padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
 	}
+	.opt-n { font-family: var(--font-display); font-weight: 400; font-size: 1.55rem; letter-spacing: 0.03em; color: var(--accent); flex-shrink: 0; }
+	.opt-d { font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: 0.04em; color: var(--muted); }
 
 	/* Title-case sections, by WHERE the text sits:
 	     • in the multi-racer TABLE (finisher rows + swim event rows) → title case
