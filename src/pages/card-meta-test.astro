@@ -1,12 +1,13 @@
 ---
-// TEST / COMPARISON PAGE (not linked in nav). Side-by-side preview of the two card
-// anatomies so we can pick where the type · racer line lives:
-//   left  = ABOVE the race name (current production)
-//   right = BELOW the race name (proposed) — via each card's `metaBelow` prop, which keeps
-//           the single-row data centered (not top-loaded) and adds breathing room under the
-//           meta so it doesn't crowd the combined-race finisher / event rows.
-// Shows the three feed-card shapes that matter: a single result with splits (tri), a
-// combined multi-family race, and a swim meet. Delete once the layout is decided.
+// TEST / COMPARISON PAGE (not linked in nav). A matrix to pick the card anatomy:
+//   • position: type · racer ABOVE the race name (current) vs BELOW it (proposed)
+//   • casing:   the multi-race ROW labels — swim event names + finisher names — ALL-CAPS
+//               (current) vs Title Case. The race type/distance tag, race name, meta-band
+//               racer, and "N Racers" count always stay uppercase.
+// Position uses each card's `metaBelow` prop (keeps single-row data centered, adds room
+// under the meta in combined cards). Casing is just CSS — the row labels are already stored
+// title case, so the `.tc` section drops `text-transform: uppercase` off the swim event
+// labels (mc-evname) and the finisher names (.pchip.plain) only. Delete once decided.
 import Layout from '../layouts/Layout.astro';
 import ResultRow from '../components/ResultRow.astro';
 import MeetCard from '../components/MeetCard.astro';
@@ -18,54 +19,71 @@ const results = await getAllFamilyResults();
 const prCtx = buildPrContext(results);
 const entries = buildEntries(results, { groupRaces: true });
 
-// one of each shape: a single result with leg splits (tri) tests the data-alignment case;
-// a combined race + a swim meet test the "don't crowd the sub-rows" spacing case.
+// one of each shape: a single result with leg splits (tri), a combined multi-family race,
+// and a swim meet — so the discipline tag, names, and sub-rows are all represented.
 const single = entries.find((e) => e.type === 'card' && (e.r.split?.length ?? 0) > 0)
 	?? entries.find((e) => e.type === 'card');
 const group = entries.find((e) => e.type === 'race');
 const meet = entries.find((e) => e.type === 'meet');
 const picks = [single, group, meet].filter((e): e is NonNullable<typeof e> => !!e);
-const cols = [
-	{ below: false, label: 'Type & racer ABOVE the name — current' },
-	{ below: true, label: 'Type & racer BELOW the name — proposed' },
+
+const cases = [
+	{ tc: false, label: 'Row labels ALL-CAPS — current' },
+	{ tc: true, label: 'Row labels Title Case (names + swim events) — type tags stay caps' },
+];
+const positions = [
+	{ below: false, label: 'Type · racer ABOVE the name' },
+	{ below: true, label: 'Type · racer BELOW the name' },
 ];
 ---
-<Layout title="Card layout test" subtitle="Where should the type · racer line go?">
-	<div class="compare">
-		{cols.map(({ below, label }) => (
-			<section class="col">
-				<h2 class="col-h">{label}</h2>
-				<div class="results">
-					{picks.map((it) =>
-						it.type === 'meet' ? (
-							<MeetCard entry={it} prCtx={prCtx} showPerson metaBelow={below} />
-						) : it.type === 'race' ? (
-							<RaceGroupCard entry={it} prCtx={prCtx} metaBelow={below} />
-						) : (
-							<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson metaBelow={below} />
-						),
-					)}
-				</div>
-			</section>
-		))}
-	</div>
+<Layout title="Card layout test" subtitle="Type · racer placement + casing of the discipline & names">
+	{cases.map(({ tc, label: caseLabel }) => (
+		<section class:list={['case', { tc }]}>
+			<h2 class="case-h">{caseLabel}</h2>
+			<div class="compare">
+				{positions.map(({ below, label }) => (
+					<div class="col">
+						<h3 class="col-h">{label}</h3>
+						<div class="results">
+							{picks.map((it) =>
+								it.type === 'meet' ? (
+									<MeetCard entry={it} prCtx={prCtx} showPerson metaBelow={below} />
+								) : it.type === 'race' ? (
+									<RaceGroupCard entry={it} prCtx={prCtx} metaBelow={below} />
+								) : (
+									<ResultRow r={it.r} pr={prCtx.prBadge(it.r)} aw={award(it.r)} showPerson metaBelow={below} />
+								),
+							)}
+						</div>
+					</div>
+				))}
+			</div>
+		</section>
+	))}
 </Layout>
 
 <style>
-	/* break out of the 1040px content column so each side has room for a full feed card.
-	   calc(50% - 47vw) shifts the 94vw-wide block's left edge back to ~3vw from the viewport
-	   edge — the reliable full-bleed centering (no transform). */
-	.compare {
-		width: 94vw; margin-left: calc(50% - 47vw);
-		display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start;
-	}
+	/* each case section breaks out of the 1040px column so both positions get a full card */
+	.case { width: 94vw; margin-left: calc(50% - 47vw); margin-bottom: 3.5rem; }
+	.case-h { font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 1.2rem; }
+	.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; align-items: start; }
 	.col-h {
 		font-family: var(--font-mono); font-size: var(--fs-chip); letter-spacing: var(--ls-wide);
 		text-transform: uppercase; color: var(--muted); margin: 0 0 1.1rem;
 		padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
 	}
+
+	/* Title-case sections affect ONLY the multi-race ROW labels — the swim event names
+	   (mc-evname) and the finisher names (PersonChip .plain). The race type/distance tag,
+	   the race name, the meta-band racer, and the "N Racers" count all STAY uppercase. The
+	   row labels are already stored title case, so we just drop the uppercase transform.
+	   !important to beat the components' own scoped rules (test page only). */
+	.case.tc :global(.mc-evname),
+	.case.tc :global(.pchip.plain) { text-transform: none !important; }
+
 	/* stack on narrow screens so the cards never get crushed */
 	@media (max-width: 1000px) {
-		.compare { width: 100%; margin-left: 0; transform: none; grid-template-columns: 1fr; gap: 2rem; }
+		.case { width: 100%; margin-left: 0; }
+		.compare { grid-template-columns: 1fr; gap: 2rem; }
 	}
 </style>
