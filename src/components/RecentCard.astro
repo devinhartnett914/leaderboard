@@ -16,7 +16,7 @@ import Division from './Division.astro';
 import EventChip from './EventChip.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { formatTime, formatSwimTime, swimDivision } from '../lib/format';
+import { formatTime, formatSwimTime, swimDivision, raceDistanceLabel } from '../lib/format';
 import { award, podiumPlace, bestEvent, swimCs, type Entry, type PrContext } from '../lib/feed';
 
 interface Props {
@@ -82,7 +82,7 @@ if (entry.type === 'meet') {
 	catKey = cat.key;
 	edge = catColor(cat.key);
 	typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
-	distance = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed?.distance_or_format : null;
+	distance = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed?.distance_or_format, ed?.race?.name) : null;
 	const aw = award(lead);
 	const b = prCtx.prBadge(lead);
 	medalTier = aw ? aw.tier : null;
@@ -103,7 +103,7 @@ if (entry.type === 'meet') {
 	catKey = cat.key;
 	edge = catColor(cat.key);
 	typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
-	distance = ed?.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed?.distance_or_format : null;
+	distance = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed?.distance_or_format, ed?.race?.name) : null;
 	const aw = award(r);
 	const b = prCtx.prBadge(r);
 	medalTier = aw ? aw.tier : null;

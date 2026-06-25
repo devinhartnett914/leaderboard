@@ -8,6 +8,7 @@ import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
+import { raceDistanceLabel } from '../lib/format';
 import type { UpcomingRace } from '../lib/queries';
 
 interface Props { race: UpcomingRace }
@@ -16,7 +17,7 @@ const sport = (ed.race?.sport ?? 'other') as Sport;
 const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_format, race: { sport, name: ed.race?.name } } });
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
-const distance = ed.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon') ? ed.distance_or_format : null;
+const distance = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed.distance_or_format, ed.race?.name) : null;
 const racers = ed.racers ?? [];
 ---
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>

@@ -242,6 +242,21 @@ export function swimEventSlug(event: string | null | undefined): string {
 	return `${dist}-${stroke}${e.isRelay ? '-relay' : ''}`.replace(/-+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+/**
+ * The distance to show beside a race's TYPE tag. Prefers the explicit `distance_or_format`;
+ * if that's blank, pulls a distance out of the race NAME (so a "Turkey Day 5K" still tags
+ * "5K" even when the field wasn't filled). Returns null when neither carries one — so the
+ * rule "always list the distance, even when it's already in the name" holds site-wide.
+ */
+export function raceDistanceLabel(distanceOrFormat: string | null | undefined, name: string | null | undefined): string | null {
+	if (distanceOrFormat && distanceOrFormat.trim()) return distanceOrFormat.trim();
+	const m = (name ?? '').match(/\b(\d+(?:\.\d+)?)\s?(k|km|mi|miler?|miles?)\b/i);
+	if (!m) return null;
+	const num = m[1], unit = m[2].toLowerCase();
+	if (unit === 'k' || unit === 'km') return `${num}${unit.toUpperCase()}`; // 5K, 10K
+	return `${num} ${unit[0].toUpperCase()}${unit.slice(1)}`;                // 5 Mile, 8 Miler
+}
+
 // ---- Distance + pace -------------------------------------------------------
 // distance_m is always meters (canonical). distance_unit is how to display it.
 

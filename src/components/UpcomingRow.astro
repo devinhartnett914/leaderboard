@@ -10,6 +10,7 @@ import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
+import { raceDistanceLabel } from '../lib/format';
 import type { UpcomingRace } from '../lib/queries';
 
 interface Props {
@@ -22,13 +23,13 @@ const sport = (ed.race?.sport ?? 'other') as Sport;
 const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_format, race: { sport, name: ed.race?.name } } });
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
-const showDist = ed.distance_or_format && (sport !== 'triathlon' || cat.key === 'triathlon');
+const distLabel = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed.distance_or_format, ed.race?.name) : null;
 const racers = ed.racers ?? [];
 ---
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="uc-body">
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={showDist ? ed.distance_or_format : null} racers={racers} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
 	</div>
 	<div class="uc-meta">
