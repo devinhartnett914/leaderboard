@@ -9,13 +9,14 @@ interface Props {
 	nameRem?: number; // name font size in rem
 	link?: boolean; // render as a link (false when nested inside another link)
 	href?: string | null; // override the link target (defaults to the person's page)
+	plain?: boolean; // light, mixed-case "rank" treatment for names in a combined table row
 }
-const { person, avatar = 20, nameRem = 0.62, link = true, href = null } = Astro.props;
+const { person, avatar = 20, nameRem = 0.62, link = true, href = null, plain = false } = Astro.props;
 const name = person?.full_name ?? '—';
 const target = link ? (href ?? (person?.slug ? `/people/${person.slug}` : null)) : null;
 const Tag = target ? 'a' : 'span';
 ---
-<Tag class="pchip" href={target ?? undefined} style={`--nm:${nameRem}rem`}>
+<Tag class:list={['pchip', { plain }]} href={target ?? undefined} style={`--nm:${nameRem}rem`}>
 	<Avatar src={person?.avatar_url} name={name} size={avatar} />
 	<span class="pc-name">{name}</span>
 </Tag>
@@ -24,4 +25,9 @@ const Tag = target ? 'a' : 'span';
 	.pchip { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 	a.pchip:hover { color: var(--text); text-decoration: none; }
 	.pc-name { font-size: var(--nm); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	/* plain: the table/standing treatment — light, mixed-case, brighter mono at fs-value, so
+	   a finisher name in a combined-race row scans like the swim event names + the rank. */
+	.pchip.plain { font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text); }
+	.pchip.plain .pc-name { font-size: var(--fs-value); }
+	a.pchip.plain:hover { color: var(--edge, var(--accent)); }
 </style>
