@@ -25,9 +25,9 @@ const Tag = target ? 'a' : 'span';
 	.pchip { display: inline-flex; align-items: center; gap: 0.45rem; min-width: 0; font-family: var(--font-mono); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 	a.pchip:hover { color: var(--text); text-decoration: none; }
 	.pc-name { font-size: var(--nm); line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-	/* plain: the table/standing treatment — light, mixed-case, brighter mono at fs-value, so
+	/* plain: the table/standing treatment — light, Title Case, brighter mono at fs-value, so
 	   a finisher name in a combined-race row scans like the swim event names + the rank. */
-	.pchip.plain { font-weight: 400; letter-spacing: normal; color: var(--text); }
+	.pchip.plain { font-weight: 400; letter-spacing: normal; text-transform: none; color: var(--text); }
 	.pchip.plain .pc-name { font-size: var(--fs-value); }
 	a.pchip.plain:hover { color: var(--edge, var(--accent)); }
 </style>

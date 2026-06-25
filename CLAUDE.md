@@ -92,12 +92,18 @@ pattern repeats ~2–3×, extract it rather than copy it.
   `division`/`*_place` by hand.
 
 ### Layout patterns (keep consistent across cards)
-- **Card standard: type & racers ABOVE the race name.** The `CardSubMeta` band (one line, above
-  the title on every card) carries the **type · distance** tag *and* who's racing, pipe-separated.
-  Racers render via `RacerBadge`: one → a `PersonChip` (avatar + name), 2+ → stacked avatars + an
-  "N Racers" count. This badge is used on **every** race with multiple family members (the grouped
-  feed card, recent tiles, upcoming) — not just Upcoming. (Type-above-name scales better on narrow
-  / mobile widths than stacking it below.)
+- **Card standard: type & racers BELOW the race name.** The `CardSubMeta` line sits a consistent
+  **0.4rem below the title** on every card and carries the **type · distance** tag *and* who's
+  racing, pipe-separated. Racers render via `RacerBadge`: one → a `PersonChip` (avatar + name),
+  2+ → stacked avatars + an "N Racers" count — used on **every** race with multiple family members
+  (grouped feed card, recent tiles, upcoming), not just Upcoming. Name-first **matches the race
+  detail page** (breadcrumbs above the name, type/category below it), standardizing the IA.
+- **Casing by location:** in the grouped/meet cards, the per-row **finisher names + swim event
+  labels are Title Case** (the data table); the type/distance tags, the header racer, and the
+  race name stay **uppercase** (the chrome). A name in the header is caps; a name in a table row
+  is Title Case.
+- **Single-row numbers** (finish · splits · standing) span both the name + meta rows and sit
+  **vertically centered**, so they hold a fixed position regardless of the meta line.
 - Finish time is right-aligned with marks to its left; the division-first standing sits at the
   far right (via `ResultPlaces`). Header captions (Overall/Division/Finish) are dropped visually
   but kept as `.sr-only` for screen readers.

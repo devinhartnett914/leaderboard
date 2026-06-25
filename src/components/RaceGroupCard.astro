@@ -19,9 +19,8 @@ interface Props {
 	entry: RaceEntry;
 	prCtx: PrContext;
 	placesVariant?: 'current' | 'stack';
-	metaBelow?: boolean; // test variant: type · racers drops BELOW the race name
 }
-const { entry, prCtx, placesVariant = 'stack', metaBelow = false } = Astro.props;
+const { entry, prCtx, placesVariant = 'stack' } = Astro.props;
 const results = entry.results;
 const lead = results[0];
 const ed = lead.race_edition;
@@ -32,23 +31,14 @@ const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const distLabel = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed?.distance_or_format, ed?.race?.name) : null;
 const places = [...new Set(results.map(podiumPlace).filter((p): p is number => p != null))].join(' ');
 const anyPr = results.some((r) => prCtx.prBadge(r));
-// every family member who ran this race → the avatars + "N Racers" badge above the name
+// every family member who ran this race → the avatars + "N Racers" badge below the name
 const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof p> => p != null);
 ---
 <article class="gcard feed-card" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class:list={['gc-head', { 'meta-below': metaBelow }]}>
-		{metaBelow ? (
-			<Fragment>
-				<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-				<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
-			</Fragment>
-		) : (
-			<Fragment>
-				<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
-				<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-			</Fragment>
-		)}
+	<div class="gc-head">
+		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 	</div>
 	{results.map((r, i) => {
 		const aw = award(r);
@@ -76,9 +66,9 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 
 <style>
 
-	.gc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
-	/* meta-below: extra room under the type · racers line so it doesn't crowd the finisher rows */
-	.gc-head.meta-below { gap: 0.3rem; padding-bottom: 1.05rem; }
+	/* name on top, type·racers a consistent 0.4rem below it, then extra room (1rem) before
+	   the finisher rows so the meta line doesn't crowd them. */
+	.gc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
 
 	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines */
 	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.4rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }

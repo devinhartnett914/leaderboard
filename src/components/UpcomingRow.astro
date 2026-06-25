@@ -1,7 +1,7 @@
 ---
 // One UPCOMING race as a feed row, living in the shared `.results` subgrid so it lines
 // up with every other row on /races and /people. The category tag + who's racing
-// (RacerBadge: one chip, or avatars + "N Racers") share the meta line ABOVE the race name
+// (RacerBadge: one chip, or avatars + "N Racers") share the meta line BELOW the race name
 // (via CardSubMeta); the location sits on the right where a finish time would be. No detail
 // link (upcoming editions don't get a page until results land). `.is-upcoming` lets the
 // year-line toggle collapse/expand these rows.
@@ -29,8 +29,8 @@ const racers = ed.racers ?? [];
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="uc-body">
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 	</div>
 	<div class="uc-meta">
 		{ed.race?.location && <span class="uc-loc">{ed.race.location}</span>}
@@ -41,7 +41,7 @@ const racers = ed.racers ?? [];
 	/* single-row card; body in the name column (racer · name · category, stacked), the
 	   location right-aligned where a finish time would sit, so the row reads like the feed. */
 	.ucard { grid-template-rows: auto; }
-	.uc-body { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.25rem; padding: 0.85rem 1.1rem; min-width: 0; }
+	.uc-body { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
 	.uc-meta { grid-column: 3 / -1; display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.2rem; }
 	/* location in the standard body font (not mono caps) */
 	.uc-loc { font-family: var(--font-body); font-size: 0.82rem; color: var(--muted); text-align: right; }

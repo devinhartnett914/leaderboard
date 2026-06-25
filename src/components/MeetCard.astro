@@ -15,9 +15,8 @@ interface Props {
 	prCtx: PrContext;
 	showPerson?: boolean;
 	placesVariant?: 'current' | 'stack';
-	metaBelow?: boolean; // test variant: type · racer drops BELOW the race name
 }
-const { entry, prCtx, showPerson = false, placesVariant = 'stack', metaBelow = false } = Astro.props;
+const { entry, prCtx, showPerson = false, placesVariant = 'stack' } = Astro.props;
 const events = entry.events;
 const ed = events[0].race_edition;
 const person = events[0].person;
@@ -28,18 +27,9 @@ const racers = showPerson && person ? [person] : [];
 ---
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class:list={['mc-head', { 'meta-below': metaBelow }]}>
-		{metaBelow ? (
-			<Fragment>
-				<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-				<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
-			</Fragment>
-		) : (
-			<Fragment>
-				<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
-				<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-			</Fragment>
-		)}
+	<div class="mc-head">
+		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
@@ -68,9 +58,9 @@ const racers = showPerson && person ? [person] : [];
 
 <style>
 
-	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
-	/* meta-below: extra room under the type · racer line so it doesn't crowd the event rows */
-	.mc-head.meta-below { gap: 0.3rem; padding-bottom: 1.05rem; }
+	/* name on top, type·racer a consistent 0.4rem below it, then extra room (1rem) before
+	   the event rows so the meta line doesn't crowd them. */
+	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
 
 	/* Event name reads in the RANK's text treatment (plain light mono, fs-value, no caps /
 	   no wide tracking) so the eye scans cleanly across the row to the time + standing;
@@ -78,7 +68,7 @@ const racers = showPerson && person ? [person] : [];
 	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--c); text-decoration: none; }
 	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
-	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: var(--fs-value); text-transform: uppercase; white-space: nowrap; }
+	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: var(--fs-value); white-space: nowrap; }
 	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.ev-timewrap { position: relative; width: max-content; }
 	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
