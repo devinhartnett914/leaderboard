@@ -60,12 +60,13 @@ const racers = showPerson && person ? [person] : [];
 
 	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.25rem; padding: 0.8rem 1.1rem 0.65rem; border-bottom: 1px solid var(--border); }
 
-	/* Event name styled like the family-name chip (PersonChip): muted, hover → text,
-	   no underline. Kept in sync with EventChip + the race YoY swim view. */
-	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--muted); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
-	.mc-evname:hover { color: var(--text); text-decoration: none; }
+	/* Event name reads in the RANK's text treatment (plain light mono, fs-value, no caps /
+	   no wide tracking) so the eye scans cleanly across the row to the time + standing;
+	   hover → the stroke color. Kept in sync with EventChip's table variant. */
+	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evname:hover { color: var(--c); text-decoration: none; }
 	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
-	.mc-evname .ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-event); letter-spacing: var(--ls-wide); text-transform: uppercase; white-space: nowrap; }
+	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: var(--fs-value); white-space: nowrap; }
 	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.ev-timewrap { position: relative; width: max-content; }
 	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }

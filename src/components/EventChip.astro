@@ -21,18 +21,23 @@ const type = ev.short.replace(/^\d+\s*/, ''); // "25 Back" → "Back"
 		<span class="ev-lbl">{type}</span>
 	</Tag>
 ) : (
-	<Tag class="evchip" href={link ? href : undefined}>
+	<Tag class="evchip" href={link ? href : undefined} style={`--c:${ev.color}`}>
 		<span class="ev-ic">{ev.icon}</span><span class="ev-lbl">{ev.short}</span>
 	</Tag>
 )}
 
 <style>
-	/* Styled to match the family-name chip (PersonChip): mono uppercase, muted,
-	   hover → text, no underline — event names read the same as people's names. */
+	/* In a table row (non-stacked) the event name reads in the RANK's text treatment —
+	   plain light mono, fs-value, no caps — so the row scans cleanly across to the time +
+	   standing (matches MeetCard's mc-evname); hover → the stroke color. The stacked home-
+	   tile chip keeps the bolder mono-caps chip look. */
 	.evchip { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; color: var(--muted); }
 	a.evchip:hover { text-decoration: none; color: var(--text); }
 	.ev-ic { font-size: 1rem; line-height: 1; }
 	.ev-lbl { font-family: var(--font-mono); font-weight: 700; font-size: var(--fs-chip); letter-spacing: var(--ls-wide); text-transform: uppercase; white-space: nowrap; }
+	.evchip:not(.is-stack) { color: var(--text); }
+	.evchip:not(.is-stack) .ev-lbl { font-weight: 400; font-size: var(--fs-value); letter-spacing: normal; text-transform: none; }
+	a.evchip:not(.is-stack):hover { color: var(--c); }
 	/* stacked: emoji+distance on top, stroke type beneath — same chip styles, just a
 	   line break for vertical balance. Recent cards only. */
 	.evchip.is-stack { flex-direction: column; align-items: center; gap: 0.15rem; }
