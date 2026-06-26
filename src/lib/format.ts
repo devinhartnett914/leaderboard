@@ -257,6 +257,19 @@ export function raceDistanceLabel(distanceOrFormat: string | null | undefined, n
 	return `${num} ${unit[0].toUpperCase()}${unit.slice(1)}`;                // 5 Mile, 8 Miler
 }
 
+/**
+ * Format a race location for display: separate the place/venue from the city/state with a
+ * middot instead of a comma (keeping the city/state comma). "Glade Pool, Reston, VA" →
+ * "Glade Pool · Reston, VA". A bare "City, State" (no venue) is left as-is. (DEV-21)
+ */
+export function formatLocation(loc: string | null | undefined): string | null {
+	const t = (loc ?? '').trim();
+	if (!t) return null;
+	const parts = t.split(',').map((p) => p.trim()).filter(Boolean);
+	if (parts.length < 3) return parts.join(', ');
+	return `${parts[0]} · ${parts.slice(1).join(', ')}`;
+}
+
 // ---- Distance + pace -------------------------------------------------------
 // distance_m is always meters (canonical). distance_unit is how to display it.
 
