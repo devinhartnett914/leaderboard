@@ -38,7 +38,7 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} location={ed?.race?.location} racers={racers} />
 	</div>
 	{results.map((r, i) => {
 		const aw = award(r);

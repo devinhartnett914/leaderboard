@@ -61,7 +61,7 @@ const racers = showPerson && r.person ? [r.person] : [];
 		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} variant={placesVariant} />
 	</div>
 	<div class="rc-meta">
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} racers={racers} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} location={showPerson ? ed?.race?.location : null} racers={racers} />
 	</div>
 </article>
 

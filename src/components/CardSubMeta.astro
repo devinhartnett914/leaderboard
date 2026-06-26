@@ -14,12 +14,13 @@ interface Props {
 	catKey?: string | null;
 	distance?: string | null;
 	event?: string | null;
+	location?: string | null;
 	racers?: Racer[];
 }
-const { type, catKey = null, distance = null, event = null, racers = [] } = Astro.props;
+const { type, catKey = null, distance = null, event = null, location = null, racers = [] } = Astro.props;
 ---
 <div class="submeta">
-	<CardMeta type={type} catKey={catKey} distance={distance} event={event} />
+	<CardMeta type={type} catKey={catKey} distance={distance} event={event} location={location} />
 	{racers.length > 0 && (
 		<Fragment>
 			<span class="sm-pipe" aria-hidden="true">|</span>

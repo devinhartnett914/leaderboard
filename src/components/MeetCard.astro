@@ -29,7 +29,7 @@ const racers = showPerson && person ? [person] : [];
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
+		<CardSubMeta type="Swim Meet" catKey="swim_meet" location={showPerson ? ed?.race?.location : null} racers={racers} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
