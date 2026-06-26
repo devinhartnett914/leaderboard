@@ -63,7 +63,7 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 		<section class="block">
 			<div class="section-head">
 				<h2>Upcoming</h2>
-				<a href="/races#upcoming" class="all-link">All races →</a>
+				<a href="/races#upcoming" class="all-link">All →</a>
 			</div>
 			<div class="grid cols-3">
 				{upcomingSoon.map((u) => <UpcomingCard race={u} />)}
@@ -74,7 +74,7 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	<section class="block">
 		<div class="section-head">
 			<h2>Recent races</h2>
-			<a href="/races" class="all-link">All races →</a>
+			<a href="/races" class="all-link">All →</a>
 		</div>
 		{
 			recentEntries.length === 0 ? (

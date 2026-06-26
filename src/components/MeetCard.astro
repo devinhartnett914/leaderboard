@@ -29,7 +29,7 @@ const racers = showPerson && person ? [person] : [];
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="mc-head">
 		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type="Swim Meet" catKey="swim_meet" location={showPerson ? ed?.race?.location : null} racers={racers} />
+		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
 	</div>
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
@@ -65,12 +65,14 @@ const racers = showPerson && person ? [person] : [];
 	/* Event name reads in the RANK's text treatment (plain light mono, fs-value, no caps /
 	   no wide tracking) so the eye scans cleanly across the row to the time + standing;
 	   hover → the stroke color. Kept in sync with EventChip's table variant. */
-	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evname { grid-column: 2; display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.1rem; min-width: 0; color: var(--text); border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-evname:hover { color: var(--c); text-decoration: none; }
 	.mc-evname .ev-ic { font-size: 1.15rem; line-height: 1; }
 	.mc-evname .ev-lbl { font-family: var(--font-mono); font-size: var(--fs-value); white-space: nowrap; }
-	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	/* extra vertical padding so a row's medal/PR mark (taller than the time line, vertically
+	   centered) clears the hairline dividers instead of butting them (DEV-23). */
+	.mc-evtime { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.65rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.ev-timewrap { position: relative; width: max-content; }
-	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 1.2rem 0.4rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.mc-evplace { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.65rem 1.2rem 0.65rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.mc-head + .mc-evname, .mc-head + .mc-evname + .mc-evtime, .mc-head + .mc-evname + .mc-evtime + .mc-evplace { border-top: none; }
 </style>

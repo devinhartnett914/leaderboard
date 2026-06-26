@@ -38,7 +38,7 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} location={ed?.race?.location} racers={racers} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 	</div>
 	{results.map((r, i) => {
 		const aw = award(r);
@@ -70,11 +70,13 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 	   the finisher rows so the meta line doesn't crowd them. */
 	.gc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
 
-	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines */
-	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.4rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
-	.gc-time { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines.
+	   Vertical padding is set so the medal/PR mark (which is taller than the time line and
+	   sits vertically centered) clears the hairline dividers instead of butting them (DEV-23). */
+	.gc-who { grid-column: 2; display: flex; align-items: center; padding: 0.65rem 1.1rem; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.gc-time { grid-column: 3 / 5; position: relative; display: flex; align-items: center; padding: 0.65rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	.gc-timewrap { position: relative; width: max-content; }
-	.gc-place { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.45rem 1.2rem 0.45rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+	.gc-place { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0.65rem 1.2rem 0.65rem 1.1rem; border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
 	/* first finisher row sits directly under the header — no doubled divider */
 	.gc-head + .gc-who, .gc-head + .gc-who + .gc-time, .gc-head + .gc-who + .gc-time + .gc-place { border-top: none; }
 </style>

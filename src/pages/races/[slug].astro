@@ -157,9 +157,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 							<span class="sm-date">{formatFullDate(m.ed.date)}</span>
 						</div>
 						<div class="sm-tags">
-							{m.ed.distance_or_format && m.ed.distance_or_format.trim().toLowerCase() !== race.name.trim().toLowerCase() && (
-								<span class="sm-fmt">{m.ed.distance_or_format}</span>
-							)}
 							{m.ed.source_url && <a class="sm-src" href={m.ed.source_url} target="_blank" rel="noopener">Full results ↗</a>}
 						</div>
 					</div>
@@ -284,10 +281,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										</div>
 
 										<div class="row foot">
-											{c.edition.source_url ? (
+											{c.edition.source_url && (
 												<a href={c.edition.source_url} target="_blank" rel="noopener">Full results ↗</a>
-											) : (
-												<span class="muted small">No source link</span>
 											)}
 										</div>
 									</article>
@@ -409,7 +404,6 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 	.sm-yr { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.03em; color: var(--swim); line-height: 0.9; }
 	.sm-date { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); }
 	.sm-tags { display: flex; align-items: center; gap: 0.7rem; }
-	.sm-fmt { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0.2rem 0.7rem; }
 	.sm-src { font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
 
 	.swimmers { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 1rem; }

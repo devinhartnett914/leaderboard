@@ -11,15 +11,13 @@ interface Props {
 	catKey?: string | null;
 	distance?: string | null;
 	event?: string | null;
-	location?: string | null;
 }
-const { type, catKey = null, distance = null, event = null, location = null } = Astro.props;
+const { type, catKey = null, distance = null, event = null } = Astro.props;
 ---
 <span class="cardmeta">
 	{catKey && <span class="cm-ic">{catIcon(catKey)}</span>}
 	<span class="cm-type">{type}</span>
 	{distance && <span class="cm-dist">· {distance}</span>}
-	{location && <span class="cm-loc">· {location}</span>}
 	{event && <span class="cm-ev">· {event}</span>}
 </span>
 
@@ -31,8 +29,6 @@ const { type, catKey = null, distance = null, event = null, location = null } = 
 	   native COLOR emoji (the emoji font stack keeps it from falling back to a tinted mono
 	   glyph), so it is NOT colored by --edge — e.g. the Sprint ⚡ stays orange on a purple tri. */
 	.cm-ic { align-self: center; flex-shrink: 0; font-size: 0.95rem; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', emoji; }
-	/* type, distance, and location all read in the card's --edge (category) color — the
-	   same "type · location" treatment the race-page header uses (DEV-30). */
-	.cm-type, .cm-dist, .cm-loc { color: var(--edge); }
+	.cm-type, .cm-dist { color: var(--edge); }
 	.cm-ev { color: var(--faint); }
 </style>

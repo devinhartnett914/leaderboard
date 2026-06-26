@@ -339,6 +339,30 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 		</style>
 
 		<script>
+			// Pin the three data columns (finish · splits · standing) of every feed grid to
+			// their natural widths, so hiding rows — the sport/podium/PR filters on a person
+			// page, or the upcoming toggle — can't re-fit the `max-content` tracks and shift the
+			// times sideways. The name column stays a flexible 1fr (responsive); the data columns
+			// are content-sized and viewport-independent, so a one-time lock after the webfonts
+			// load holds. (DEV-27)
+			function lockFeedColumns() {
+				for (const grid of document.querySelectorAll<HTMLElement>('.results')) {
+					if (grid.dataset.colsLocked) continue;
+					// measure with EVERY row visible (incl. the collapsed upcoming rows) so the
+					// locked widths fit all content; toggling/filtering can only hide from here.
+					// Synchronous, so no intermediate paint / flash.
+					const wasCollapsed = grid.classList.contains('up-collapsed');
+					if (wasCollapsed) grid.classList.remove('up-collapsed');
+					const cols = getComputedStyle(grid).gridTemplateColumns.split(' ');
+					if (wasCollapsed) grid.classList.add('up-collapsed');
+					if (cols.length !== 5) continue; // only the 5-col feed grid
+					grid.style.gridTemplateColumns = `${cols[0]} minmax(150px, 1fr) ${cols[2]} ${cols[3]} ${cols[4]}`;
+					grid.dataset.colsLocked = '1';
+				}
+			}
+			if (document.fonts?.ready) document.fonts.ready.then(lockFeedColumns);
+			else lockFeedColumns();
+
 			// Upcoming-races collapse on the year line (/races, /people/[slug]). Rows are
 			// collapsed by default; the toggle flips Show/Hide, and arriving via #upcoming
 			// (the Home "All races →" link) opens the section and scrolls to it.

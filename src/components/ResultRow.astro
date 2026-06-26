@@ -38,8 +38,9 @@ const racers = showPerson && r.person ? [r.person] : [];
 ---
 <article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class="rc-name">
+	<div class="rc-head">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} racers={racers} />
 	</div>
 	<div class="rc-finish">
 		{placesVariant === 'stack' ? <span class="sr-only">Finish </span> : <span class="rc-k">Finish</span>}
@@ -60,34 +61,30 @@ const racers = showPerson && r.person ? [r.person] : [];
 	<div class="rc-places">
 		<ResultPlaces overallPlace={r.overall_place} overallFieldSize={r.overall_field_size} division={r.division} divisionPlace={r.division_place} variant={placesVariant} />
 	</div>
-	<div class="rc-meta">
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} location={showPerson ? ed?.race?.location : null} racers={racers} />
-	</div>
 </article>
 
 <style>
-	/* Row 1 = the race name; row 2 = the type · category tag + racer, directly below it
-	   (a consistent 0.4rem gap — the same on every card). The finish time + legs + standing
-	   SPAN both rows and sit vertically centered, so moving the meta line never shifts them
-	   and all the numbers line up; the split icons float above each time with headroom. */
-	.rcard { grid-template-rows: auto auto; }
+	/* ONE row. The race name + the type·category tag + racer stack on the left (a flex column
+	   with a precise 0.4rem gap — the same head as the grouped/meet cards, so the gap can't
+	   drift). The finish time + legs + standing each sit in their own column, vertically
+	   centered against that stack, so they hold a fixed line no matter how tall the meta is. */
+	.rcard { grid-template-rows: auto; }
 
-	.rc-name { grid-column: 2; grid-row: 1; display: flex; align-items: flex-start; padding: 0.8rem 1.1rem 0; min-width: 0; }
-	.rcard.has-marks .rc-name { padding-right: 76px; }
+	.rc-head { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
+	.rcard.has-marks .rc-head { padding-right: 76px; }
 
-	.rc-meta { grid-column: 2; grid-row: 2; padding: 0.4rem 1.1rem 0.85rem; min-width: 0; }
-
-	.rc-finish { grid-column: 3; grid-row: 1 / -1; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0 1.1rem; }
+	.rc-finish { grid-column: 3; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0 1.1rem; }
 	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
 	.rc-timewrap { position: relative; width: max-content; }
 
-	.rc-legs { grid-column: 4; grid-row: 1 / -1; display: flex; gap: 0.95rem; align-items: center; padding: 0 1.1rem; }
-	/* the leg TIME is the anchor; the discipline icon floats just ABOVE it and the pace
-	   sits below — so a row of splits reads time-first, level with the finish + standing. */
+	.rc-legs { grid-column: 4; display: flex; gap: 0.95rem; align-items: center; padding: 0 1.1rem; }
+	/* the leg TIME is the anchor and the ONLY in-flow part, so it centers on the same line as
+	   the finish time + standing. The discipline icon floats just ABOVE it and the pace just
+	   BELOW (both out of flow) — a row of splits reads time-first, level with the other data. */
 	.rc-leg { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 54px; }
 	.leg-ic { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 0.12rem; font-size: 1.05rem; line-height: 1; }
-	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; }
-	.leg-p { font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); }
+	.leg-t { font-family: var(--font-mono); font-weight: 600; font-size: 0.86rem; line-height: 1; }
+	.leg-p { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 0.12rem; font-family: var(--font-mono); font-size: 0.58rem; color: var(--faint); white-space: nowrap; }
 
-	.rc-places { grid-column: 5; grid-row: 1 / -1; display: flex; flex-direction: column; justify-content: center; padding: 0 1.2rem 0 1.1rem; }
+	.rc-places { grid-column: 5; display: flex; flex-direction: column; justify-content: center; padding: 0 1.2rem 0 1.1rem; }
 </style>
