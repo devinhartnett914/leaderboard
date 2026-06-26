@@ -7,6 +7,7 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
+import CardLocation from './CardLocation.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
@@ -35,9 +36,13 @@ const distLabel = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDista
 // On the combined feed the result carries its person → show them on the meta line below the
 // name; on a person's own page there's no person to show.
 const racers = showPerson && r.person ? [r.person] : [];
+// On the all-races feed (showPerson), tuck the race location into the card's top-right
+// corner; on a person's own page it's the same city on every row, so skip it.
+const location = showPerson ? (ed?.race?.location ?? null) : null;
 ---
 <article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
+	<CardLocation location={location} />
 	<div class="rc-head">
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
 		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} racers={racers} />

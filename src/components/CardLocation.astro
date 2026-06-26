@@ -1,0 +1,18 @@
+---
+// The race location, tucked into the TOP-RIGHT corner of a feed card — a quiet
+// gray counterpart to the date on the left rail. Reuses the global `.caption`
+// voice (small, mono, uppercase, --muted) and only adds the corner positioning.
+// Renders nothing when there's no location. Positioned absolutely, so the parent
+// card sets `position: relative` (`.feed-card` in Layout.astro). Shared by the
+// three feed cards (ResultRow / MeetCard / RaceGroupCard) on the all-races feed.
+interface Props {
+	location?: string | null;
+}
+const { location = null } = Astro.props;
+---
+{location && <span class="card-loc caption">{location}</span>}
+
+<style>
+	/* corner placement only — the text voice comes from the global `.caption` utility. */
+	.card-loc { position: absolute; top: 0.6rem; right: 1.1rem; z-index: 1; pointer-events: none; }
+</style>

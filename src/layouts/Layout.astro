@@ -279,6 +279,7 @@ const fullTitle = title === 'Leaderboard' ? 'Leaderboard — family race results
 			   border-left reads it. Defined globally so all three components
 			   stay in lockstep on radius / shadow / gradient. */
 			.feed-card {
+				position: relative; /* anchor for the top-right CardLocation caption */
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
