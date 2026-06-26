@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Daily unattended dispatch + release. Install with:
+<!-- Smart 10-minute dispatch GATE. Install (replaces the old daily job) with:
+       launchctl unload ~/Library/LaunchAgents/com.leaderboard.dispatch.plist 2>/dev/null
        cp scripts/com.leaderboard.dispatch.plist ~/Library/LaunchAgents/
        launchctl load ~/Library/LaunchAgents/com.leaderboard.dispatch.plist
-     Runs from the checkout this script lives in. Logs: ~/Library/Logs/leaderboard-dispatch.log
+     Runs dispatch-gate.sh every 10 min: a cheap Linear probe that only launches the full
+     headless Claude pass (dispatch-cron.sh) when there's real work. Near-zero usage when idle.
+     Logs: ~/Library/Logs/leaderboard-dispatch.log
      Replaces the old claude.ai cloud routine (which couldn't see the local Linear MCP). -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -13,7 +16,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/clawdnett/Projects/leaderboard/scripts/dispatch-cron.sh</string>
+        <string>/Users/clawdnett/Projects/leaderboard/scripts/dispatch-gate.sh</string>
     </array>
 
     <!-- claude needs HOME (to find ~/.claude creds + the linear MCP config) and a real PATH. -->
@@ -25,15 +28,11 @@
         <string>/Users/clawdnett/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>
 
-    <!-- Once a day at 06:07 local. launchd fires a missed run when the mini next wakes,
-         so a sleeping machine still catches up. -->
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Hour</key>
-        <integer>6</integer>
-        <key>Minute</key>
-        <integer>7</integer>
-    </dict>
+    <!-- Every 10 minutes. launchd coalesces missed runs while asleep (fires once on wake),
+         so a sleeping mini still catches up. The gate itself is cheap; it only spins up
+         Claude when Linear actually has Todo/newly-Done work. -->
+    <key>StartInterval</key>
+    <integer>600</integer>
 
     <key>StandardOutPath</key>
     <string>/Users/clawdnett/Library/Logs/leaderboard-dispatch.log</string>
