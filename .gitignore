@@ -18,6 +18,9 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# local-only auth tooling (reads secrets from .env; never committed)
+scripts/gmail-auth.cjs
+
 # netlify
 .netlify/
 
