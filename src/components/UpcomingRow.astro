@@ -10,7 +10,7 @@ import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
-import { raceDistanceLabel } from '../lib/format';
+import { raceDistanceLabel, formatLocation } from '../lib/format';
 import type { UpcomingRace } from '../lib/queries';
 
 interface Props {
@@ -33,7 +33,7 @@ const racers = ed.racers ?? [];
 		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
 	</div>
 	<div class="uc-meta">
-		{ed.race?.location && <span class="uc-loc">{ed.race.location}</span>}
+		{ed.race?.location && <span class="uc-loc">{formatLocation(ed.race.location)}</span>}
 	</div>
 </article>
 
@@ -43,6 +43,7 @@ const racers = ed.racers ?? [];
 	.ucard { grid-template-rows: auto; }
 	.uc-body { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
 	.uc-meta { grid-column: 3 / -1; display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.2rem; }
-	/* location in the standard body font (not mono caps) */
-	.uc-loc { font-family: var(--font-body); font-size: 0.82rem; color: var(--muted); text-align: right; }
+	/* location in the division-rank treatment (mono, --fs-value) so it reads as row data,
+	   not body text — matches the standings value the same column carries on result rows (DEV-21). */
+	.uc-loc { font-family: var(--font-mono); font-size: var(--fs-value); color: var(--muted); text-align: right; white-space: nowrap; }
 </style>
