@@ -1,42 +1,47 @@
 ---
-// Read-only "stat chips" — podium-medal tallies + the personal record — in the rounded
-// anchor+segment style of the person-page filters (.fgroup/.anchor/.seg). Presentational
-// only (no filtering); use where you want to SHOW an athlete's medals + PR for a scope
-// (e.g. the swim discipline page, scoped to one swimmer + event). Mirrors the person-page
-// filter visual so the two pages read the same. Medal glyph/name/color come from medals.ts
-// (the one source), so podium chips never drift from the medal marks on the rows.
+// Podium-medal tallies + the personal record, in the rounded anchor+segment style of the
+// person-page filters (.fgroup/.anchor/.seg). Two modes:
+//  • default (interactive=false) — read-only display (e.g. a scope summary).
+//  • interactive — the podium segments + the PR chip become FILTER buttons (data-f/data-v),
+//    so a page can wire them to filter its rows exactly like the person page does (DEV-28).
+// Medal glyph/name/color come from medals.ts (the one source), so the chips never drift
+// from the medal marks on the rows.
 import { MEDAL_EMOJI, MEDAL_NAME, MEDAL_COLOR } from '../lib/medals';
 
 interface Props {
 	medalCounts?: number[]; // [gold, silver, bronze] tallies for this scope
 	pr?: { time: string; year?: string | null } | null; // the personal record to surface
+	interactive?: boolean; // render the chips as filter buttons (data-f/data-v)
 }
-const { medalCounts = [0, 0, 0], pr = null } = Astro.props;
+const { medalCounts = [0, 0, 0], pr = null, interactive = false } = Astro.props;
 const totalMedals = medalCounts.reduce((a, b) => a + b, 0);
 const hasMedals = totalMedals > 0;
+// podium segment + PR chip become <button> when interactive, plain <span>/<div> otherwise.
+const Seg = interactive ? 'button' : 'span';
+const Pr = interactive ? 'button' : 'div';
 ---
 {(hasMedals || pr) && (
-	<div class="stat-chips">
+	<div class:list={['stat-chips', { interactive }]}>
 		{hasMedals && (
 			<div class="fgroup" style="--g: var(--gold)">
 				<span class="anchor"><span class="num">{totalMedals}</span><span class="lab">Podiums</span></span>
 				{[1, 2, 3].map((p) => medalCounts[p - 1] > 0 && (
-					<span class="seg seg-pod" style={`--c:${MEDAL_COLOR[p - 1]}`}>
+					<Seg class="seg seg-pod" style={`--c:${MEDAL_COLOR[p - 1]}`} data-f={interactive ? 'place' : undefined} data-v={interactive ? String(p) : undefined}>
 						<span class="pod-stack"><span class="ic">{MEDAL_EMOJI[p - 1]}</span><span class="pod-lab">{MEDAL_NAME[p - 1]}</span></span>
 						<span class="count">{medalCounts[p - 1]}</span>
-					</span>
+					</Seg>
 				))}
 			</div>
 		)}
 
 		{pr && (
-			<div class="fgroup fpr" style="--g: var(--gold)">
+			<Pr class="fgroup fpr" style="--g: var(--gold)" data-f={interactive ? 'pr' : undefined}>
 				<span class="pr-stack"><span class="pr-mark">⭐</span><span class="pr-lab">PR</span></span>
 				<span class="pr-readout">
 					<span class="pr-time">{pr.time}</span>
 					{pr.year && <span class="pr-year">{pr.year}</span>}
 				</span>
-			</div>
+			</Pr>
 		)}
 	</div>
 )}
@@ -52,7 +57,7 @@ const hasMedals = totalMedals > 0;
 	.anchor .num { font-family: var(--font-display); font-weight: 400; font-size: 2.3rem; letter-spacing: 0.02em; color: var(--g, var(--accent)); }
 	.anchor .lab { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 0.32rem; }
 
-	/* each breakdown segment, divided from its neighbor (read-only — no hover/active) */
+	/* each breakdown segment, divided from its neighbor */
 	.seg { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.75rem; border-right: 1px solid var(--border); color: var(--muted); white-space: nowrap; }
 	.seg:last-child { border-right: none; }
 	.seg .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--c, var(--accent)); }
@@ -71,4 +76,14 @@ const hasMedals = totalMedals > 0;
 	.fpr .pr-readout { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 0.9; }
 	.fpr .pr-time { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; letter-spacing: 0.02em; color: var(--gold); }
 	.fpr .pr-year { font-family: var(--font-mono); font-size: 0.5rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-top: 0.18rem; }
+
+	/* interactive mode: the segments + PR chip act like the person-page filter chips —
+	   pointer cursor, hover tint, and an `.active` highlight toggled by the page script. */
+	.stat-chips.interactive .seg { background: transparent; border: none; border-right: 1px solid var(--border); font: inherit; cursor: pointer; transition: background 0.12s, color 0.12s; }
+	.stat-chips.interactive .seg:last-child { border-right: none; }
+	.stat-chips.interactive .seg:hover { background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent); color: var(--text); }
+	.stat-chips.interactive .seg.active { background: color-mix(in srgb, var(--c, var(--accent)) 24%, transparent); color: var(--text); }
+	.stat-chips.interactive .fpr { cursor: pointer; font: inherit; transition: background 0.12s, border-color 0.12s; }
+	.stat-chips.interactive .fpr:hover { background: color-mix(in srgb, var(--gold) 22%, var(--surface)); }
+	.stat-chips.interactive .fpr.active { background: color-mix(in srgb, var(--gold) 30%, var(--surface)); box-shadow: 0 0 0 1px var(--gold); }
 </style>
