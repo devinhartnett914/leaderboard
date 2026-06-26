@@ -281,10 +281,8 @@ const cmp = (m: number | null | undefined, t: number | null) => pacePer100m(m, t
 										</div>
 
 										<div class="row foot">
-											{c.edition.source_url ? (
+											{c.edition.source_url && (
 												<a href={c.edition.source_url} target="_blank" rel="noopener">Full results ↗</a>
-											) : (
-												<span class="muted small">No source link</span>
 											)}
 										</div>
 									</article>
