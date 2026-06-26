@@ -78,8 +78,9 @@ for (const o of occ) {
 	   now the H1 — it would be duplicative). */}
 	<div class="sub-tag" slot="subtitle"><CategoryTag catKey="swim_meet" label={eventLabel} icon /></div>
 
-	{/* Medals + PR for this swimmer in this event, in the person-page filter-chip style. */}
-	<StatChips medalCounts={medalCounts} pr={prStat} />
+	{/* Medals + PR for this swimmer in this event — the podium + PR chips FILTER the rows
+	   below, just like the person-page filters (DEV-28). */}
+	<StatChips medalCounts={medalCounts} pr={prStat} interactive />
 
 	{/* One swimmer's progression, grouped by year (newest first). Swim rows carry no
 	   leg-splits to fill the middle the way a tri/run row does, so instead of the shared
@@ -89,7 +90,7 @@ for (const o of occ) {
 	<div class="occ-list">
 		{byYear.map((grp) => (
 			<Fragment>
-				<div class="year-header"><span>{grp.year ?? '—'}</span></div>
+				<div class="year-header" data-year={String(grp.year ?? '')}><span>{grp.year ?? '—'}</span></div>
 				{grp.items.map((o) => {
 					const r = o.r;
 					const ed = r.race_edition;
@@ -99,7 +100,7 @@ for (const o of occ) {
 					const pr = o.isBest && !dq;
 					const dir = o.deltaCs != null ? deltaDirection(o.deltaCs, 0) : 'same';
 					return (
-						<article class:list={['ocard', { 'is-pr': o.isBest, 'is-marked': !!podium || pr }]} style="--edge: var(--swim)">
+						<article class:list={['ocard', { 'is-pr': o.isBest, 'is-marked': !!podium || pr }]} data-place={podium ? String(podium) : ''} data-pr={pr ? '1' : '0'} data-year={String(grp.year ?? '')} style="--edge: var(--swim)">
 							<DateRail date={ed?.date} year={ed?.year} />
 							<div class="oc-meet">
 								<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
@@ -161,3 +162,44 @@ for (const o of occ) {
 
 	.oc-place { display: flex; align-items: center; padding: 0.85rem 1.1rem; min-width: 0; }
 </style>
+
+<script>
+	// The podium + PR StatChips filter this swimmer's progression rows, mirroring the
+	// person-page filters (DEV-28): podium place is an exclusive filter (click again to
+	// clear), the PR chip is an independent toggle, and empty year headers hide themselves.
+	const cards = [...document.querySelectorAll<HTMLElement>('.ocard')];
+	const headers = [...document.querySelectorAll<HTMLElement>('.year-header')];
+	const placeChips = [...document.querySelectorAll<HTMLElement>('[data-f="place"]')];
+	const prChip = document.querySelector<HTMLElement>('[data-f="pr"]');
+	let place = '';
+	let prOnly = false;
+
+	function apply() {
+		for (const c of cards) {
+			const matchPlace = !place || c.dataset.place === place;
+			c.style.display = matchPlace && (!prOnly || c.dataset.pr === '1') ? '' : 'none';
+		}
+		for (const h of headers) {
+			const y = h.dataset.year;
+			h.style.display = cards.some((c) => c.dataset.year === y && c.style.display !== 'none') ? '' : 'none';
+		}
+	}
+
+	placeChips.forEach((ch) =>
+		ch.addEventListener('click', () => {
+			if (ch.classList.contains('active')) {
+				place = '';
+				ch.classList.remove('active');
+			} else {
+				place = ch.dataset.v || '';
+				placeChips.forEach((x) => x.classList.toggle('active', x === ch));
+			}
+			apply();
+		}),
+	);
+	prChip?.addEventListener('click', () => {
+		prOnly = !prOnly;
+		prChip.classList.toggle('active', prOnly);
+		apply();
+	});
+</script>
