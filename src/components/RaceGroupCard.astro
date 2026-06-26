@@ -6,8 +6,8 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
+import RacerBadge from './RacerBadge.astro';
 import DateRail from './DateRail.astro';
-import CardLocation from './CardLocation.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
@@ -34,15 +34,15 @@ const places = [...new Set(results.map(podiumPlace).filter((p): p is number => p
 const anyPr = results.some((r) => prCtx.prBadge(r));
 // every family member who ran this race → the avatars + "N Racers" badge below the name
 const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof p> => p != null);
-// RaceGroupCard is the all-races feed only → always show the race location, top-right.
+// RaceGroupCard is the all-races feed only → always show the race location on the meta line.
 const location = ed?.race?.location ?? null;
 ---
 <article class="gcard feed-card" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<CardLocation location={location} />
 	<div class="gc-head">
+		{racers.length > 0 && <RacerBadge racers={racers} />}
 		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
+		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} location={location} />
 	</div>
 	{results.map((r, i) => {
 		const aw = award(r);
