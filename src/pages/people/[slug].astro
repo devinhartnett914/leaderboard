@@ -147,9 +147,7 @@ const subtitle = [person.gender, age != null ? `Age ${age}` : null, `${results.l
 	.seg { display: flex; align-items: center; gap: 0.45rem; padding: 0.4rem 0.75rem; background: transparent; border: none; border-right: 1px solid var(--border); font: inherit; cursor: pointer; color: var(--muted); transition: background 0.12s, color 0.12s; white-space: nowrap; }
 	.seg:last-child { border-right: none; }
 	.seg .ic { font-size: 1.25rem; line-height: 1; }
-	/* label reads in the sport color (catColor via --c) so the filter matches how that sport
-	   is tinted in the result-row type tags below (DEV-25); active flips to --text for contrast. */
-	.seg .slabel { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.02; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--c, var(--accent)); }
+	.seg .slabel { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1.02; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
 	.seg .lw { display: block; }
 	.seg .count { font-family: var(--font-display); font-weight: 400; font-size: 1.5rem; line-height: 0.9; color: var(--c, var(--accent)); }
 	.seg:hover { background: color-mix(in srgb, var(--c, var(--accent)) 12%, transparent); color: var(--text); }
