@@ -5,6 +5,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
+import Avatar from './Avatar.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
 import { formatSwimTime, parseSwimEvent, swimEventSlug, swimDivision } from '../lib/format';
@@ -27,10 +28,22 @@ const racers = showPerson && person ? [person] : [];
 ---
 <article class="mcard feed-card" data-cat="swim_meet" data-place={places} data-pr={events.some((e) => prCtx.isSwimPr(e)) ? '1' : '0'} data-person={person?.id ?? ''} data-year={String(year)} style={`--edge:var(--swim); grid-template-rows: repeat(${1 + events.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class="mc-head">
-		<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type="Swim Meet" catKey="swim_meet" racers={racers} />
-	</div>
+	{racers.length > 0 ? (
+		<div class="mc-head mc-head-d">
+			<span class="mc-ava">
+				<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+			</span>
+			<div class="mc-hbody">
+				<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+				<CardSubMeta type="Swim Meet" catKey="swim_meet" location={ed?.race?.location} />
+			</div>
+		</div>
+	) : (
+		<div class="mc-head">
+			<RaceTitle catKey="swim_meet" name={ed?.race?.name ?? 'Swim meet'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+			<CardSubMeta type="Swim Meet" catKey="swim_meet" />
+		</div>
+	)}
 	{events.map((e, i) => {
 		const ev = parseSwimEvent(e.event);
 		const place = podiumPlace(e);
@@ -61,6 +74,10 @@ const racers = showPerson && person ? [person] : [];
 	/* name on top, type·racer a consistent 0.4rem below it, then extra room (1rem) before
 	   the event rows so the meta line doesn't crowd them. */
 	.mc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
+	/* Option D (all-races feed): avatar on the left, name + meta to its right */
+	.mc-head-d { flex-direction: row; align-items: center; gap: 0.7rem; }
+	.mc-ava { flex-shrink: 0; display: inline-flex; }
+	.mc-hbody { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; min-width: 0; }
 
 	/* Event name reads in the RANK's text treatment (plain light mono, fs-value, no caps /
 	   no wide tracking) so the eye scans cleanly across the row to the time + standing;

@@ -6,6 +6,7 @@
 import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import PersonChip from './PersonChip.astro';
+import Avatar from './Avatar.astro';
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import ResultPlaces from './ResultPlaces.astro';
@@ -37,8 +38,17 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 <article class="gcard feed-card" data-cat={cat.key} data-place={places} data-pr={anyPr ? '1' : '0'} style={`--edge:${edge}; grid-template-rows: repeat(${1 + results.length}, auto)`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="gc-head">
-		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
+		<span class="gc-ava">
+			<span class="gc-ava-stack">
+				{racers.map((p) => (
+					<span class="gc-ava-s"><Avatar src={p.avatar_url} name={p.full_name} size={40} /></span>
+				))}
+			</span>
+		</span>
+		<div class="gc-hbody">
+			<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+			<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} location={ed?.race?.location} />
+		</div>
 	</div>
 	{results.map((r, i) => {
 		const aw = award(r);
@@ -66,9 +76,13 @@ const racers = results.map((r) => r.person).filter((p): p is NonNullable<typeof 
 
 <style>
 
-	/* name on top, type·racers a consistent 0.4rem below it, then extra room (1rem) before
-	   the finisher rows so the meta line doesn't crowd them. */
-	.gc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
+	/* Option D: avatar stack on the left, name + meta to its right; same header height as before. */
+	.gc-head { grid-column: 2 / -1; grid-row: 1; display: flex; flex-direction: row; align-items: center; gap: 0.7rem; padding: 0.8rem 1.1rem 1rem; border-bottom: 1px solid var(--border); }
+	.gc-ava { flex-shrink: 0; display: inline-flex; }
+	.gc-ava-stack { display: inline-flex; align-items: center; }
+	.gc-ava-s + .gc-ava-s { margin-left: -0.55rem; }
+	.gc-ava-s :global(.avatar) { box-shadow: 0 0 0 2px var(--surface); }
+	.gc-hbody { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; min-width: 0; }
 
 	/* one sub-row per finisher: name (PersonChip) | time | place, divided by hairlines.
 	   Vertical padding is set so the medal/PR mark (which is taller than the time line and

@@ -8,6 +8,7 @@ import ResultMarks from './ResultMarks.astro';
 import RaceTitle from './RaceTitle.astro';
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
+import Avatar from './Avatar.astro';
 import ResultPlaces from './ResultPlaces.astro';
 import FinishTime from './FinishTime.astro';
 import { categoryOf, catColor } from '../lib/categories';
@@ -38,10 +39,22 @@ const racers = showPerson && r.person ? [r.person] : [];
 ---
 <article class:list={['rcard', 'feed-card', { 'has-marks': aw || pr }]} data-cat={cat.key} data-place={String(podiumPlace(r) ?? '')} data-pr={pr ? '1' : '0'} data-person={r.person?.id ?? ''} data-year={String(ed?.year ?? '')} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
-	<div class="rc-head">
-		<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} racers={racers} />
-	</div>
+	{racers.length > 0 ? (
+		<div class="rc-head rc-head-d">
+			<span class="rc-ava">
+				<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+			</span>
+			<div class="rc-body">
+				<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+				<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} location={ed?.race?.location} />
+			</div>
+		</div>
+	) : (
+		<div class="rc-head">
+			<RaceTitle catKey={cat.key} name={ed?.race?.name ?? 'Unknown race'} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+			<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} event={r.event} />
+		</div>
+	)}
 	<div class="rc-finish">
 		{placesVariant === 'stack' ? <span class="sr-only">Finish </span> : <span class="rc-k">Finish</span>}
 		<span class="rc-timewrap">
@@ -72,6 +85,10 @@ const racers = showPerson && r.person ? [r.person] : [];
 
 	.rc-head { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
 	.rcard.has-marks .rc-head { padding-right: 76px; }
+	/* Option D (all-races feed): avatar on the left, name + meta to its right */
+	.rc-head-d { flex-direction: row; align-items: center; gap: 0.7rem; }
+	.rc-ava { flex-shrink: 0; display: inline-flex; }
+	.rc-body { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; min-width: 0; }
 
 	.rc-finish { grid-column: 3; position: relative; display: flex; flex-direction: column; justify-content: center; gap: 0.2rem; padding: 0 1.1rem; }
 	.rc-k { display: block; font-family: var(--font-mono); font-size: var(--fs-label); letter-spacing: var(--ls-wider); text-transform: uppercase; color: var(--faint); }
