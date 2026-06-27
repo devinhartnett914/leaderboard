@@ -2,45 +2,63 @@
 // THROWAWAY preview (DEV-30) — compare the four all-races feed-card head layouts tried in
 // this ticket, so a winner can be picked before touching the real cards. Visit /dev30-preview.
 // Delete this page + src/components/Dev30Card.astro once a layout is chosen, then implement the
-// winner in ResultRow / MeetCard / RaceGroupCard. Sample data (initials avatars) — the point is
-// the HEAD layout (racer + name + type + location); the right-hand finish/standing is constant.
+// winner in ResultRow / MeetCard / RaceGroupCard.
 import Layout from '../layouts/Layout.astro';
 import Dev30Card from '../components/Dev30Card.astro';
+import { getFamilyMembers } from '../lib/queries';
+import type { Person } from '../lib/types';
 
-// Round 5: all options now share the large-avatar-left layout (per feedback).
-// The comparison is PURELY about WHERE the location text appears.
+// Fetch real family members so the preview uses actual avatar photos, not initials placeholders.
+const family = await getFamilyMembers();
+const findP = (slug: string): Person =>
+	family.find((p) => p.slug === slug) ?? { id: slug, full_name: slug, slug, avatar_url: null, is_family: true, gender: null, birth_date: null, birth_year: null };
+
+const sierra = findP('sierra-hartnett');
+const aurora = findP('aurora-hartnett');
+const devin = findP('devin-hartnett');
+
 const variants = [
-	{ key: 'A', title: 'A — Location IN the type strip (edge color)', note: 'Location folded into the colored type tag: SWIM MEET · RESTON, VA (same edge color). Avatar on the far left.' },
-	{ key: 'B', title: 'B — Location top-right corner, small gray', note: 'Type tag stays clean (just the type). Location parks in the top-right corner of the card, small gray mono. Avatar on the far left.' },
-	{ key: 'C', title: 'C — Location on its own line, below the type tag', note: 'Type tag is clean. Location appears as a separate small gray mono line directly below it. Avatar on the far left.' },
-	{ key: 'D', title: 'D — Location pipe-separated inline with type (gray)', note: 'Location follows the type tag inline, gray, pipe-separated: SWIM MEET | RESTON, VA. Avatar on the far left.' },
-] as const;
-
-const sierra = { full_name: 'Sierra Hartnett', slug: 'sierra-hartnett', avatar_url: null };
-const aurora = { full_name: 'Aurora Hartnett', slug: 'aurora-hartnett', avatar_url: null };
-const devin = { full_name: 'Devin Hartnett', slug: 'devin-hartnett', avatar_url: null };
+	{
+		key: 'A' as const,
+		title: 'A — Location IN the type strip (edge color)',
+		note: 'Location folded into the colored type tag: 🏊 SWIM MEET · RESTON, VA (same edge color). Racer stays in the standard sub-meta line below the race name.',
+	},
+	{
+		key: 'B' as const,
+		title: 'B — Location top-right corner, small gray',
+		note: 'Type tag stays clean (just type + distance). Racer stays in the sub-meta line. Location parks in the top-right corner of the card, small gray mono.',
+	},
+	{
+		key: 'C' as const,
+		title: 'C — Racer above title, location pipe-beside type (gray)',
+		note: 'Racer moves above the race title. Race type + gray pipe + location below the name: 🏊 SWIM MEET | RESTON, VA.',
+	},
+	{
+		key: 'D' as const,
+		title: 'D — Large avatar left · name + TYPE | location right',
+		note: 'Racer becomes a large avatar on the far left (full height of the name + tags block), with name and TYPE | LOCATION to its right. Stacked avatars for multi-racer.',
+	},
+];
 
 // two representative examples: a single-racer swim meet and a multi-racer triathlon
 const examples = [
 	{
 		label: 'Single racer · swim meet',
-		card: {
-			catKey: 'swim_meet', name: 'Reston Masters Invitational', type: 'Swim Meet', distance: null,
-			location: 'Reston, VA', racers: [sierra], date: '2026-03-14', year: 2026,
-			finish: '27.91', pr: true, medalTier: 1, medalSub: 'Girls 13-14',
-			division: 'Girls 13-14', divisionPlace: 1, overallPlace: 4, overallFieldSize: 38,
-		},
+		catKey: 'swim_meet', name: 'Reston Masters Invitational', type: 'Swim Meet',
+		location: 'Reston, VA', racers: [sierra],
+		date: '2026-03-14', year: 2026,
+		finish: '27.91', pr: true, medalTier: 1, medalSub: 'Girls 13-14',
+		division: 'Girls 13-14', divisionPlace: 1, overallPlace: 4, overallFieldSize: 38,
 	},
 	{
 		label: 'Multiple racers · triathlon',
-		card: {
-			catKey: 'olympic', name: 'Luray International Triathlon', type: 'Olympic Tri', distance: null,
-			location: 'Luray, VA', racers: [sierra, aurora, devin], date: '2025-08-17', year: 2025,
-			finish: '2:41:09', pr: false, medalTier: 2, medalSub: 'F40-44',
-			division: 'F40-44', divisionPlace: 2, overallPlace: 51, overallFieldSize: 412,
-		},
+		catKey: 'olympic', name: 'Luray International Triathlon', type: 'Olympic Tri',
+		location: 'Luray, VA', racers: [sierra, aurora, devin],
+		date: '2025-08-17', year: 2025,
+		finish: '2:41:09', pr: false, medalTier: 2, medalSub: 'F40-44',
+		division: 'F40-44', divisionPlace: 2, overallPlace: 51, overallFieldSize: 412,
 	},
-] as const;
+];
 ---
 
 <Layout title="DEV-30 — all-races card head layout">
@@ -48,11 +66,9 @@ const examples = [
 		<div class="eyebrow">Throwaway preview · DEV-30</div>
 		<h1>All-races card<br /><span>location + racer layout</span></h1>
 		<p class="muted">
-			All four options now use the <strong>large avatar on the far left</strong> so you can see them all clearly.
-			The only thing that changes between A/B/C/D is <strong>where the location text appears</strong>.
-			Each block shows the same two cards — a single-racer swim meet and a multi-racer triathlon — so
-			you can see how each option handles one avatar vs. stacked avatars. Pick a location treatment and
-			I'll ship it on the real cards and delete this page.
+			Four options, each with its <strong>original layout</strong> — pick the location treatment you want
+			and I'll ship it to the real cards and delete this page.
+			Each block shows the same two cards — a single-racer swim meet and a multi-racer triathlon.
 		</p>
 	</section>
 
@@ -65,7 +81,24 @@ const examples = [
 				<p class="note">{v.note}</p>
 				<div class="results">
 					{examples.map((ex) => (
-						<Dev30Card variant={v.key} {...ex.card} />
+						<Dev30Card
+							variant={v.key}
+							catKey={ex.catKey}
+							name={ex.name}
+							type={ex.type}
+							location={ex.location}
+							racers={ex.racers}
+							date={ex.date}
+							year={ex.year}
+							finish={ex.finish}
+							pr={ex.pr}
+							medalTier={ex.medalTier}
+							medalSub={ex.medalSub}
+							division={ex.division}
+							divisionPlace={ex.divisionPlace}
+							overallPlace={ex.overallPlace}
+							overallFieldSize={ex.overallFieldSize}
+						/>
 					))}
 				</div>
 			</section>
