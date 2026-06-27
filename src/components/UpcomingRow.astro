@@ -1,13 +1,13 @@
 ---
 // One UPCOMING race as a feed row, living in the shared `.results` subgrid so it lines
-// up with every other row on /races and /people. The category tag + who's racing
-// (RacerBadge: one chip, or avatars + "N Racers") share the meta line BELOW the race name
-// (via CardSubMeta); the location sits on the right where a finish time would be. No detail
-// link (upcoming editions don't get a page until results land). `.is-upcoming` lets the
-// year-line toggle collapse/expand these rows.
+// up with every other row on /races and /people. Avatar on the left (Option D treatment,
+// matching the result rows); race title + type below the name; location right-aligned where
+// the finish time would sit. No detail link (upcoming editions don't get a page until results
+// land). `.is-upcoming` lets the year-line toggle collapse/expand these rows.
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
+import Avatar from './Avatar.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { raceDistanceLabel, formatLocation } from '../lib/format';
@@ -28,20 +28,45 @@ const racers = ed.racers ?? [];
 ---
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
-	<div class="uc-body">
-		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} racers={racers} />
-	</div>
+	{racers.length > 0 ? (
+		<div class="uc-body uc-body-d">
+			<span class="uc-ava">
+				{racers.length === 1 ? (
+					<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+				) : (
+					<span class="uc-ava-stack">
+						{racers.map((p) => <span class="uc-ava-s"><Avatar src={p.avatar_url} name={p.full_name} size={40} /></span>)}
+					</span>
+				)}
+			</span>
+			<div class="uc-inner">
+				<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+				<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} />
+			</div>
+		</div>
+	) : (
+		<div class="uc-body">
+			<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+			<CardSubMeta type={typeLabel} catKey={cat.key} distance={distLabel} />
+		</div>
+	)}
 	<div class="uc-meta">
 		{ed.race?.location && <span class="uc-loc">{formatLocation(ed.race.location)}</span>}
 	</div>
 </article>
 
 <style>
-	/* single-row card; body in the name column (racer · name · category, stacked), the
-	   location right-aligned where a finish time would sit, so the row reads like the feed. */
+	/* single-row card; avatar on the far left (Option D), race title + type to its right,
+	   location right-aligned where the finish time would sit. */
 	.ucard { grid-template-rows: auto; }
 	.uc-body { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
+	/* avatar on the left, name + meta to its right — same D treatment as ResultRow */
+	.uc-body-d { flex-direction: row; align-items: center; gap: 0.7rem; }
+	.uc-ava { flex-shrink: 0; display: inline-flex; }
+	.uc-ava-stack { display: inline-flex; align-items: center; }
+	.uc-ava-s + .uc-ava-s { margin-left: -0.55rem; }
+	.uc-ava-s :global(.avatar) { box-shadow: 0 0 0 2px var(--surface); }
+	.uc-inner { display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; min-width: 0; }
 	.uc-meta { grid-column: 3 / -1; display: flex; align-items: center; justify-content: flex-end; padding: 0.85rem 1.2rem; }
 	/* location in the division-rank treatment (mono, --fs-value) so it reads as row data,
 	   not body text — matches the standings value the same column carries on result rows (DEV-21). */

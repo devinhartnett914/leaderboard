@@ -1,11 +1,11 @@
 ---
-// Home-page teaser TILE for one upcoming race — the forward-looking sibling of
-// RecentCard. The category tag + who's racing (RacerBadge: one chip, or avatars + "N
-// Racers") share the meta line BELOW the race name (via CardSubMeta, the card standard);
-// the location sits right under the title. The date lives on the DateRail, so it isn't repeated.
+// Home-page teaser TILE for one upcoming race — the forward-looking sibling of RecentCard.
+// Avatar on the left (Option D treatment), race title + type to its right; location below.
+// The date lives on the DateRail so it isn't repeated.
 import DateRail from './DateRail.astro';
 import CardSubMeta from './CardSubMeta.astro';
 import RaceTitle from './RaceTitle.astro';
+import Avatar from './Avatar.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { raceDistanceLabel, formatLocation } from '../lib/format';
@@ -23,8 +23,28 @@ const racers = ed.racers ?? [];
 <article class="up-tile" data-cat={cat.key} style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
 	<div class="ut-body">
-		<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
-		<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} racers={racers} />
+		{racers.length > 0 ? (
+			<div class="ut-head-d">
+				<span class="ut-ava">
+					{racers.length === 1 ? (
+						<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+					) : (
+						<span class="ut-ava-stack">
+							{racers.map((p) => <span class="ut-ava-s"><Avatar src={p.avatar_url} name={p.full_name} size={40} /></span>)}
+						</span>
+					)}
+				</span>
+				<div class="ut-inner">
+					<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+					<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} />
+				</div>
+			</div>
+		) : (
+			<Fragment>
+				<RaceTitle catKey={cat.key} name={ed.race?.name ?? 'Race'} />
+				<CardSubMeta type={typeLabel} catKey={cat.key} distance={distance} />
+			</Fragment>
+		)}
 		{ed.race?.location && <span class="ut-loc">{formatLocation(ed.race.location)}</span>}
 	</div>
 </article>
@@ -38,9 +58,15 @@ const racers = ed.racers ?? [];
 		border: 1px solid var(--border); border-left: 3px solid var(--edge);
 		border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
 	}
-	/* stretch (not flex-start) so the race name is width-constrained to the tile and
-	   ellipsizes when long (DEV-19); location + meta are left-aligned text either way. */
 	.ut-body { display: flex; flex-direction: column; align-items: stretch; gap: 0.4rem; padding: 0.85rem 1rem; min-width: 0; }
+	/* avatar on the left (Option D), race title + type to its right */
+	.ut-head-d { display: flex; flex-direction: row; align-items: center; gap: 0.7rem; }
+	.ut-ava { flex-shrink: 0; display: inline-flex; }
+	.ut-ava-stack { display: inline-flex; align-items: center; }
+	.ut-ava-s + .ut-ava-s { margin-left: -0.55rem; }
+	.ut-ava-s :global(.avatar) { box-shadow: 0 0 0 2px var(--surface); }
+	/* flex:1 + min-width:0 so RaceTitle can still constrain and ellipsize in the tile */
+	.ut-inner { flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem; min-width: 0; }
 	/* location in the division-rank treatment (mono, --fs-value) — reads as race data,
 	   matching the standings value on the feed rows rather than body text (DEV-21). */
 	.ut-loc { font-family: var(--font-mono); font-size: var(--fs-value); color: var(--muted); }

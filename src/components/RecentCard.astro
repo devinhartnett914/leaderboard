@@ -14,6 +14,7 @@ import CardSubMeta from './CardSubMeta.astro';
 import DateRail from './DateRail.astro';
 import Division from './Division.astro';
 import EventChip from './EventChip.astro';
+import Avatar from './Avatar.astro';
 import { categoryOf, catColor } from '../lib/categories';
 import { SPORT_LABELS, type Sport } from '../lib/types';
 import { formatTime, formatSwimTime, swimDivision, raceDistanceLabel } from '../lib/format';
@@ -127,8 +128,28 @@ const medalSub = medalTier ? swimDivision(division) : null;
 <article class:list={['recent', { 'has-marks': hasMarks }]} data-cat={catKey} style={`--edge:${edge}`}>
 	<DateRail date={ed?.date} year={ed?.year} />
 	<div class="rc-body">
-		<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
-		<CardSubMeta type={typeLabel} catKey={catKey} distance={distance} racers={racers} />
+		{racers.length > 0 ? (
+			<div class="rc-top">
+				<span class="rc-ava-l">
+					{racers.length === 1 ? (
+						<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+					) : (
+						<span class="rc-ava-stack">
+							{racers.map((p) => <span class="rc-ava-s"><Avatar src={p.avatar_url} name={p.full_name} size={40} /></span>)}
+						</span>
+					)}
+				</span>
+				<div class="rc-info">
+					<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+					<CardSubMeta type={typeLabel} catKey={catKey} distance={distance} />
+				</div>
+			</div>
+		) : (
+			<Fragment>
+				<RaceTitle catKey={catKey} name={raceName} href={ed?.race ? `/races/${ed.race.slug}` : null} />
+				<CardSubMeta type={typeLabel} catKey={catKey} distance={distance} />
+			</Fragment>
+		)}
 		<div class="rc-finish" data-ev={variant}>
 			{(figureLabel || (eventStr && (variant === 'current' || variant === 'b'))) && (
 				<div class="rc-head">
@@ -168,6 +189,13 @@ const medalSub = medalTier ? swimDivision(division) : null;
 	}
 
 	.rc-body { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.85rem 1rem; min-width: 0; }
+	/* avatar on the left, race title + type to its right (Option D treatment) */
+	.rc-top { display: flex; flex-direction: row; align-items: center; gap: 0.7rem; }
+	.rc-ava-l { flex-shrink: 0; display: inline-flex; }
+	.rc-ava-stack { display: inline-flex; align-items: center; }
+	.rc-ava-s + .rc-ava-s { margin-left: -0.55rem; }
+	.rc-ava-s :global(.avatar) { box-shadow: 0 0 0 2px var(--surface); }
+	.rc-info { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; }
 	.rc-more { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
 
 	/* finish block, pinned to the card bottom (margin-top:auto) so the figure lines up
