@@ -1,13 +1,12 @@
 ---
 // THROWAWAY (DEV-30) — one all-races feed card rendered in a chosen head VARIANT, so the
-// four location/racer layouts tried in this ticket can be compared side by side on
-// /dev30-preview. Only the card HEAD (column 2) changes between variants; the date rail and
-// the right-hand finish + standing are identical (and reuse the real leaf components), so the
-// comparison is faithful. Delete this file + /dev30-preview once a layout is picked, and
-// implement the winner in the real ResultRow / MeetCard / RaceGroupCard.
+// four location treatments can be compared side by side on /dev30-preview. All options now
+// share the same large-avatar-left layout (per Devin's feedback — "I need to see all the
+// avatars in these options"); only WHERE the location appears changes between A/B/C/D.
+// Delete this file + /dev30-preview once a layout is picked, then implement the winner in
+// the real ResultRow / MeetCard / RaceGroupCard.
 import DateRail from './DateRail.astro';
 import RaceTitle from './RaceTitle.astro';
-import RacerBadge from './RacerBadge.astro';
 import Avatar from './Avatar.astro';
 import ResultMarks from './ResultMarks.astro';
 import FinishTime from './FinishTime.astro';
@@ -45,71 +44,59 @@ const icon = catIcon(catKey);
 <article class:list={['feed-card', 'pv-card', `v-${variant.toLowerCase()}`]} style={`--edge:${edge}`}>
 	<DateRail date={date} year={year} />
 
-	{/* ── HEAD (column 2) — the only part that changes between variants ── */}
-	{variant === 'A' && (
-		<div class="pv-head">
-			<RaceTitle catKey={catKey} name={name} href="#" />
-			<span class="pv-meta">
-				<span class="pv-ic">{icon}</span>
-				<span class="pv-type">{type}</span>
-				{distance && <span class="pv-dist">· {distance}</span>}
-				<span class="pv-loc-edge">· {location}</span>
-				{racers.length > 0 && (
-					<Fragment>
-						<span class="pv-pipe" aria-hidden="true">|</span>
-						<RacerBadge racers={racers} />
-					</Fragment>
-				)}
-			</span>
-		</div>
-	)}
+	{/* ── HEAD (column 2) — large avatar on the left for ALL variants.
+	       Only the location placement changes between A / B / C / D. ── */}
+	<div class="pv-head">
+		{/* Avatar — always on the far left, sized to match the name+tags block height */}
+		<span class="pv-ava">
+			{racers.length === 1 ? (
+				<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
+			) : (
+				<span class="pv-ava-stack">
+					{racers.map((r) => (
+						<span class="pv-ava-s"><Avatar src={r.avatar_url} name={r.full_name} size={38} /></span>
+					))}
+				</span>
+			)}
+		</span>
 
-	{variant === 'B' && (
-		<div class="pv-head">
+		{/* Body — race name + type/location treatment */}
+		<div class="pv-body">
 			<RaceTitle catKey={catKey} name={name} href="#" />
-			<span class="pv-meta">
-				<span class="pv-ic">{icon}</span>
-				<span class="pv-type">{type}</span>
-				{distance && <span class="pv-dist">· {distance}</span>}
-				{racers.length > 0 && (
-					<Fragment>
-						<span class="pv-pipe" aria-hidden="true">|</span>
-						<RacerBadge racers={racers} />
-					</Fragment>
-				)}
-			</span>
-		</div>
-	)}
 
-	{variant === 'C' && (
-		<div class="pv-head">
-			{racers.length > 0 && <RacerBadge racers={racers} />}
-			<RaceTitle catKey={catKey} name={name} href="#" />
-			<span class="pv-meta">
-				<span class="pv-ic">{icon}</span>
-				<span class="pv-type">{type}</span>
-				{distance && <span class="pv-dist">· {distance}</span>}
-				<span class="pv-pipe" aria-hidden="true">|</span>
-				<span class="pv-loc-gray">{location}</span>
-			</span>
-		</div>
-	)}
+			{/* A: location folded INTO the type strip, edge-colored */}
+			{variant === 'A' && (
+				<span class="pv-meta">
+					<span class="pv-ic">{icon}</span>
+					<span class="pv-type">{type}</span>
+					{distance && <span class="pv-dist">· {distance}</span>}
+					<span class="pv-loc-edge">· {location}</span>
+				</span>
+			)}
 
-	{variant === 'D' && (
-		<div class="pv-head pv-head-d">
-			<span class="pv-ava">
-				{racers.length === 1 ? (
-					<Avatar src={racers[0].avatar_url} name={racers[0].full_name} size={46} />
-				) : (
-					<span class="pv-ava-stack">
-						{racers.map((r) => (
-							<span class="pv-ava-s"><Avatar src={r.avatar_url} name={r.full_name} size={40} /></span>
-						))}
+			{/* B: type tag stays clean; location in top-right corner, small gray */}
+			{variant === 'B' && (
+				<span class="pv-meta">
+					<span class="pv-ic">{icon}</span>
+					<span class="pv-type">{type}</span>
+					{distance && <span class="pv-dist">· {distance}</span>}
+				</span>
+			)}
+
+			{/* C: location on its own small line below the type tag */}
+			{variant === 'C' && (
+				<Fragment>
+					<span class="pv-meta">
+						<span class="pv-ic">{icon}</span>
+						<span class="pv-type">{type}</span>
+						{distance && <span class="pv-dist">· {distance}</span>}
 					</span>
-				)}
-			</span>
-			<div class="pv-body">
-				<RaceTitle catKey={catKey} name={name} href="#" />
+					<span class="pv-loc-sub">{location}</span>
+				</Fragment>
+			)}
+
+			{/* D: location pipe-separated inline with type, gray */}
+			{variant === 'D' && (
 				<span class="pv-meta">
 					<span class="pv-ic">{icon}</span>
 					<span class="pv-type">{type}</span>
@@ -117,9 +104,9 @@ const icon = catIcon(catKey);
 					<span class="pv-pipe" aria-hidden="true">|</span>
 					<span class="pv-loc-gray">{location}</span>
 				</span>
-			</div>
+			)}
 		</div>
-	)}
+	</div>
 
 	{/* ── finish + standing (identical across variants) ── */}
 	<div class="pv-finish">
@@ -132,38 +119,90 @@ const icon = catIcon(catKey);
 		<ResultPlaces overallPlace={overallPlace} overallFieldSize={overallFieldSize} division={division} divisionPlace={divisionPlace} />
 	</div>
 
-	{/* variant B parks the location in the card's top-right corner */}
+	{/* variant B: location parked in the card's top-right corner */}
 	{variant === 'B' && <span class="pv-loc-tr">{location}</span>}
 </article>
 
 <style>
-	/* the card is a subgrid of the parent .results grid (date · head · finish · — · standing),
-	   exactly like a real feed card. position:relative so variant B can park the location top-right. */
+	/* card lives in the parent .results subgrid; position:relative anchors variant B's
+	   top-right location label. */
 	.pv-card { position: relative; align-items: stretch; }
 
-	.pv-head { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
+	/* HEAD: large avatar on the far left, name+tags block to its right, both vertically
+	   centered. justify-content:flex-start keeps everything pinned to the left edge. */
+	.pv-head {
+		grid-column: 2;
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.75rem;
+		padding: 0.85rem 1.1rem;
+		min-width: 0;
+	}
 
-	/* variant D: a large avatar on the left, the name + tags to its right, vertically centered
-	   so the avatar reads as the same height as the name+tags block. */
-	.pv-head-d { flex-direction: row; align-items: center; gap: 0.7rem; }
-	.pv-ava { flex-shrink: 0; display: inline-flex; }
+	/* avatar container — flex-shrink:0 so it never collapses */
+	.pv-ava { flex-shrink: 0; display: inline-flex; align-items: center; }
+	/* stacked avatars for multi-racer: each overlaps the previous slightly */
 	.pv-ava-stack { display: inline-flex; align-items: center; }
-	.pv-ava-s + .pv-ava-s { margin-left: -0.55rem; }
+	.pv-ava-s + .pv-ava-s { margin-left: -0.6rem; }
 	.pv-ava-s :global(.avatar) { box-shadow: 0 0 0 2px var(--surface); }
-	.pv-body { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; min-width: 0; }
 
-	/* the meta strip — mono-uppercase, same voice as the real CardMeta. type/distance take the
-	   card edge color; the icon is a native color emoji (not tinted). */
-	.pv-meta { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; flex-wrap: nowrap; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
+	/* name + meta block */
+	.pv-body {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: center;
+		gap: 0.35rem;
+		min-width: 0;
+	}
+
+	/* the meta strip — mono-uppercase, same voice as the real CardSubMeta */
+	.pv-meta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-width: 0;
+		flex-wrap: nowrap;
+		font-family: var(--font-mono);
+		font-size: 0.62rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		white-space: nowrap;
+	}
 	.pv-ic { align-self: center; flex-shrink: 0; font-size: 0.95rem; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', emoji; }
 	.pv-type, .pv-dist { color: var(--edge); }
 	.pv-pipe { flex-shrink: 0; color: var(--line-strong); font-size: 0.62rem; }
-	/* location beside the type — gray chrome (variants C/D) */
+	/* location inline with type, gray (variant D) */
 	.pv-loc-gray { flex-shrink: 0; color: var(--muted); }
-	/* location folded INTO the type strip, edge-colored (variant A) */
+	/* location IN the type strip, edge-colored (variant A) */
 	.pv-loc-edge { flex-shrink: 0; color: var(--edge); }
-	/* location parked in the card's top-right corner, small + gray (variant B) */
-	.pv-loc-tr { position: absolute; top: 0.7rem; right: 1rem; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; pointer-events: none; }
+	/* location on its own line below type (variant C) */
+	.pv-loc-sub {
+		font-family: var(--font-mono);
+		font-size: 0.58rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--muted);
+		white-space: nowrap;
+	}
+	/* location parked in the card's top-right corner (variant B) */
+	.pv-loc-tr {
+		position: absolute;
+		top: 0.7rem;
+		right: 1rem;
+		font-family: var(--font-mono);
+		font-size: 0.62rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--muted);
+		white-space: nowrap;
+		pointer-events: none;
+	}
 
 	.pv-finish { grid-column: 3; position: relative; display: flex; flex-direction: column; justify-content: center; padding: 0 1.1rem; }
 	.pv-timewrap { position: relative; width: max-content; }

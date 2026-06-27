@@ -7,11 +7,13 @@
 import Layout from '../layouts/Layout.astro';
 import Dev30Card from '../components/Dev30Card.astro';
 
+// Round 5: all options now share the large-avatar-left layout (per feedback).
+// The comparison is PURELY about WHERE the location text appears.
 const variants = [
-	{ key: 'A', title: 'A · Location in the type tag', note: 'Round 1 — location folded into the colored type strip (· LURAY, VA), racer stays on the line.' },
-	{ key: 'B', title: 'B · Location top-right, small gray', note: 'Round 2 — type tag stays clean; the location parks in the card’s top-right corner.' },
-	{ key: 'C', title: 'C · Racer above title · location beside type (gray, pipe)', note: 'Round 3 — racer moves above the name; OLYMPIC TRI | LURAY, VA in gray.' },
-	{ key: 'D', title: 'D · Large avatar left · name + type | location right', note: 'NEW — keeps C’s "type | location" treatment, but the racer becomes a large avatar on the left (full height of the name + tags) instead of a line above the title.' },
+	{ key: 'A', title: 'A — Location IN the type strip (edge color)', note: 'Location folded into the colored type tag: SWIM MEET · RESTON, VA (same edge color). Avatar on the far left.' },
+	{ key: 'B', title: 'B — Location top-right corner, small gray', note: 'Type tag stays clean (just the type). Location parks in the top-right corner of the card, small gray mono. Avatar on the far left.' },
+	{ key: 'C', title: 'C — Location on its own line, below the type tag', note: 'Type tag is clean. Location appears as a separate small gray mono line directly below it. Avatar on the far left.' },
+	{ key: 'D', title: 'D — Location pipe-separated inline with type (gray)', note: 'Location follows the type tag inline, gray, pipe-separated: SWIM MEET | RESTON, VA. Avatar on the far left.' },
 ] as const;
 
 const sierra = { full_name: 'Sierra Hartnett', slug: 'sierra-hartnett', avatar_url: null };
@@ -46,11 +48,11 @@ const examples = [
 		<div class="eyebrow">Throwaway preview · DEV-30</div>
 		<h1>All-races card<br /><span>location + racer layout</span></h1>
 		<p class="muted">
-			The four layouts we’ve tried for putting the <strong>location</strong> (and the racer) on an
-			all-races feed card, side by side. Each block shows the same two cards — a single-racer swim meet
-			and a multi-racer triathlon — so you can see how each option handles one racer vs. many. Sample
-			data; the right-hand finish + standing is identical in every option, so judge the <em>head</em>
-			(left side). Pick one and I’ll ship it on the real cards + delete this page.
+			All four options now use the <strong>large avatar on the far left</strong> so you can see them all clearly.
+			The only thing that changes between A/B/C/D is <strong>where the location text appears</strong>.
+			Each block shows the same two cards — a single-racer swim meet and a multi-racer triathlon — so
+			you can see how each option handles one avatar vs. stacked avatars. Pick a location treatment and
+			I'll ship it on the real cards and delete this page.
 		</p>
 	</section>
 
