@@ -83,19 +83,28 @@ for (const [id, pResults] of resultsByPerson) {
 									{stats && (
 										<div class="pstats">
 											<span class="pstat">
+												<span class="pstat-mk">
+													<span class="pstat-g">🏃</span>
+													<span class="pstat-lbl">Sports</span>
+												</span>
 												<span class="pstat-n">{stats.sports}</span>
-												<span class="pstat-l">Sports</span>
 											</span>
 											{stats.podiums > 0 && (
 												<span class="pstat pstat-pod">
+													<span class="pstat-mk">
+														<span class="pstat-g">🥇</span>
+														<span class="pstat-lbl">Podiums</span>
+													</span>
 													<span class="pstat-n">{stats.podiums}</span>
-													<span class="pstat-l">Podiums</span>
 												</span>
 											)}
 											{stats.prs > 0 && (
 												<span class="pstat pstat-pr">
+													<span class="pstat-mk">
+														<span class="pstat-g">⭐</span>
+														<span class="pstat-lbl">PR</span>
+													</span>
 													<span class="pstat-n">{stats.prs}</span>
-													<span class="pstat-l">PRs</span>
 												</span>
 											)}
 										</div>
@@ -158,14 +167,14 @@ for (const [id, pResults] of resultsByPerson) {
 	   "person meta" treatment). The race-card sub (date · location) stays muted. */
 	.person-card .sub { color: var(--accent); }
 
-	/* Stat chips — visual echo of the person-page filter chip anchors (big num + mono label) */
-	.pstats { display: flex; align-items: stretch; gap: 0.5rem; margin-top: 0.55rem; }
-	.pstat { display: flex; flex-direction: column; align-items: center; line-height: 0.82; padding: 0.3rem 0.65rem; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid var(--border); border-radius: 10px; }
-	.pstat-n { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; color: var(--accent); letter-spacing: 0.02em; }
-	.pstat-l { font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
-	.pstat-pod { background: color-mix(in srgb, var(--gold) 12%, var(--surface)); }
+	/* Stat items — glyph-over-label mark (same pattern as PrBadge) + count to its right */
+	.pstats { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 0.5rem; }
+	.pstat { display: flex; align-items: center; gap: 0.3rem; }
+	.pstat-mk { display: inline-flex; flex-direction: column; align-items: center; gap: 0.05rem; line-height: 1; }
+	.pstat-g { font-size: 1rem; line-height: 1; }
+	.pstat-lbl { font-family: var(--font-mono); font-size: var(--fs-cap); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+	.pstat-n { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; color: var(--accent); }
 	.pstat-pod .pstat-n { color: var(--gold); }
-	.pstat-pr { background: color-mix(in srgb, var(--gold) 12%, var(--surface)); }
 	.pstat-pr .pstat-n { color: var(--gold); }
 
 	/* Recent races are teaser TILES (RecentCard) in the shared cols-3 grid — each a
