@@ -15,16 +15,17 @@ import type { UpcomingRace } from '../lib/queries';
 
 interface Props {
 	race: UpcomingRace;
+	showPerson?: boolean; // show avatar (true on /races all-races view; false on person pages)
 	anchorId?: string | null; // so a deep-link (Home → /races#upcoming) can scroll to it
 }
-const { race: ed, anchorId = null } = Astro.props;
+const { race: ed, showPerson = false, anchorId = null } = Astro.props;
 const sport = (ed.race?.sport ?? 'other') as Sport;
 // same category resolution every card uses (triathlon splits into sprint/olympic/kids)
 const cat = categoryOf({ race_edition: { distance_or_format: ed.distance_or_format, race: { sport, name: ed.race?.name } } });
 const edge = catColor(cat.key);
 const typeLabel = sport === 'triathlon' ? cat.label : SPORT_LABELS[sport];
 const distLabel = (sport !== 'triathlon' || cat.key === 'triathlon') ? raceDistanceLabel(ed.distance_or_format, ed.race?.name) : null;
-const racers = ed.racers ?? [];
+const racers = showPerson ? (ed.racers ?? []) : [];
 ---
 <article class="ucard feed-card is-upcoming" id={anchorId ?? undefined} data-cat={cat.key} data-year={String(ed.year ?? '')} data-pr="0" style={`--edge:${edge}`}>
 	<DateRail date={ed.date} year={ed.year} />
@@ -61,7 +62,7 @@ const racers = ed.racers ?? [];
 	.ucard { grid-template-rows: auto; }
 	.uc-body { grid-column: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.1rem; min-width: 0; }
 	/* avatar on the left, name + meta to its right — same D treatment as ResultRow */
-	.uc-body-d { flex-direction: row; align-items: center; gap: 0.7rem; }
+	.uc-body-d { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.7rem; }
 	.uc-ava { flex-shrink: 0; display: inline-flex; }
 	.uc-ava-stack { display: inline-flex; align-items: center; }
 	.uc-ava-s + .uc-ava-s { margin-left: -0.55rem; }

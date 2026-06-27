@@ -79,7 +79,7 @@ const subtitle = `${results.length} results across the family`;
 							<div class="year-header" data-year={String(it.year ?? '')}><span>{it.year ?? '—'}</span></div>
 						)
 					) : it.type === 'upcoming' ? (
-						<UpcomingRow race={it.race} anchorId={it === firstUpcoming ? 'upcoming' : null} />
+						<UpcomingRow race={it.race} showPerson anchorId={it === firstUpcoming ? 'upcoming' : null} />
 					) : it.type === 'meet' ? (
 						<MeetCard entry={it} prCtx={prCtx} showPerson />
 					) : it.type === 'race' ? (
