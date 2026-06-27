@@ -4,7 +4,8 @@ import RecentCard from '../components/RecentCard.astro';
 import UpcomingCard from '../components/UpcomingCard.astro';
 import Avatar from '../components/Avatar.astro';
 import { getFamilyMembers, getAllFamilyResults, getUpcomingRaces } from '../lib/queries';
-import { buildEntries, buildPrContext } from '../lib/feed';
+import { buildEntries, buildPrContext, podiumPlace } from '../lib/feed';
+import { categoryOf } from '../lib/categories';
 import { currentAge } from '../lib/format';
 
 const [family, allResults, upcoming] = await Promise.all([
@@ -23,6 +24,34 @@ const upcomingSoon = upcoming.slice(0, 3);
 const birthKey = (p: (typeof family)[number]) =>
 	p.birth_date ?? (p.birth_year ? `${p.birth_year}-00-00` : '9999-99-99');
 const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKey(b)));
+
+// Per-person stat counts (sports / podiums / PRs) — same logic as the person page filter chips.
+const resultsByPerson = new Map<string, typeof allResults>();
+for (const r of allResults) {
+	const id = r.person?.id;
+	if (!id) continue;
+	if (!resultsByPerson.has(id)) resultsByPerson.set(id, []);
+	resultsByPerson.get(id)!.push(r);
+}
+const statsByPerson = new Map<string, { sports: number; podiums: number; prs: number }>();
+for (const [id, pResults] of resultsByPerson) {
+	const entries = buildEntries(pResults);
+	const catKeys = new Set<string>();
+	let podiums = 0;
+	let prs = 0;
+	for (const e of entries) {
+		if (e.type === 'card') {
+			catKeys.add(categoryOf(e.r).key);
+			if (podiumPlace(e.r)) podiums++;
+			if (prCtx.prBadge(e.r)) prs++;
+		} else if (e.type === 'meet') {
+			catKeys.add('swim_meet');
+			for (const ev of e.events) { if (podiumPlace(ev)) podiums++; }
+			if (e.events.some(prCtx.isSwimPr)) prs++;
+		}
+	}
+	statsByPerson.set(id, { sports: catKeys.size, podiums, prs });
+}
 ---
 
 <Layout title="Leaderboard">
@@ -44,12 +73,33 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 				<div class="grid cols-3">
 					{familyByAge.map((p) => {
 						const age = currentAge(p.birth_date, p.birth_year);
+						const stats = statsByPerson.get(p.id);
 						return (
 							<a class="card person-card" href={`/people/${p.slug}`}>
 								<Avatar src={p.avatar_url} name={p.full_name} size={48} />
 								<div>
 									<div class="name">{p.full_name}</div>
 									<div class="sub">{[p.gender, age != null && `Age ${age}`].filter(Boolean).join(' · ') || 'View results'}</div>
+									{stats && (
+										<div class="pstats">
+											<span class="pstat">
+												<span class="pstat-n">{stats.sports}</span>
+												<span class="pstat-l">Sports</span>
+											</span>
+											{stats.podiums > 0 && (
+												<span class="pstat pstat-pod">
+													<span class="pstat-n">{stats.podiums}</span>
+													<span class="pstat-l">Podiums</span>
+												</span>
+											)}
+											{stats.prs > 0 && (
+												<span class="pstat pstat-pr">
+													<span class="pstat-n">{stats.prs}</span>
+													<span class="pstat-l">PRs</span>
+												</span>
+											)}
+										</div>
+									)}
 								</div>
 							</a>
 						);
@@ -100,13 +150,23 @@ const familyByAge = [...family].sort((a, b) => birthKey(a).localeCompare(birthKe
 	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
 	.all-link { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
 
-	.person-card { display: flex; align-items: center; gap: 0.9rem; color: var(--text); transition: border-color 0.15s, transform 0.15s; }
+	.person-card { display: flex; align-items: flex-start; gap: 0.9rem; color: var(--text); transition: border-color 0.15s, transform 0.15s; }
 	.person-card:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
 	.name { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; letter-spacing: 0.02em; }
 	.sub { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin-top: 0.15rem; }
 	/* Family-card gender·age reads blue, matching the person-page subtitle (the one
 	   "person meta" treatment). The race-card sub (date · location) stays muted. */
 	.person-card .sub { color: var(--accent); }
+
+	/* Stat chips — visual echo of the person-page filter chip anchors (big num + mono label) */
+	.pstats { display: flex; align-items: stretch; gap: 0.5rem; margin-top: 0.55rem; }
+	.pstat { display: flex; flex-direction: column; align-items: center; line-height: 0.82; padding: 0.3rem 0.65rem; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border: 1px solid var(--border); border-radius: 10px; }
+	.pstat-n { font-family: var(--font-display); font-weight: 400; font-size: 1.45rem; color: var(--accent); letter-spacing: 0.02em; }
+	.pstat-l { font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 0.13em; text-transform: uppercase; color: var(--muted); margin-top: 0.25rem; }
+	.pstat-pod { background: color-mix(in srgb, var(--gold) 12%, var(--surface)); }
+	.pstat-pod .pstat-n { color: var(--gold); }
+	.pstat-pr { background: color-mix(in srgb, var(--gold) 12%, var(--surface)); }
+	.pstat-pr .pstat-n { color: var(--gold); }
 
 	/* Recent races are teaser TILES (RecentCard) in the shared cols-3 grid — each a
 	   self-contained card that summarizes one entry, built from the same DateRail /
