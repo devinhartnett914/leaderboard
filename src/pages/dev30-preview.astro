@@ -1,0 +1,84 @@
+---
+// THROWAWAY preview (DEV-30) — compare the four all-races feed-card head layouts tried in
+// this ticket, so a winner can be picked before touching the real cards. Visit /dev30-preview.
+// Delete this page + src/components/Dev30Card.astro once a layout is chosen, then implement the
+// winner in ResultRow / MeetCard / RaceGroupCard. Sample data (initials avatars) — the point is
+// the HEAD layout (racer + name + type + location); the right-hand finish/standing is constant.
+import Layout from '../layouts/Layout.astro';
+import Dev30Card from '../components/Dev30Card.astro';
+
+const variants = [
+	{ key: 'A', title: 'A · Location in the type tag', note: 'Round 1 — location folded into the colored type strip (· LURAY, VA), racer stays on the line.' },
+	{ key: 'B', title: 'B · Location top-right, small gray', note: 'Round 2 — type tag stays clean; the location parks in the card’s top-right corner.' },
+	{ key: 'C', title: 'C · Racer above title · location beside type (gray, pipe)', note: 'Round 3 — racer moves above the name; OLYMPIC TRI | LURAY, VA in gray.' },
+	{ key: 'D', title: 'D · Large avatar left · name + type | location right', note: 'NEW — keeps C’s "type | location" treatment, but the racer becomes a large avatar on the left (full height of the name + tags) instead of a line above the title.' },
+] as const;
+
+const sierra = { full_name: 'Sierra Hartnett', slug: 'sierra-hartnett', avatar_url: null };
+const aurora = { full_name: 'Aurora Hartnett', slug: 'aurora-hartnett', avatar_url: null };
+const devin = { full_name: 'Devin Hartnett', slug: 'devin-hartnett', avatar_url: null };
+
+// two representative examples: a single-racer swim meet and a multi-racer triathlon
+const examples = [
+	{
+		label: 'Single racer · swim meet',
+		card: {
+			catKey: 'swim_meet', name: 'Reston Masters Invitational', type: 'Swim Meet', distance: null,
+			location: 'Reston, VA', racers: [sierra], date: '2026-03-14', year: 2026,
+			finish: '27.91', pr: true, medalTier: 1, medalSub: 'Girls 13-14',
+			division: 'Girls 13-14', divisionPlace: 1, overallPlace: 4, overallFieldSize: 38,
+		},
+	},
+	{
+		label: 'Multiple racers · triathlon',
+		card: {
+			catKey: 'olympic', name: 'Luray International Triathlon', type: 'Olympic Tri', distance: null,
+			location: 'Luray, VA', racers: [sierra, aurora, devin], date: '2025-08-17', year: 2025,
+			finish: '2:41:09', pr: false, medalTier: 2, medalSub: 'F40-44',
+			division: 'F40-44', divisionPlace: 2, overallPlace: 51, overallFieldSize: 412,
+		},
+	},
+] as const;
+---
+
+<Layout title="DEV-30 — all-races card head layout">
+	<section class="hero">
+		<div class="eyebrow">Throwaway preview · DEV-30</div>
+		<h1>All-races card<br /><span>location + racer layout</span></h1>
+		<p class="muted">
+			The four layouts we’ve tried for putting the <strong>location</strong> (and the racer) on an
+			all-races feed card, side by side. Each block shows the same two cards — a single-racer swim meet
+			and a multi-racer triathlon — so you can see how each option handles one racer vs. many. Sample
+			data; the right-hand finish + standing is identical in every option, so judge the <em>head</em>
+			(left side). Pick one and I’ll ship it on the real cards + delete this page.
+		</p>
+	</section>
+
+	{
+		variants.map((v) => (
+			<section class="block">
+				<div class="section-head">
+					<h2>{v.title}</h2>
+				</div>
+				<p class="note">{v.note}</p>
+				<div class="results">
+					{examples.map((ex) => (
+						<Dev30Card variant={v.key} {...ex.card} />
+					))}
+				</div>
+			</section>
+		))
+	}
+</Layout>
+
+<style>
+	.hero { margin: 1rem 0 2.5rem; }
+	.eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; }
+	.hero h1 { margin: 0 0 1rem; font-family: var(--font-display); font-weight: 400; font-size: clamp(2.5rem, 7vw, 4rem); line-height: 0.9; letter-spacing: 0.02em; }
+	.hero h1 span { color: var(--accent); }
+	.hero p { margin: 0; max-width: 70ch; }
+	.block { margin-bottom: 2.5rem; padding-bottom: 2.5rem; border-bottom: 1px solid var(--border); }
+	.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.4rem; flex-wrap: wrap; }
+	.section-head h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 1.7rem; letter-spacing: 0.04em; }
+	.note { margin: 0 0 1.1rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.04em; color: var(--faint); max-width: 80ch; }
+</style>

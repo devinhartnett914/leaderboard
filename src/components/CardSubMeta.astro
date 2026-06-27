@@ -1,10 +1,10 @@
 ---
 // The meta line that sits DIRECTLY BELOW the race name on every card: the category/type
-// tag (with its icon, via CardMeta) and — beside it — a trailing piece, separated by a
-// faint pipe. The trailing piece is either the race LOCATION (the all-races feed, gray
-// chrome) or who's RACING (home/upcoming/recent — a PersonChip or several avatars + a
-// count via RacerBadge). One component so the "type | …" pairing and its tight spacing
-// under the title are defined ONCE and stay consistent site-wide (DEV-19 / DEV-20 / DEV-30).
+// tag (with its icon, via CardMeta) and — beside it — who's racing. The racer is a single
+// PersonChip, or for an upcoming meet several avatars + a count; RacerBadge handles 1 vs
+// many vs none. Category first, racer after, separated by a faint pipe. One component so
+// the "type · racer" pairing and its tight spacing under the title are defined ONCE and
+// stay consistent site-wide (DEV-19 / DEV-20).
 import CardMeta from './CardMeta.astro';
 import RacerBadge from './RacerBadge.astro';
 
@@ -14,19 +14,12 @@ interface Props {
 	catKey?: string | null;
 	distance?: string | null;
 	event?: string | null;
-	location?: string | null;
 	racers?: Racer[];
 }
-const { type, catKey = null, distance = null, event = null, location = null, racers = [] } = Astro.props;
+const { type, catKey = null, distance = null, event = null, racers = [] } = Astro.props;
 ---
 <div class="submeta">
 	<CardMeta type={type} catKey={catKey} distance={distance} event={event} />
-	{location && (
-		<Fragment>
-			<span class="sm-pipe" aria-hidden="true">|</span>
-			<span class="sm-loc">{location}</span>
-		</Fragment>
-	)}
 	{racers.length > 0 && (
 		<Fragment>
 			<span class="sm-pipe" aria-hidden="true">|</span>
@@ -36,11 +29,8 @@ const { type, catKey = null, distance = null, event = null, location = null, rac
 </div>
 
 <style>
-	/* category tag + trailing piece on ONE line, tight under the title — a small gap, no big
-	   space. nowrap so the type stays next to it (the race name ellipsizes instead, per DEV-19). */
+	/* category tag + racer on ONE line, tight under the title — a small gap, no big space.
+	   nowrap so the type stays next to the racer (the race name ellipsizes instead, per DEV-19). */
 	.submeta { display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex-wrap: nowrap; }
 	.sm-pipe { flex-shrink: 0; color: var(--line-strong); font-family: var(--font-mono); font-size: 0.62rem; }
-	/* the race location reads in the same mono-caps voice as the type strip, but gray
-	   (--muted) so it sits beside the colored type as quiet chrome (DEV-30). */
-	.sm-loc { flex-shrink: 0; font-family: var(--font-mono); font-weight: 600; font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 </style>
